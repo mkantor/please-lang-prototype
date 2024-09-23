@@ -1,4 +1,4 @@
-async function read(stream: AsyncIterable<string>): Promise<string> {
+const read = async (stream: AsyncIterable<string>): Promise<string> => {
   let source: string = ''
   for await (const chunk of stream) {
     source += chunk
@@ -6,7 +6,7 @@ async function read(stream: AsyncIterable<string>): Promise<string> {
   return source
 }
 
-async function main(process: NodeJS.Process): Promise<undefined> {
+const main = async (process: NodeJS.Process): Promise<undefined> => {
   process.stdout.write(await read(process.stdin))
 }
 
