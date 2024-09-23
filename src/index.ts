@@ -6,4 +6,8 @@ async function read(stream: AsyncIterable<string>): Promise<string> {
   return source
 }
 
-process.stdout.write(await read(process.stdin))
+async function main(process: NodeJS.Process): Promise<undefined> {
+  process.stdout.write(await read(process.stdin))
+}
+
+await main(process)
