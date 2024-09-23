@@ -1,9 +1,9 @@
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
-  let source: string = ''
+  let input: string = ''
   for await (const chunk of stream) {
-    source += chunk
+    input += chunk
   }
-  return source
+  return input
 }
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
