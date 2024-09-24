@@ -1,4 +1,8 @@
 import * as util from 'node:util'
+import * as option from './adts/option.js'
+import { type Option } from './adts/option.js'
+import * as molecule from './parsing/molecule.js'
+import { type Molecule } from './parsing/molecule.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
   let input: string = ''
@@ -8,16 +12,27 @@ const read = async (stream: AsyncIterable<string>): Promise<string> => {
   return input
 }
 
+// TODO: return an `Either` instead with error details on the left
+const validate = (source: string): Option<Molecule> => {
+  const parsedInput: unknown = JSON.parse(source)
+  return molecule.asMolecule(parsedInput)
+}
+
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
-  const parsedInput: unknown = JSON.parse(rawInput)
 
-  process.stdout.write(
-    util.inspect(parsedInput, {
-      colors: true,
-      depth: Infinity,
-    }),
-  )
+  option.match(validate(rawInput), {
+    none: () => {
+      throw new Error('Invalid input') // TODO: improve error reporting
+    },
+    some: parsedInput =>
+      process.stdout.write(
+        util.inspect(parsedInput, {
+          colors: true,
+          depth: Infinity,
+        }),
+      ),
+  })
 
   // Writing a newline ensures that output is flushed before exiting. Otherwise there may be no
   // output actually printed to the console. This happens whether or not `process.exit` is
