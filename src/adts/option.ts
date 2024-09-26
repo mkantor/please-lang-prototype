@@ -21,6 +21,15 @@ export const flatMap = <Value, NewValue>(
   f: (value: Value) => Option<NewValue>,
 ): Option<NewValue> => match(option, { none: () => none, some: f })
 
+export const map = <Value, NewValue>(
+  option: Option<Value>,
+  f: (value: Value) => NewValue,
+): Option<NewValue> =>
+  match(option, {
+    none: (): Option<NewValue> => none,
+    some: value => makeSome(f(value)),
+  })
+
 export const match = <Value, Result>(
   adt: Option<Value>,
   cases: {
