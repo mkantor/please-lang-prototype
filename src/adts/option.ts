@@ -16,6 +16,9 @@ export const makeSome = <Value>(value: Value) =>
     value,
   } satisfies Option<Value>)
 
+export const isNone = (option: Option<unknown>): option is typeof none =>
+  option[tagKey] === 'none'
+
 export const flatMap = <Value, NewValue>(
   option: Option<Value>,
   f: (value: Value) => Option<NewValue>,
