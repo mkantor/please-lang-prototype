@@ -21,18 +21,21 @@ const validate = (source: string): Option<Molecule> => {
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
 
-  option.match(validate(rawInput), {
-    none: () => {
-      throw new Error('Invalid input') // TODO: improve error reporting
+  option.match(
+    option.flatMap(validate(rawInput), molecule.applyEliminationRules),
+    {
+      none: () => {
+        throw new Error('Invalid input') // TODO: improve error reporting
+      },
+      some: parsedInput =>
+        process.stdout.write(
+          util.inspect(parsedInput, {
+            colors: true,
+            depth: Infinity,
+          }),
+        ),
     },
-    some: parsedInput =>
-      process.stdout.write(
-        util.inspect(parsedInput, {
-          colors: true,
-          depth: Infinity,
-        }),
-      ),
-  })
+  )
 
   // Writing a newline ensures that output is flushed before exiting. Otherwise there may be no
   // output actually printed to the console. This happens whether or not `process.exit` is
