@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "exactOptionalPropertyTypes": true,
+    "module": "node16",
+    "noUncheckedIndexedAccess": true,
+    "rootDir": "./src",
+    "strict": true,
+    "target": "es2023",
+    "verbatimModuleSyntax": true
+  }
+}

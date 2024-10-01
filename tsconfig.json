@@ -1,12 +1,6 @@
 {
-  "compilerOptions": {
-    "exactOptionalPropertyTypes": true,
-    "module": "node16",
-    "noUncheckedIndexedAccess": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
-    "target": "es2023",
-    "verbatimModuleSyntax": true
-  }
+  "references": [
+    { "path": "./tsconfig.test.json" },
+    { "path": "./tsconfig.app.json" }
+  ]
 }
