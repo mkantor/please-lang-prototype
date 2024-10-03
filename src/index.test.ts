@@ -1,1 +1,1 @@
-// TODO: write some tests
+import './parsing/molecule.test.js'
