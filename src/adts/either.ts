@@ -9,13 +9,13 @@ export type Either<Left, Right> =
       readonly value: Right
     }
 
-export const makeLeft = <Value>(value: Value) =>
+export const makeLeft = <const Value>(value: Value) =>
   ({
     [tagKey]: 'left',
     value,
   } satisfies Either<Value, never>)
 
-export const makeRight = <Value>(value: Value) =>
+export const makeRight = <const Value>(value: Value) =>
   ({
     [tagKey]: 'right',
     value,

@@ -10,7 +10,7 @@ export type Option<Value> =
 
 export const none = { [tagKey]: 'none' } satisfies Option<never>
 
-export const makeSome = <Value>(value: Value) =>
+export const makeSome = <const Value>(value: Value) =>
   ({
     [tagKey]: 'some',
     value,
