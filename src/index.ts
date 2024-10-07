@@ -2,8 +2,8 @@ import * as util from 'node:util'
 import * as either from './adts/either.js'
 import { type Either } from './adts/either.js'
 import * as option from './adts/option.js'
-import * as molecule from './parsing/molecule.js'
-import { type Molecule } from './parsing/molecule.js'
+import * as molecule from './compiler/molecule.js'
+import { type Molecule } from './compiler/molecule.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
   let input: string = ''
