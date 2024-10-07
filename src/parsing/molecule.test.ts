@@ -7,47 +7,57 @@ import { type Option } from '../adts/option.js'
 import * as molecule from './molecule.js'
 import { type Molecule } from './molecule.js'
 
-const successfullyEliminatedMolecule = (molecule: Molecule) =>
+const expectedOutput = (molecule: Molecule) =>
   either.makeRight(option.makeSome(molecule))
 
 const cases: readonly (readonly [
   input: Molecule,
   check: (output: Either<molecule.Error, Option<Molecule>>) => void,
 ])[] = [
+  // basic keyword syntax and escaping:
   [
     { key: 'value' },
-    output =>
-      assert.deepEqual(
-        output,
-        successfullyEliminatedMolecule({ key: 'value' }),
-      ),
+    output => assert.deepEqual(output, expectedOutput({ key: 'value' })),
   ],
   [
     { '@@key': 'value' },
-    output =>
-      assert.deepEqual(
-        output,
-        successfullyEliminatedMolecule({ '@key': 'value' }),
-      ),
+    output => assert.deepEqual(output, expectedOutput({ '@key': 'value' })),
   ],
   [
     { key: '@@value' },
-    output =>
-      assert.deepEqual(
-        output,
-        successfullyEliminatedMolecule({ key: '@value' }),
-      ),
+    output => assert.deepEqual(output, expectedOutput({ key: '@value' })),
   ],
   [
     { '@@key': '@@value' },
-    output =>
-      assert.deepEqual(
-        output,
-        successfullyEliminatedMolecule({ '@key': '@value' }),
-      ),
+    output => assert.deepEqual(output, expectedOutput({ '@key': '@value' })),
   ],
-  [{ '@@key': '@value' }, output => assert(either.isLeft(output))],
-  [{ '@key': '@@value' }, output => assert(either.isLeft(output))],
+  [{ '@@key': '@someUnknownKeyword' }, output => assert(either.isLeft(output))],
+  [
+    { '@someUnknownKeyword': '@@value' },
+    output => assert(either.isLeft(output)),
+  ],
+
+  // @todo keyword:
+  [
+    { '@todo': 'value' },
+    output => assert.deepEqual(output, expectedOutput({})),
+  ],
+  [
+    { '@todo some arbitrary characters!': 'value' },
+    output => assert.deepEqual(output, expectedOutput({})),
+  ],
+  [
+    { '@todoeventhisshouldwork': 'value' },
+    output => assert.deepEqual(output, expectedOutput({})),
+  ],
+  [
+    {
+      key1: '@todo this should be replaced with an empty string',
+      key2: '@todothistoo',
+      '@todoKey3': '@todo and this property should be eliminated entirely',
+    },
+    output => assert.deepEqual(output, expectedOutput({ key1: '', key2: '' })),
+  ],
 ]
 
 cases.forEach(([input, check]) =>

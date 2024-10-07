@@ -8,6 +8,7 @@ import { type Either } from '../adts/either.js'
 import * as option from '../adts/option.js'
 import { type Option } from '../adts/option.js'
 import type { Atom } from './atom.js'
+import * as atom from './atom.js'
 
 const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
   JSONSchema.Record(
@@ -84,7 +85,9 @@ const eliminateKey = (
   Option<readonly [key: Atom, value: Atom | Molecule]>
 > => {
   if (key.startsWith('@')) {
-    if (key.startsWith('@@')) {
+    if (key.startsWith('@todo')) {
+      return either.makeRight(option.none)
+    } else if (key.startsWith('@@')) {
       return either.makeRight(
         option.makeSome([key.substring(1), alreadyEliminatedValue]),
       )
@@ -104,7 +107,9 @@ const eliminateValue = (
   value: Atom | Molecule,
 ): Either<EliminationError, Option<Atom | Molecule>> => {
   if (typeof value === 'string' && value.startsWith('@')) {
-    if (value.startsWith('@@')) {
+    if (value.startsWith('@todo')) {
+      return either.makeRight(option.none)
+    } else if (value.startsWith('@@')) {
       return either.makeRight(option.makeSome(value.substring(1)))
     } else {
       return either.makeLeft({
@@ -128,7 +133,7 @@ export const applyEliminationRule = (
 > =>
   either.flatMap(eliminateValue(value), potentiallyEliminatedValue =>
     option.match(potentiallyEliminatedValue, {
-      none: () => either.makeRight(option.none),
+      none: () => eliminateKey(key, atom.unit),
       some: value => eliminateKey(key, value),
     }),
   )
