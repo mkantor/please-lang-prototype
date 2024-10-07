@@ -3,6 +3,8 @@ import {
   type Static as TypeOfJSONSchema,
 } from '@sinclair/typebox'
 import { Value as JSONSchemaValue } from '@sinclair/typebox/value'
+import * as either from '../adts/either.js'
+import { type Either } from '../adts/either.js'
 import * as option from '../adts/option.js'
 import { type Option } from '../adts/option.js'
 import type { Atom } from './atom.js'
@@ -16,85 +18,117 @@ const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
 
 export type Molecule = TypeOfJSONSchema<typeof moleculeSchema>
 
-// TODO: evolve this into `validateMolecule`, returning an `Either` with error details on the left
-export const asMolecule = (potentialMolecule: unknown): Option<Molecule> => {
-  try {
-    const molecule = JSONSchemaValue.Decode(moleculeSchema, potentialMolecule)
-    return option.makeSome(molecule)
-  } catch (_error) {
-    return option.none
-  }
+type EliminationError = {
+  readonly kind: 'moleculeElimination'
+  readonly message: string
 }
+type ValidationError = {
+  readonly kind: 'moleculeValidation'
+  readonly message: string
+}
+export type Error = EliminationError | ValidationError
+
+export const validateMolecule = (
+  potentialMolecule: unknown,
+): Either<ValidationError, Molecule> =>
+  either.mapLeft(
+    either.tryCatch(() =>
+      JSONSchemaValue.Decode(moleculeSchema, potentialMolecule),
+    ),
+    _typeBoxError => ({
+      kind: 'moleculeValidation',
+      // TODO: build a descriptive message from what TypeBox throws
+      message: 'Molecule is not valid',
+    }),
+  )
 
 /**
  * Given a callback returning a new key/value pair, incrementally build up a new `Molecule` by
  * walking over every key/value pair in the given `Molecule`.
  */
-// TODO: return `Either` with error details on left
-const transformMolecule = (
+const transformMolecule = <Error>(
   molecule: Molecule,
-  // TODO: `f` needs a way to express "don't add any new properties"; probably returning something
-  // like `Either<_, Option<_>>`
   f: (
     key: Atom,
     value: Atom | Molecule,
-  ) => Option<readonly [key: Atom, value: Atom | Molecule]>,
-): Option<Molecule> => {
+  ) => Either<Error, Option<readonly [key: Atom, value: Atom | Molecule]>>,
+): Either<Error, Option<Molecule>> => {
   const updatedMolecule: Molecule = {}
   for (let [key, value] of Object.entries(molecule)) {
     const result = f(key, value)
-    if (option.isNone(result)) {
-      // Immediately bail if we encounter `option.none`.
-      return option.none
+    if (either.isLeft(result)) {
+      // Immediately bail if an error is encountered.
+      return result
     }
-    option.match(f(key, value), {
+    option.match(result.value, {
       none: () => {},
       some: ([newKey, newValue]) => {
         updatedMolecule[newKey] = newValue
       },
     })
   }
-  return option.makeSome(updatedMolecule)
+  return either.makeRight(option.makeSome(updatedMolecule))
 }
 
-export const applyEliminationRules = (molecule: Molecule): Option<Molecule> =>
+export const applyEliminationRules = (
+  molecule: Molecule,
+): Either<EliminationError, Option<Molecule>> =>
   transformMolecule(molecule, applyEliminationRule)
 
 // TODO: use distinct types for uneliminated/eliminated keys/values
 const eliminateKey = (
   key: Atom,
   alreadyEliminatedValue: Atom | Molecule,
-): Option<readonly [key: Atom, value: Atom | Molecule]> => {
+): Either<
+  EliminationError,
+  Option<readonly [key: Atom, value: Atom | Molecule]>
+> => {
   if (key.startsWith('@')) {
     if (key.startsWith('@@')) {
-      return option.makeSome([key.substring(1), alreadyEliminatedValue])
+      return either.makeRight(
+        option.makeSome([key.substring(1), alreadyEliminatedValue]),
+      )
     } else {
-      return option.none
+      return either.makeLeft({
+        kind: 'moleculeElimination',
+        message: `unknown rule in key: \`${key}\``,
+      })
     }
   } else {
-    return option.makeSome([key, alreadyEliminatedValue])
+    return either.makeRight(option.makeSome([key, alreadyEliminatedValue]))
   }
 }
 
 // TODO: use distinct types for uneliminated/eliminated values
-const eliminateValue = (value: Atom | Molecule): Option<Atom | Molecule> => {
+const eliminateValue = (
+  value: Atom | Molecule,
+): Either<EliminationError, Option<Atom | Molecule>> => {
   if (typeof value === 'string' && value.startsWith('@')) {
     if (value.startsWith('@@')) {
-      return option.makeSome(value.substring(1))
+      return either.makeRight(option.makeSome(value.substring(1)))
     } else {
-      return option.none
+      return either.makeLeft({
+        kind: 'moleculeElimination',
+        message: `unknown rule in value: \`${value}\``,
+      })
     }
   } else if (typeof value === 'object') {
-    return applyEliminationRules(value)
+    return either.map(applyEliminationRules(value), option.makeSome)
   } else {
-    return option.makeSome(value)
+    return either.makeRight(option.makeSome(value))
   }
 }
 
 export const applyEliminationRule = (
   key: Atom,
   value: Atom | Molecule,
-): Option<readonly [key: Atom, value: Atom | Molecule]> =>
-  option.flatMap(eliminateValue(value), alreadyEliminatedValue =>
-    eliminateKey(key, alreadyEliminatedValue),
+): Either<
+  EliminationError,
+  Option<readonly [key: Atom, value: Atom | Molecule]>
+> =>
+  either.flatMap(eliminateValue(value), potentiallyEliminatedValue =>
+    option.match(potentiallyEliminatedValue, {
+      none: () => either.makeRight(option.none),
+      some: value => eliminateKey(key, value),
+    }),
   )

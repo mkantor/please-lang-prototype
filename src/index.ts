@@ -1,6 +1,7 @@
 import * as util from 'node:util'
+import * as either from './adts/either.js'
+import { type Either } from './adts/either.js'
 import * as option from './adts/option.js'
-import { type Option } from './adts/option.js'
 import * as molecule from './parsing/molecule.js'
 import { type Molecule } from './parsing/molecule.js'
 
@@ -12,28 +13,42 @@ const read = async (stream: AsyncIterable<string>): Promise<string> => {
   return input
 }
 
-// TODO: return an `Either` instead with error details on the left
-const validate = (source: string): Option<Molecule> => {
-  const parsedInput: unknown = JSON.parse(source)
-  return molecule.asMolecule(parsedInput)
-}
+const validate = (
+  source: string,
+): Either<{ readonly message: string }, Molecule> =>
+  either.flatMap(
+    either.mapLeft(
+      either.tryCatch((): unknown => JSON.parse(source)),
+      jsonParseError => ({
+        message:
+          jsonParseError instanceof Error
+            ? jsonParseError.message
+            : 'Invalid JSON',
+      }),
+    ),
+    molecule.validateMolecule,
+  )
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
-
-  option.match(
-    option.flatMap(validate(rawInput), molecule.applyEliminationRules),
+  either.match(
+    either.flatMap(validate(rawInput), molecule.applyEliminationRules),
     {
-      none: () => {
-        throw new Error('Invalid input') // TODO: improve error reporting
+      left: error => {
+        throw new Error(error.message) // TODO: improve error reporting
       },
-      some: parsedInput =>
+      right: optionalResult => {
+        const simplifiedResult = option.match(optionalResult, {
+          none: () => ({}),
+          some: value => value,
+        })
         process.stdout.write(
-          util.inspect(parsedInput, {
+          util.inspect(simplifiedResult, {
             colors: true,
             depth: Infinity,
           }),
-        ),
+        )
+      },
     },
   )
 
