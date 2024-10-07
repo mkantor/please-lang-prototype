@@ -21,6 +21,16 @@ export const makeRight = <const Value>(value: Value) =>
     value,
   } satisfies Either<never, Value>)
 
+export const tryCatch = <Right>(
+  operation: () => Right,
+): Either<unknown, Right> => {
+  try {
+    return makeRight(operation())
+  } catch (error) {
+    return makeLeft(error)
+  }
+}
+
 export const flatMap = <Left, Right, NewLeft, NewRight>(
   either: Either<Left, Right>,
   f: (value: Right) => Either<NewLeft, NewRight>,
