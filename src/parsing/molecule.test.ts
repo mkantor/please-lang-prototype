@@ -63,6 +63,5 @@ const cases: readonly (readonly [
 cases.forEach(([input, check]) =>
   test(`transforming \`${JSON.stringify(
     input,
-  )}\` produces expected output`, () =>
-    check(molecule.applyEliminationRules(input))),
+  )}\` produces expected output`, () => check(molecule.applyKeywords(input))),
 )

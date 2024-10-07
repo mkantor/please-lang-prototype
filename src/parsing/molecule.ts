@@ -19,15 +19,15 @@ const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
 
 export type Molecule = TypeOfJSONSchema<typeof moleculeSchema>
 
-type EliminationError = {
-  readonly kind: 'moleculeElimination'
+type UnknownKeywordError = {
+  readonly kind: 'unknownKeyword'
   readonly message: string
 }
 type ValidationError = {
   readonly kind: 'moleculeValidation'
   readonly message: string
 }
-export type Error = EliminationError | ValidationError
+export type Error = UnknownKeywordError | ValidationError
 
 export const validateMolecule = (
   potentialMolecule: unknown,
@@ -41,6 +41,19 @@ export const validateMolecule = (
       // TODO: build a descriptive message from what TypeBox throws
       message: 'Molecule is not valid',
     }),
+  )
+
+export const applyKeywords = (
+  molecule: Molecule,
+): Either<UnknownKeywordError, Option<Molecule>> =>
+  transformMolecule(molecule, (key, value) =>
+    // Eliminated values become the unit value; eliminated keys omit the whole property.
+    either.flatMap(applyValueKeywords(value), potentiallyEliminatedValue =>
+      option.match(potentiallyEliminatedValue, {
+        none: () => applyKeyKeywords(key, atom.unit),
+        some: value => applyKeyKeywords(key, value),
+      }),
+    ),
   )
 
 /**
@@ -71,17 +84,12 @@ const transformMolecule = <Error>(
   return either.makeRight(option.makeSome(updatedMolecule))
 }
 
-export const applyEliminationRules = (
-  molecule: Molecule,
-): Either<EliminationError, Option<Molecule>> =>
-  transformMolecule(molecule, applyEliminationRule)
-
-// TODO: use distinct types for uneliminated/eliminated keys/values
-const eliminateKey = (
+// TODO: use distinct types for applied/unapplied keywords
+const applyKeyKeywords = (
   key: Atom,
-  alreadyEliminatedValue: Atom | Molecule,
+  valueWithKeywordsApplied: Atom | Molecule,
 ): Either<
-  EliminationError,
+  UnknownKeywordError,
   Option<readonly [key: Atom, value: Atom | Molecule]>
 > => {
   if (key.startsWith('@')) {
@@ -89,23 +97,23 @@ const eliminateKey = (
       return either.makeRight(option.none)
     } else if (key.startsWith('@@')) {
       return either.makeRight(
-        option.makeSome([key.substring(1), alreadyEliminatedValue]),
+        option.makeSome([key.substring(1), valueWithKeywordsApplied]),
       )
     } else {
       return either.makeLeft({
-        kind: 'moleculeElimination',
-        message: `unknown rule in key: \`${key}\``,
+        kind: 'unknownKeyword',
+        message: `unknown keyword in key: \`${key}\``,
       })
     }
   } else {
-    return either.makeRight(option.makeSome([key, alreadyEliminatedValue]))
+    return either.makeRight(option.makeSome([key, valueWithKeywordsApplied]))
   }
 }
 
-// TODO: use distinct types for uneliminated/eliminated values
-const eliminateValue = (
+// TODO: use distinct types for applied/unapplied keywords
+const applyValueKeywords = (
   value: Atom | Molecule,
-): Either<EliminationError, Option<Atom | Molecule>> => {
+): Either<UnknownKeywordError, Option<Atom | Molecule>> => {
   if (typeof value === 'string' && value.startsWith('@')) {
     if (value.startsWith('@todo')) {
       return either.makeRight(option.none)
@@ -113,27 +121,13 @@ const eliminateValue = (
       return either.makeRight(option.makeSome(value.substring(1)))
     } else {
       return either.makeLeft({
-        kind: 'moleculeElimination',
-        message: `unknown rule in value: \`${value}\``,
+        kind: 'unknownKeyword',
+        message: `unknown keyword in value: \`${value}\``,
       })
     }
   } else if (typeof value === 'object') {
-    return either.map(applyEliminationRules(value), option.makeSome)
+    return either.map(applyKeywords(value), option.makeSome)
   } else {
     return either.makeRight(option.makeSome(value))
   }
 }
-
-export const applyEliminationRule = (
-  key: Atom,
-  value: Atom | Molecule,
-): Either<
-  EliminationError,
-  Option<readonly [key: Atom, value: Atom | Molecule]>
-> =>
-  either.flatMap(eliminateValue(value), potentiallyEliminatedValue =>
-    option.match(potentiallyEliminatedValue, {
-      none: () => eliminateKey(key, atom.unit),
-      some: value => eliminateKey(key, value),
-    }),
-  )

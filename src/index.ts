@@ -31,26 +31,23 @@ const validate = (
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
-  either.match(
-    either.flatMap(validate(rawInput), molecule.applyEliminationRules),
-    {
-      left: error => {
-        throw new Error(error.message) // TODO: improve error reporting
-      },
-      right: optionalResult => {
-        const simplifiedResult = option.match(optionalResult, {
-          none: () => ({}),
-          some: value => value,
-        })
-        process.stdout.write(
-          util.inspect(simplifiedResult, {
-            colors: true,
-            depth: Infinity,
-          }),
-        )
-      },
+  either.match(either.flatMap(validate(rawInput), molecule.applyKeywords), {
+    left: error => {
+      throw new Error(error.message) // TODO: improve error reporting
     },
-  )
+    right: optionalResult => {
+      const simplifiedResult = option.match(optionalResult, {
+        none: () => ({}),
+        some: value => value,
+      })
+      process.stdout.write(
+        util.inspect(simplifiedResult, {
+          colors: true,
+          depth: Infinity,
+        }),
+      )
+    },
+  })
 
   // Writing a newline ensures that output is flushed before exiting. Otherwise there may be no
   // output actually printed to the console. This happens whether or not `process.exit` is
