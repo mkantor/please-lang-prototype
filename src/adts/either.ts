@@ -39,6 +39,11 @@ export const map = <Left, Right, NewRight>(
     right: value => makeRight(f(value)),
   })
 
+export const isLeft = (
+  either: Either<unknown, unknown>,
+): either is Extract<Either<unknown, unknown>, { [tagKey]: 'left' }> =>
+  either[tagKey] === 'left'
+
 export const match = <Left, Right, Result>(
   adt: Either<Left, Right>,
   cases: {
