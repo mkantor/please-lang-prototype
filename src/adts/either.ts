@@ -25,7 +25,7 @@ export const flatMap = <Left, Right, NewLeft, NewRight>(
   either: Either<Left, Right>,
   f: (value: Right) => Either<NewLeft, NewRight>,
 ): Either<Left | NewLeft, NewRight> =>
-  match<Left, Right, Either<Left | NewLeft, NewRight>>(either, {
+  match(either, {
     left: makeLeft,
     right: f,
   })
@@ -34,9 +34,18 @@ export const map = <Left, Right, NewRight>(
   either: Either<Left, Right>,
   f: (value: Right) => NewRight,
 ): Either<Left, NewRight> =>
-  match<Left, Right, Either<Left, NewRight>>(either, {
-    left: makeLeft<Left>,
+  match(either, {
+    left: makeLeft,
     right: value => makeRight(f(value)),
+  })
+
+export const mapLeft = <Left, Right, NewLeft>(
+  either: Either<Left, Right>,
+  f: (value: Left) => NewLeft,
+): Either<NewLeft, Right> =>
+  match(either, {
+    left: value => makeLeft(f(value)),
+    right: makeRight,
   })
 
 export const isLeft = (
@@ -44,13 +53,13 @@ export const isLeft = (
 ): either is Extract<Either<unknown, unknown>, { [eitherTag]: 'left' }> =>
   either[eitherTag] === 'left'
 
-export const match = <Left, Right, Result>(
+export const match = <Left, Right, LeftResult, RightResult>(
   adt: Either<Left, Right>,
   cases: {
-    left: (value: Left) => Result
-    right: (value: Right) => Result
+    left: (value: Left) => LeftResult
+    right: (value: Right) => RightResult
   },
-): Result => {
+): LeftResult | RightResult => {
   switch (adt[eitherTag]) {
     case 'left':
       return cases[adt[eitherTag]](adt.value)

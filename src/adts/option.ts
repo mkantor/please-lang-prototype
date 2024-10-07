@@ -33,13 +33,13 @@ export const map = <Value, NewValue>(
     some: value => makeSome(f(value)),
   })
 
-export const match = <Value, Result>(
+export const match = <Value, NoneResult, SomeResult>(
   adt: Option<Value>,
   cases: {
-    none: () => Result
-    some: (value: Value) => Result
+    none: () => NoneResult
+    some: (value: Value) => SomeResult
   },
-): Result => {
+): NoneResult | SomeResult => {
   switch (adt[optionTag]) {
     case 'none':
       return cases[adt[optionTag]]()
