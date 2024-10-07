@@ -30,6 +30,15 @@ export const flatMap = <Left, Right, NewLeft, NewRight>(
     right: f,
   })
 
+export const map = <Left, Right, NewRight>(
+  either: Either<Left, Right>,
+  f: (value: Right) => NewRight,
+): Either<Left, NewRight> =>
+  match<Left, Right, Either<Left, NewRight>>(either, {
+    left: makeLeft<Left>,
+    right: value => makeRight(f(value)),
+  })
+
 export const match = <Left, Right, Result>(
   adt: Either<Left, Right>,
   cases: {
