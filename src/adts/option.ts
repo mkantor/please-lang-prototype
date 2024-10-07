@@ -1,23 +1,23 @@
-const tagKey = Symbol('option')
+const optionTag = Symbol('option')
 export type Option<Value> =
   | {
-      readonly [tagKey]: 'none'
+      readonly [optionTag]: 'none'
     }
   | {
-      readonly [tagKey]: 'some'
+      readonly [optionTag]: 'some'
       readonly value: Value
     }
 
-export const none = { [tagKey]: 'none' } satisfies Option<never>
+export const none = { [optionTag]: 'none' } satisfies Option<never>
 
 export const makeSome = <const Value>(value: Value) =>
   ({
-    [tagKey]: 'some',
+    [optionTag]: 'some',
     value,
   } satisfies Option<Value>)
 
 export const isNone = (option: Option<unknown>): option is typeof none =>
-  option[tagKey] === 'none'
+  option[optionTag] === 'none'
 
 export const flatMap = <Value, NewValue>(
   option: Option<Value>,
@@ -40,10 +40,10 @@ export const match = <Value, Result>(
     some: (value: Value) => Result
   },
 ): Result => {
-  switch (adt[tagKey]) {
+  switch (adt[optionTag]) {
     case 'none':
-      return cases[adt[tagKey]]()
+      return cases[adt[optionTag]]()
     case 'some':
-      return cases[adt[tagKey]](adt.value)
+      return cases[adt[optionTag]](adt.value)
   }
 }

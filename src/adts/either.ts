@@ -1,23 +1,23 @@
-const tagKey = Symbol('either')
+const eitherTag = Symbol('either')
 export type Either<Left, Right> =
   | {
-      readonly [tagKey]: 'left'
+      readonly [eitherTag]: 'left'
       readonly value: Left
     }
   | {
-      readonly [tagKey]: 'right'
+      readonly [eitherTag]: 'right'
       readonly value: Right
     }
 
 export const makeLeft = <const Value>(value: Value) =>
   ({
-    [tagKey]: 'left',
+    [eitherTag]: 'left',
     value,
   } satisfies Either<Value, never>)
 
 export const makeRight = <const Value>(value: Value) =>
   ({
-    [tagKey]: 'right',
+    [eitherTag]: 'right',
     value,
   } satisfies Either<never, Value>)
 
@@ -41,8 +41,8 @@ export const map = <Left, Right, NewRight>(
 
 export const isLeft = (
   either: Either<unknown, unknown>,
-): either is Extract<Either<unknown, unknown>, { [tagKey]: 'left' }> =>
-  either[tagKey] === 'left'
+): either is Extract<Either<unknown, unknown>, { [eitherTag]: 'left' }> =>
+  either[eitherTag] === 'left'
 
 export const match = <Left, Right, Result>(
   adt: Either<Left, Right>,
@@ -51,10 +51,10 @@ export const match = <Left, Right, Result>(
     right: (value: Right) => Result
   },
 ): Result => {
-  switch (adt[tagKey]) {
+  switch (adt[eitherTag]) {
     case 'left':
-      return cases[adt[tagKey]](adt.value)
+      return cases[adt[eitherTag]](adt.value)
     case 'right':
-      return cases[adt[tagKey]](adt.value)
+      return cases[adt[eitherTag]](adt.value)
   }
 }
