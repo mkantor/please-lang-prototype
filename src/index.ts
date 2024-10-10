@@ -1,9 +1,8 @@
 import * as util from 'node:util'
+import type { Either } from './adts/either.js'
 import * as either from './adts/either.js'
-import { type Either } from './adts/either.js'
 import * as option from './adts/option.js'
-import * as molecule from './compiler/molecule.js'
-import { type Molecule } from './compiler/molecule.js'
+import * as compiler from './compiler/index.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
   let input: string = ''
@@ -15,7 +14,7 @@ const read = async (stream: AsyncIterable<string>): Promise<string> => {
 
 const validate = (
   source: string,
-): Either<{ readonly message: string }, Molecule> =>
+): Either<{ readonly message: string }, compiler.Molecule> =>
   either.flatMap(
     either.mapLeft(
       either.tryCatch((): unknown => JSON.parse(source)),
@@ -26,12 +25,12 @@ const validate = (
             : 'Invalid JSON',
       }),
     ),
-    molecule.validateMolecule,
+    compiler.validateMolecule,
   )
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
-  either.match(either.flatMap(validate(rawInput), molecule.applyKeywords), {
+  either.match(either.flatMap(validate(rawInput), compiler.applyKeywords), {
     left: error => {
       throw new Error(error.message) // TODO: improve error reporting
     },

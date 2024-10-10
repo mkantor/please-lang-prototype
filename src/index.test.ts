@@ -1,1 +1,1 @@
-import './compiler/molecule.test.js'
+import './compiler/keyword-application.test.js'

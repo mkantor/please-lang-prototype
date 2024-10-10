@@ -5,7 +5,7 @@ import * as either from '../adts/either.js'
 import * as option from '../adts/option.js'
 import { type Option } from '../adts/option.js'
 import { type CompilationError } from './errors.js'
-import * as molecule from './molecule.js'
+import * as keywordApplication from './keyword-application.js'
 import { type Molecule } from './molecule.js'
 
 const expectedOutput = (molecule: Molecule) =>
@@ -64,5 +64,6 @@ const cases: readonly (readonly [
 cases.forEach(([input, check]) =>
   test(`transforming \`${JSON.stringify(
     input,
-  )}\` produces expected output`, () => check(molecule.applyKeywords(input))),
+  )}\` produces expected output`, () =>
+    check(keywordApplication.applyKeywords(input))),
 )
