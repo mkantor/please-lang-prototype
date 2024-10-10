@@ -63,7 +63,7 @@ const applyValueKeywords = (
       })
     }
   } else if (typeof value === 'object') {
-    return either.map(applyKeywords(value), option.makeSome)
+    return applyKeywords(value)
   } else {
     return either.makeRight(option.makeSome(value))
   }

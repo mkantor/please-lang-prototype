@@ -44,6 +44,10 @@ const cases: readonly (readonly [
     output => assert.deepEqual(output, expectedOutput({})),
   ],
   [
+    { '@todo': '@@value' },
+    output => assert.deepEqual(output, expectedOutput({})),
+  ],
+  [
     { '@todo some arbitrary characters!': 'value' },
     output => assert.deepEqual(output, expectedOutput({})),
   ],
@@ -58,6 +62,22 @@ const cases: readonly (readonly [
       '@todoKey3': '@todo and this property should be eliminated entirely',
     },
     output => assert.deepEqual(output, expectedOutput({ key1: '', key2: '' })),
+  ],
+
+  // nesting/recursion:
+  [
+    { key: { key: 'value' } },
+    output =>
+      assert.deepEqual(output, expectedOutput({ key: { key: 'value' } })),
+  ],
+  [
+    { key: { '@@key': '@@value' } },
+    output =>
+      assert.deepEqual(output, expectedOutput({ key: { '@key': '@value' } })),
+  ],
+  [
+    { key: { '@todo': 'value' } },
+    output => assert.deepEqual(output, expectedOutput({ key: {} })),
   ],
 ]
 
