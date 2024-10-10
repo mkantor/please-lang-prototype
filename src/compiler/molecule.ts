@@ -17,7 +17,18 @@ const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
   ),
 )
 
-export type Molecule = TypeOfJSONSchema<typeof moleculeSchema>
+export type Molecule = TypeOfJSONSchema<typeof moleculeSchema> & {
+  // Molecules should not have symbolic keys. This type doesn't robustly guarantee that (because of
+  // upcasting), but should help catch obvious mistakes like using an `Option<Molecule>` as a
+  // `Molecule`.
+  //
+  // Instead of this the `Molecule` type could have a full-fledged brand/discriminant, but that
+  // makes some APIs harder to use with object literals.
+  //
+  // TODO: decide whether APIs like this will be publicly exposed or not; if only tests need to
+  // call them then using a real brand is a worthwhile tradeoff
+  readonly [key: symbol]: undefined
+}
 
 export const validateMolecule = (
   potentialMolecule: unknown,
