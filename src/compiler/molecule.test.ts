@@ -4,6 +4,7 @@ import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
 import * as option from '../adts/option.js'
 import { type Option } from '../adts/option.js'
+import { type CompilationError } from './errors.js'
 import * as molecule from './molecule.js'
 import { type Molecule } from './molecule.js'
 
@@ -12,7 +13,7 @@ const expectedOutput = (molecule: Molecule) =>
 
 const cases: readonly (readonly [
   input: Molecule,
-  check: (output: Either<molecule.Error, Option<Molecule>>) => void,
+  check: (output: Either<CompilationError, Option<Molecule>>) => void,
 ])[] = [
   // basic keyword syntax and escaping:
   [

@@ -3,12 +3,13 @@ import {
   type Static as TypeOfJSONSchema,
 } from '@sinclair/typebox'
 import { Value as JSONSchemaValue } from '@sinclair/typebox/value'
+import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
-import { type Either } from '../adts/either.js'
+import type { Option } from '../adts/option.js'
 import * as option from '../adts/option.js'
-import { type Option } from '../adts/option.js'
 import type { Atom } from './atom.js'
 import * as atom from './atom.js'
+import type { UnknownKeywordError, ValidationError } from './errors.js'
 
 const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
   JSONSchema.Record(
@@ -18,16 +19,6 @@ const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
 )
 
 export type Molecule = TypeOfJSONSchema<typeof moleculeSchema>
-
-type UnknownKeywordError = {
-  readonly kind: 'unknownKeyword'
-  readonly message: string
-}
-type ValidationError = {
-  readonly kind: 'moleculeValidation'
-  readonly message: string
-}
-export type Error = UnknownKeywordError | ValidationError
 
 export const validateMolecule = (
   potentialMolecule: unknown,
