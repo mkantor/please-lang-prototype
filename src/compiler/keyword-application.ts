@@ -6,6 +6,7 @@ import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
 import type { Atom } from './atom.js'
 import * as atom from './atom.js'
 import type { KeywordError } from './errors.js'
+import { keywordPrefixOf, keywordTransforms } from './keywords.js'
 import type { Molecule, UncompiledMolecule } from './molecule.js'
 import type { KeywordsApplied } from './stages.js'
 
@@ -30,57 +31,52 @@ const applyKeyKeywords = (
   key: Atom,
   valueWithKeywordsApplied: CompiledAtom | CompiledMolecule,
 ): Either<
-  UnknownKeywordError,
+  KeywordError,
   Option<readonly [key: CompiledAtom, value: CompiledAtom | CompiledMolecule]>
-> => {
-  if (key.startsWith('@')) {
-    if (key.startsWith('@todo')) {
-      return either.makeRight(option.none)
-    } else if (key.startsWith('@@')) {
-      return either.makeRight(
-        option.makeSome([
-          withPhantomData<KeywordsApplied>()(key.substring(1)),
-          withPhantomData<KeywordsApplied>()(valueWithKeywordsApplied),
-        ]),
-      )
-    } else {
-      return either.makeLeft({
-        kind: 'unknownKeyword',
-        message: `unknown keyword in key: \`${key}\``,
-      })
-    }
-  } else {
-    return either.makeRight(
-      option.makeSome([
-        withPhantomData<KeywordsApplied>()(key),
-        withPhantomData<KeywordsApplied>()(valueWithKeywordsApplied),
-      ]),
-    )
-  }
-}
+> =>
+  option.match(keywordPrefixOf(key), {
+    none: () =>
+      /^@[^@]/.test(key)
+        ? either.makeLeft({
+            kind: 'unknownKeyword',
+            message: `unknown keyword in key: \`${key}\``,
+          })
+        : either.makeRight(
+            option.makeSome([
+              withPhantomData<KeywordsApplied>()(
+                /^@@/.test(key) ? key.substring(1) : key,
+              ),
+              withPhantomData<KeywordsApplied>()(valueWithKeywordsApplied),
+            ]),
+          ),
+    some: keyword =>
+      keywordTransforms[keyword].key(key, valueWithKeywordsApplied),
+  })
 
 const applyValueKeywords = (
   value: Atom | UncompiledMolecule,
-): Either<UnknownKeywordError, Option<CompiledAtom | CompiledMolecule>> => {
-  if (typeof value === 'string' && value.startsWith('@')) {
-    if (value.startsWith('@todo')) {
-      return either.makeRight(option.none)
-    } else if (value.startsWith('@@')) {
-      return either.makeRight(
-        option.makeSome(withPhantomData<KeywordsApplied>()(value.substring(1))),
-      )
-    } else {
-      return either.makeLeft({
-        kind: 'unknownKeyword',
-        message: `unknown keyword in value: \`${value}\``,
+): Either<KeywordError, Option<CompiledAtom | CompiledMolecule>> => {
+  switch (typeof value) {
+    case 'string':
+      return option.match(keywordPrefixOf(value), {
+        none: () =>
+          /^@[^@]/.test(value)
+            ? either.makeLeft({
+                kind: 'unknownKeyword',
+                message: `unknown keyword in value: \`${value}\``,
+              })
+            : either.makeRight(
+                option.makeSome(
+                  withPhantomData<KeywordsApplied>()(
+                    /^@@/.test(value) ? value.substring(1) : value,
+                  ),
+                ),
+              ),
+        some: keyword => keywordTransforms[keyword].value(value),
       })
-    }
-  } else if (typeof value === 'object') {
-    return applyKeywords(value)
-  } else {
-    return either.makeRight(
-      option.makeSome(withPhantomData<KeywordsApplied>()(value)),
-    )
+    case 'object':
+      // Recurse into the nested molecule.
+      return applyKeywords(value)
   }
 }
 
