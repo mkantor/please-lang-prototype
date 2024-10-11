@@ -2,18 +2,23 @@ import assert from 'node:assert'
 import test from 'node:test'
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
+import type { Option } from '../adts/option.js'
 import * as option from '../adts/option.js'
-import { type Option } from '../adts/option.js'
-import { type CompilationError } from './errors.js'
+import type { CompilationError } from './errors.js'
 import * as keywordApplication from './keyword-application.js'
-import { type Molecule } from './molecule.js'
+import type { UncompiledMolecule } from './molecule.js'
 
-const expectedOutput = (molecule: Molecule) =>
+const expectedOutput = (molecule: UncompiledMolecule) =>
   either.makeRight(option.makeSome(molecule))
 
 const cases: readonly (readonly [
-  input: Molecule,
-  check: (output: Either<CompilationError, Option<Molecule>>) => void,
+  input: UncompiledMolecule,
+  check: (
+    output: Either<
+      CompilationError,
+      Option<keywordApplication.CompiledMolecule>
+    >,
+  ) => void,
 ])[] = [
   // basic keyword syntax and escaping:
   [
