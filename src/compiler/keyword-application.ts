@@ -5,7 +5,7 @@ import * as option from '../adts/option.js'
 import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
 import type { Atom } from './atom.js'
 import * as atom from './atom.js'
-import type { UnknownKeywordError } from './errors.js'
+import type { KeywordError } from './errors.js'
 import type { Molecule, UncompiledMolecule } from './molecule.js'
 import type { KeywordsApplied } from './stages.js'
 
@@ -14,7 +14,7 @@ export type CompiledMolecule = WithPhantomData<Molecule, KeywordsApplied>
 
 export const applyKeywords = (
   molecule: UncompiledMolecule,
-): Either<UnknownKeywordError, Option<CompiledMolecule>> =>
+): Either<KeywordError, Option<CompiledMolecule>> =>
   transformMolecule(molecule, (key, value) =>
     // Eliminated values become the unit value; eliminated keys omit the whole property.
     either.flatMap(applyValueKeywords(value), potentiallyEliminatedValue =>

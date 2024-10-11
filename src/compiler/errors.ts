@@ -3,9 +3,16 @@ export type UnknownKeywordError = {
   readonly message: string
 }
 
+export type InvalidKeywordUsageError = {
+  readonly kind: 'invalidKeywordUsage'
+  readonly message: string
+}
+
+export type KeywordError = UnknownKeywordError | InvalidKeywordUsageError
+
 export type InvalidMoleculeError = {
   readonly kind: 'invalidMolecule'
   readonly message: string
 }
 
-export type CompilationError = UnknownKeywordError | InvalidMoleculeError
+export type CompilationError = InvalidMoleculeError | KeywordError
