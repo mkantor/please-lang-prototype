@@ -3,9 +3,9 @@ export type UnknownKeywordError = {
   readonly message: string
 }
 
-export type ValidationError = {
-  readonly kind: 'moleculeValidation'
+export type InvalidMoleculeError = {
+  readonly kind: 'invalidMolecule'
   readonly message: string
 }
 
-export type CompilationError = UnknownKeywordError | ValidationError
+export type CompilationError = UnknownKeywordError | InvalidMoleculeError

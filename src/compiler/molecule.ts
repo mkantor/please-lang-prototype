@@ -5,7 +5,7 @@ import {
 import { Value as JSONSchemaValue } from '@sinclair/typebox/value'
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
-import type { ValidationError } from './errors.js'
+import type { InvalidMoleculeError } from './errors.js'
 
 const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
   JSONSchema.Record(
@@ -30,13 +30,13 @@ export type UncompiledMolecule = Molecule & {
 
 export const validateMolecule = (
   potentialMolecule: unknown,
-): Either<ValidationError, UncompiledMolecule> =>
+): Either<InvalidMoleculeError, UncompiledMolecule> =>
   either.mapLeft(
     either.tryCatch(() =>
       JSONSchemaValue.Decode(moleculeSchema, potentialMolecule),
     ),
     _typeBoxError => ({
-      kind: 'moleculeValidation',
+      kind: 'invalidMolecule',
       // TODO: build a descriptive message from what TypeBox throws
       message: 'Molecule is not valid',
     }),
