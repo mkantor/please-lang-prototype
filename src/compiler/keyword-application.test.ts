@@ -13,30 +13,20 @@ const expectedOutput = (molecule: UncompiledMolecule) =>
 
 const cases: readonly (readonly [
   input: UncompiledMolecule,
-  check: (
-    output: Either<
-      CompilationError,
-      Option<keywordApplication.CompiledMolecule>
-    >,
-  ) => void,
+  check:
+    | UncompiledMolecule
+    | ((
+        output: Either<
+          CompilationError,
+          Option<keywordApplication.CompiledMolecule>
+        >,
+      ) => void),
 ])[] = [
   // basic keyword syntax and escaping:
-  [
-    { key: 'value' },
-    output => assert.deepEqual(output, expectedOutput({ key: 'value' })),
-  ],
-  [
-    { '@@key': 'value' },
-    output => assert.deepEqual(output, expectedOutput({ '@key': 'value' })),
-  ],
-  [
-    { key: '@@value' },
-    output => assert.deepEqual(output, expectedOutput({ key: '@value' })),
-  ],
-  [
-    { '@@key': '@@value' },
-    output => assert.deepEqual(output, expectedOutput({ '@key': '@value' })),
-  ],
+  [{ key: 'value' }, { key: 'value' }],
+  [{ '@@key': 'value' }, { '@key': 'value' }],
+  [{ key: '@@value' }, { key: '@value' }],
+  [{ '@@key': '@@value' }, { '@key': '@value' }],
   [{ '@@key': '@someUnknownKeyword' }, output => assert(either.isLeft(output))],
   [
     { '@someUnknownKeyword': '@@value' },
@@ -44,51 +34,34 @@ const cases: readonly (readonly [
   ],
 
   // @todo keyword:
-  [
-    { '@todo': 'value' },
-    output => assert.deepEqual(output, expectedOutput({})),
-  ],
-  [
-    { '@todo': '@@value' },
-    output => assert.deepEqual(output, expectedOutput({})),
-  ],
-  [
-    { '@todo some arbitrary characters!': 'value' },
-    output => assert.deepEqual(output, expectedOutput({})),
-  ],
-  [
-    { '@todoeventhisshouldwork': 'value' },
-    output => assert.deepEqual(output, expectedOutput({})),
-  ],
+  [{ '@todo': 'value' }, {}],
+  [{ '@todo': '@@value' }, {}],
+  [{ '@todo some arbitrary characters!': 'value' }, {}],
+  [{ '@todoeventhisshouldwork': 'value' }, {}],
   [
     {
       key1: '@todo this should be replaced with an empty string',
       key2: '@todothistoo',
       '@todoKey3': '@todo and this property should be eliminated entirely',
     },
-    output => assert.deepEqual(output, expectedOutput({ key1: '', key2: '' })),
+    { key1: '', key2: '' },
   ],
 
   // nesting/recursion:
-  [
-    { key: { key: 'value' } },
-    output =>
-      assert.deepEqual(output, expectedOutput({ key: { key: 'value' } })),
-  ],
-  [
-    { key: { '@@key': '@@value' } },
-    output =>
-      assert.deepEqual(output, expectedOutput({ key: { '@key': '@value' } })),
-  ],
-  [
-    { key: { '@todo': 'value' } },
-    output => assert.deepEqual(output, expectedOutput({ key: {} })),
-  ],
+  [{ key: { key: 'value' } }, { key: { key: 'value' } }],
+  [{ key: { '@@key': '@@value' } }, { key: { '@key': '@value' } }],
+  [{ key: { '@todo': 'value' } }, { key: {} }],
 ]
 
 cases.forEach(([input, check]) =>
   test(`transforming \`${JSON.stringify(
     input,
-  )}\` produces expected output`, () =>
-    check(keywordApplication.applyKeywords(input))),
+  )}\` produces expected output`, () => {
+    const output = keywordApplication.applyKeywords(input)
+    if (typeof check === 'function') {
+      check(output)
+    } else {
+      assert.deepEqual(output, expectedOutput(check))
+    }
+  }),
 )
