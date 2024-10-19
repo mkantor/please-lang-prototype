@@ -2,62 +2,57 @@ import assert from 'node:assert'
 import test from 'node:test'
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
-import type { Option } from '../adts/option.js'
-import * as option from '../adts/option.js'
+import { withPhantomData } from '../phantom-data.js'
 import type { CompilationError } from './errors.js'
 import * as keywordApplication from './keyword-application.js'
-import type { UncompiledMolecule } from './molecule.js'
+import type { Molecule } from './molecule.js'
+import type { Canonicalized } from './stages.js'
 
-const expectedOutput = (molecule: UncompiledMolecule) =>
-  either.makeRight(option.makeSome(molecule))
+const expectedOutput = (molecule: Molecule) => either.makeRight(molecule)
 
 const cases: readonly (readonly [
-  input: UncompiledMolecule,
+  input: Molecule,
   check:
-    | UncompiledMolecule
+    | Molecule
     | ((
         output: Either<
           CompilationError,
-          Option<keywordApplication.CompiledMolecule>
+          keywordApplication.CompiledAtom | keywordApplication.CompiledMolecule
         >,
       ) => void),
 ])[] = [
   // basic keyword syntax and escaping:
+  [{}, {}],
   [{ key: 'value' }, { key: 'value' }],
-  [{ '@@key': 'value' }, { '@key': 'value' }],
-  [{ key: '@@value' }, { key: '@value' }],
-  [{ '@@key': '@@value' }, { '@key': '@value' }],
-  [{ '@@key': '@someUnknownKeyword' }, output => assert(either.isLeft(output))],
+  [{ key: { key: 'value' } }, { key: { key: 'value' } }],
+  [{ '@key': '@value' }, { '@key': '@value' }],
+  [{ '@@key': '@@value' }, { '@@key': '@@value' }],
+  [{ key: { 0: '@@escaped' } }, { key: { 0: '@escaped' } }],
+  [{ 0: { 0: '@@escaped' } }, { 0: { 0: '@escaped' } }],
   [
-    { '@someUnknownKeyword': '@@value' },
+    { key: { 0: '@someUnknownKeyword' } },
     output => assert(either.isLeft(output)),
   ],
 
   // @todo keyword:
-  [{ '@todo': 'value' }, {}],
-  [{ '@todo': '@@value' }, {}],
-  [{ '@todo some arbitrary characters!': 'value' }, {}],
-  [{ '@todoeventhisshouldwork': 'value' }, {}],
+  [{ 0: '@todo', 1: 'blah' }, {}],
+  [{ 0: '@todo', 1: { 0: '@@blah' } }, {}],
   [
     {
-      key1: '@todo this should be replaced with an empty string',
-      key2: '@todothistoo',
-      '@todoKey3': '@todo and this property should be eliminated entirely',
+      key1: { 0: '@todo', 1: 'this should be replaced with an empty object' },
+      key2: { 0: '@todo' },
     },
-    { key1: '', key2: '' },
+    { key1: {}, key2: {} },
   ],
-
-  // nesting/recursion:
-  [{ key: { key: 'value' } }, { key: { key: 'value' } }],
-  [{ key: { '@@key': '@@value' } }, { key: { '@key': '@value' } }],
-  [{ key: { '@todo': 'value' } }, { key: {} }],
 ]
 
 cases.forEach(([input, check]) =>
   test(`transforming \`${JSON.stringify(
     input,
   )}\` produces expected output`, () => {
-    const output = keywordApplication.applyKeywords(input)
+    const output = keywordApplication.applyKeywords(
+      withPhantomData<Canonicalized>()(input),
+    )
     if (typeof check === 'function') {
       check(output)
     } else {

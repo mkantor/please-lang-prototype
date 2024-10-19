@@ -5,32 +5,36 @@ import {
 import { Value as JSONSchemaValue } from '@sinclair/typebox/value'
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
+import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
+import type { Writable } from '../utility-types.js'
+import type { Atom } from './atom.js'
 import type { InvalidMoleculeError } from './errors.js'
+import type { Canonicalized } from './stages.js'
 
 const moleculeSchema = JSONSchema.Recursive(moleculeSchema =>
-  JSONSchema.Record(
-    JSONSchema.String(),
-    JSONSchema.Union([JSONSchema.String(), moleculeSchema]),
-  ),
+  JSONSchema.Union([
+    JSONSchema.Record(
+      JSONSchema.String(),
+      JSONSchema.Union([JSONSchema.String(), moleculeSchema]),
+    ),
+    JSONSchema.Array(JSONSchema.Union([JSONSchema.String(), moleculeSchema])),
+  ]),
 )
 
-export type Molecule = TypeOfJSONSchema<typeof moleculeSchema>
-export type UncompiledMolecule = Molecule & {
-  // Uncompiled molecules should not have symbolic keys. This type doesn't robustly guarantee that
-  // (because of upcasting), but will catch simple mistakes like directly using an `Option<…>` as
-  // an `UncompiledMolecule`.
-  //
-  // Instead of this the `UncompiledMolecule` type could have a full-fledged brand/discriminant,
-  // but that makes some APIs harder to use with object literals.
-  //
-  // TODO: decide whether APIs like this will be publicly exposed or not; if only tests need to
-  // call them then using a real brand is a worthwhile tradeoff
-  readonly [key: symbol]: undefined
-}
+export type InputMolecule = TypeOfJSONSchema<typeof moleculeSchema>
+
+export type Molecule = { readonly [key: Atom]: Molecule | Atom }
+
+/**
+ * Canonicalized molecules are made of (potentially-nested) objects with `string` keys and values.
+ *
+ * The `InputMolecule` `["a", "b", "c"]` is canonicalized as `{ "0": "a", "1": "b", "2": "c" }`.
+ */
+export type CanonicalizedMolecule = WithPhantomData<Molecule, Canonicalized>
 
 export const validateMolecule = (
   potentialMolecule: unknown,
-): Either<InvalidMoleculeError, UncompiledMolecule> =>
+): Either<InvalidMoleculeError, InputMolecule> =>
   either.mapLeft(
     either.tryCatch(() =>
       JSONSchemaValue.Decode(moleculeSchema, potentialMolecule),
@@ -41,3 +45,15 @@ export const validateMolecule = (
       message: 'Molecule is not valid',
     }),
   )
+
+export const canonicalizeMolecule = (
+  input: InputMolecule,
+): CanonicalizedMolecule => {
+  const canonicalizedMolecule: Writable<CanonicalizedMolecule> =
+    withPhantomData<Canonicalized>()({})
+  for (let [key, value] of Object.entries(input)) {
+    canonicalizedMolecule[key] =
+      typeof value === 'object' ? canonicalizeMolecule(value) : value
+  }
+  return canonicalizedMolecule
+}

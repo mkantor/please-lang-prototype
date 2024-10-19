@@ -1,7 +1,6 @@
 import * as util from 'node:util'
 import type { Either } from './adts/either.js'
 import * as either from './adts/either.js'
-import * as option from './adts/option.js'
 import * as compiler from './compiler/index.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
@@ -12,35 +11,34 @@ const read = async (stream: AsyncIterable<string>): Promise<string> => {
   return input
 }
 
-const validate = (
+const handleInput = (
   source: string,
-): Either<{ readonly message: string }, compiler.Molecule> =>
-  either.flatMap(
-    either.mapLeft(
-      either.tryCatch((): unknown => JSON.parse(source)),
-      jsonParseError => ({
-        message:
-          jsonParseError instanceof Error
-            ? jsonParseError.message
-            : 'Invalid JSON',
-      }),
+): Either<{ readonly message: string }, compiler.CanonicalizedMolecule> =>
+  either.map(
+    either.flatMap(
+      either.mapLeft(
+        either.tryCatch((): unknown => JSON.parse(source)),
+        jsonParseError => ({
+          message:
+            jsonParseError instanceof Error
+              ? jsonParseError.message
+              : 'Invalid JSON',
+        }),
+      ),
+      compiler.validateMolecule,
     ),
-    compiler.validateMolecule,
+    compiler.canonicalizeMolecule,
   )
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
-  either.match(either.flatMap(validate(rawInput), compiler.applyKeywords), {
+  either.match(either.flatMap(handleInput(rawInput), compiler.applyKeywords), {
     left: error => {
       throw new Error(error.message) // TODO: improve error reporting
     },
-    right: optionalResult => {
-      const simplifiedResult = option.match(optionalResult, {
-        none: () => ({}),
-        some: value => value,
-      })
+    right: output => {
       process.stdout.write(
-        util.inspect(simplifiedResult, {
+        util.inspect(output, {
           colors: true,
           depth: Infinity,
         }),
