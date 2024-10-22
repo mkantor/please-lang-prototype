@@ -19,6 +19,11 @@ export const makeSome = <const Value>(value: Value) =>
 export const isNone = (option: Option<unknown>): option is typeof none =>
   option[optionTag] === 'none'
 
+export const fromPredicate = <InputValue, Value extends InputValue>(
+  value: InputValue,
+  predicate: (value: InputValue) => value is Value,
+): Option<Value> => (predicate(value) ? makeSome(value) : none)
+
 export const flatMap = <Value, NewValue>(
   option: Option<Value>,
   f: (value: Value) => Option<NewValue>,
