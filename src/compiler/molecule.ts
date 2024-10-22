@@ -29,3 +29,5 @@ export const canonicalize = (
   }
   return canonicalized
 }
+
+export const unit: CanonicalizedMolecule = withPhantomData<Canonicalized>()({})

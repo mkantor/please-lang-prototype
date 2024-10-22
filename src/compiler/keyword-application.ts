@@ -100,15 +100,7 @@ const handleMoleculeWhichMayBeAKeywordCall = ({
               0: unescapeKeywordSigil(possibleKeyword),
             }),
           ),
-    some: keyword =>
-      either.map(
-        keywordTransforms[keyword](possibleArguments),
-        transformOutput =>
-          option.match(transformOutput, {
-            none: () => withPhantomData<KeywordsApplied>()({}),
-            some: x => x,
-          }),
-      ),
+    some: keyword => keywordTransforms[keyword](possibleArguments),
   })
 
 const handleAtomWhichMayNotBeAKeyword = (

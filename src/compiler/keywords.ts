@@ -1,17 +1,16 @@
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
-import type { Option } from '../adts/option.js'
-import * as option from '../adts/option.js'
 import { withPhantomData } from '../phantom-data.js'
 import type { Atom } from './atom.js'
 import type { KeywordError } from './errors.js'
 import type { CompiledAtom, CompiledMolecule } from './keyword-application.js'
 import type { Molecule } from './molecule.js'
+import * as molecule from './molecule.js'
 import type { KeywordsApplied } from './stages.js'
 
 type KeywordTransform = (
   value: CompiledMolecule,
-) => Either<KeywordError, Option<CompiledAtom | CompiledMolecule>>
+) => Either<KeywordError, CompiledAtom | CompiledMolecule>
 
 export type Keyword = '@check' | '@todo'
 
@@ -27,9 +26,7 @@ const check = ({
 }): ReturnType<KeywordTransform> => {
   if (value === type) {
     // This case is just an optimization. It allows skipping more expensive checks.
-    return either.makeRight(
-      option.makeSome(withPhantomData<KeywordsApplied>()(value)),
-    )
+    return either.makeRight(withPhantomData<KeywordsApplied>()(value))
   } else if (typeof value === 'string' || typeof type === 'string') {
     // If either the value or the type are `string`s and aren't strictly-equal then we have a type
     // error. This also narrows `value` and `type` to objects for the next case.
@@ -64,9 +61,7 @@ const check = ({
       }
     }
     // If this function has not yet returned then the value is assignable to the type.
-    return either.makeRight(
-      option.makeSome(withPhantomData<KeywordsApplied>()(value)),
-    )
+    return either.makeRight(withPhantomData<KeywordsApplied>()(value))
   }
 }
 
@@ -91,7 +86,8 @@ export const keywordTransforms: Record<Keyword, KeywordTransform> = {
       return check({ value, type })
     }
   },
-  '@todo': _ => either.makeRight(option.none),
+  '@todo': _ =>
+    either.makeRight(withPhantomData<KeywordsApplied>()(molecule.unit)),
 }
 
 // `isKeyword` is correct as long as `keywordTransforms` does not have excess properties.
