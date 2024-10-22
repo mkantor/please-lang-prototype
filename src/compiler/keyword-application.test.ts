@@ -22,6 +22,10 @@ applyKeywordsSuite('basic keyword syntax', [
   [{ key: 'value' }, success({ key: 'value' })],
   [{ key: { key: 'value' } }, success({ key: { key: 'value' } })],
   [{ '@@key': '@@value' }, success({ '@key': '@value' })],
+  [
+    { '@@key': { nested: '@@value' } },
+    success({ '@key': { nested: '@value' } }),
+  ],
   [{ key: { 0: '@@escaped' } }, success({ key: { 0: '@escaped' } })],
   [{ 0: '@@escaped' }, success({ 0: '@escaped' })],
   [{ key: { 1: '@@escaped' } }, success({ key: { 1: '@escaped' } })],
