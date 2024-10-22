@@ -10,7 +10,7 @@ import type { Molecule } from './molecule.js'
 import type { Canonicalized } from './stages.js'
 
 const cases: readonly (readonly [
-  input: Molecule,
+  input: Atom | Molecule,
   check:
     | Atom
     | Molecule
@@ -23,16 +23,23 @@ const cases: readonly (readonly [
 ])[] = [
   // basic keyword syntax and escaping:
   [{}, {}],
+  ['', ''],
   [{ key: 'value' }, { key: 'value' }],
   [{ key: { key: 'value' } }, { key: { key: 'value' } }],
-  [{ '@key': '@value' }, { '@key': '@value' }],
-  [{ '@@key': '@@value' }, { '@@key': '@@value' }],
+  [{ '@@key': '@@value' }, { '@key': '@value' }],
   [{ key: { 0: '@@escaped' } }, { key: { 0: '@escaped' } }],
+  [{ 0: '@@escaped' }, { 0: '@escaped' }],
+  [{ key: { 1: '@@escaped' } }, { key: { 1: '@escaped' } }],
+  ['@@escaped', '@escaped'],
   [{ 0: { 0: '@@escaped' } }, { 0: { 0: '@escaped' } }],
   [
     { key: { 0: '@someUnknownKeyword' } },
     output => assert(either.isLeft(output)),
   ],
+  [{ '@someUnknownKeyword': 'value' }, output => assert(either.isLeft(output))],
+  [{ key: '@someUnknownKeyword' }, output => assert(either.isLeft(output))],
+  [{ '@todo': 'value' }, output => assert(either.isLeft(output))],
+  [{ key: '@todo' }, output => assert(either.isLeft(output))],
 
   // @todo keyword:
   [{ 0: '@todo', 1: 'blah' }, {}],
@@ -49,6 +56,7 @@ const cases: readonly (readonly [
   [{ 0: '@check', 1: 'a', 2: 'a' }, 'a'],
   [{ 0: '@check', type: 'a', value: 'a' }, 'a'],
   [{ 0: '@check', type: '', value: '' }, ''],
+  [{ 0: '@check', type: '@@a', value: '@@a' }, '@a'],
   [{ 0: '@check', 1: 'a', 2: 'B' }, output => assert(either.isLeft(output))],
   [
     { 0: '@check', type: 'a', value: 'B' },

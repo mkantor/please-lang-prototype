@@ -2,6 +2,7 @@ import * as util from 'node:util'
 import type { Either } from './adts/either.js'
 import * as either from './adts/either.js'
 import * as compiler from './compiler/index.js'
+import type { JSONValue } from './utility-types.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
   let input: string = ''
@@ -13,19 +14,19 @@ const read = async (stream: AsyncIterable<string>): Promise<string> => {
 
 const handleInput = (
   source: string,
-): Either<{ readonly message: string }, compiler.CanonicalizedMolecule> =>
+): Either<
+  { readonly message: string },
+  compiler.CanonicalizedAtom | compiler.CanonicalizedMolecule
+> =>
   either.map(
-    either.flatMap(
-      either.mapLeft(
-        either.tryCatch((): unknown => JSON.parse(source)),
-        jsonParseError => ({
-          message:
-            jsonParseError instanceof Error
-              ? jsonParseError.message
-              : 'Invalid JSON',
-        }),
-      ),
-      compiler.validateMolecule,
+    either.mapLeft(
+      either.tryCatch((): JSONValue => JSON.parse(source)),
+      jsonParseError => ({
+        message:
+          jsonParseError instanceof Error
+            ? jsonParseError.message
+            : 'Invalid JSON',
+      }),
     ),
     compiler.canonicalizeMolecule,
   )

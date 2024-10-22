@@ -1,10 +1,15 @@
-export type UnknownKeywordError = {
-  readonly kind: 'unknownKeyword'
+export type InvalidKeywordArgumentsError = {
+  readonly kind: 'invalidKeywordArguments'
   readonly message: string
 }
 
-export type InvalidKeywordArgumentsError = {
-  readonly kind: 'invalidKeywordArguments'
+export type InvalidSyntaxError = {
+  readonly kind: 'invalidSyntax'
+  readonly message: string
+}
+
+export type UnknownKeywordError = {
+  readonly kind: 'unknownKeyword'
   readonly message: string
 }
 
@@ -14,13 +19,9 @@ export type TypeMismatch = {
 }
 
 export type KeywordError =
-  | UnknownKeywordError
   | InvalidKeywordArgumentsError
+  | InvalidSyntaxError
   | TypeMismatch
+  | UnknownKeywordError
 
-export type InvalidMoleculeError = {
-  readonly kind: 'invalidMolecule'
-  readonly message: string
-}
-
-export type CompilationError = InvalidMoleculeError | KeywordError
+export type CompilationError = KeywordError
