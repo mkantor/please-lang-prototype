@@ -3,12 +3,20 @@ export type UnknownKeywordError = {
   readonly message: string
 }
 
-export type InvalidKeywordUsageError = {
-  readonly kind: 'invalidKeywordUsage'
+export type InvalidKeywordArgumentsError = {
+  readonly kind: 'invalidKeywordArguments'
   readonly message: string
 }
 
-export type KeywordError = UnknownKeywordError | InvalidKeywordUsageError
+export type TypeMismatch = {
+  readonly kind: 'typeMismatch'
+  readonly message: string
+}
+
+export type KeywordError =
+  | UnknownKeywordError
+  | InvalidKeywordArgumentsError
+  | TypeMismatch
 
 export type InvalidMoleculeError = {
   readonly kind: 'invalidMolecule'

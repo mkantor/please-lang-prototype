@@ -44,6 +44,91 @@ const cases: readonly (readonly [
     },
     { key1: {}, key2: {} },
   ],
+
+  // @check keyword:
+  [{ 0: '@check', 1: 'a', 2: 'a' }, 'a'],
+  [{ 0: '@check', type: 'a', value: 'a' }, 'a'],
+  [{ 0: '@check', type: '', value: '' }, ''],
+  [{ 0: '@check', 1: 'a', 2: 'B' }, output => assert(either.isLeft(output))],
+  [
+    { 0: '@check', type: 'a', value: 'B' },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    { 0: '@check', type: 'a', value: {} },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    { 0: '@check', type: {}, value: 'a' },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    {
+      0: '@check',
+      type: { a: 'b' },
+      value: { a: 'not b' },
+    },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    {
+      0: '@check',
+      type: { something: { more: 'complicated' } },
+      value: { something: { more: 'complicated' } },
+    },
+    { something: { more: 'complicated' } },
+  ],
+  [
+    {
+      0: '@check',
+      type: { something: { more: 'complicated' } },
+      value: {
+        something: { more: 'complicated, which also does not typecheck' },
+      },
+    },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    {
+      0: '@check',
+      type: { a: 'b' },
+      value: {},
+    },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    {
+      0: '@check',
+      type: { a: { b: 'c' } },
+      value: { a: {} },
+    },
+    output => assert(either.isLeft(output)),
+  ],
+  // values with excess properties:
+  [
+    {
+      0: '@check',
+      type: { a: 'b' },
+      value: { a: 'b', c: 'd' },
+    },
+    { a: 'b', c: 'd' },
+  ],
+  [
+    {
+      0: '@check',
+      type: {},
+      value: { a: 'b' },
+    },
+    { a: 'b' },
+  ],
+  [
+    {
+      0: '@check',
+      type: { a: {} },
+      value: { a: { b: 'c' } },
+    },
+    { a: { b: 'c' } },
+  ],
 ]
 
 cases.forEach(([input, check]) =>
