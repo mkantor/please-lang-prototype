@@ -13,7 +13,7 @@ type KeywordTransform = (
   value: CompiledMolecule,
 ) => Either<KeywordError, Option<CompiledAtom | CompiledMolecule>>
 
-export type Keyword = 'check' | 'todo'
+export type Keyword = '@check' | '@todo'
 
 /**
  * Checks whether a given value is assignable to a given type.
@@ -71,7 +71,7 @@ const check = ({
 }
 
 export const keywordTransforms: Record<Keyword, KeywordTransform> = {
-  check: configuration => {
+  '@check': configuration => {
     const value = configuration.value ?? configuration['1']
     const type = configuration.type ?? configuration['2']
 
@@ -91,15 +91,10 @@ export const keywordTransforms: Record<Keyword, KeywordTransform> = {
       return check({ value, type })
     }
   },
-  todo: _ => either.makeRight(option.none),
+  '@todo': _ => either.makeRight(option.none),
 }
 
-const keywordPattern = new RegExp(
-  `^@(${Object.keys(keywordTransforms).join('|')})`,
-)
-export const keywordPrefixOf = (input: string): Option<Keyword> => {
-  const possibleKeyword = keywordPattern.exec(input)?.[1]
-  return possibleKeyword === undefined
-    ? option.none
-    : option.makeSome(possibleKeyword as Keyword)
-}
+// `isKeyword` is correct as long as `keywordTransforms` does not have excess properties.
+const allKeywords = new Set(Object.keys(keywordTransforms))
+export const isKeyword = (input: string): input is Keyword =>
+  allKeywords.has(input)

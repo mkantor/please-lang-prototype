@@ -35,6 +35,10 @@ applyKeywordsSuite('basic keyword syntax', [
   [{ key: '@someUnknownKeyword' }, output => assert(either.isLeft(output))],
   [{ '@todo': 'value' }, output => assert(either.isLeft(output))],
   [{ key: '@todo' }, output => assert(either.isLeft(output))],
+  [
+    { 0: '@todo this is also not valid' },
+    output => assert(either.isLeft(output)),
+  ],
 ])
 
 applyKeywordsSuite('@todo', [

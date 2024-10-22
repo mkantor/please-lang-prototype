@@ -10,7 +10,7 @@ import type {
   CanonicalizedMolecule,
   Molecule,
 } from './index.js'
-import { keywordPrefixOf, keywordTransforms } from './keywords.js'
+import { isKeyword, keywordTransforms } from './keywords.js'
 import type { KeywordsApplied } from './stages.js'
 
 export type CompiledAtom = WithPhantomData<Atom, KeywordsApplied>
@@ -67,10 +67,12 @@ const applyKeywordsWithinMolecule = (
     }
   }
 
-  if (typeof possibleKeyword === 'string') {
-    return handleAtomWhichMayBeAKeyword(
-      possibleKeyword,
-      withPhantomData<KeywordsApplied>()(possibleKeywordCall),
+  if (typeof possibleKeywordCall['0'] === 'string') {
+    return handleMoleculeWhichMayBeAKeywordCall(
+      withPhantomData<KeywordsApplied>()({
+        0: possibleKeywordCall['0'],
+        ...possibleKeywordCall,
+      }),
     )
   } else {
     return either.makeRight(
@@ -79,32 +81,33 @@ const applyKeywordsWithinMolecule = (
   }
 }
 
-const handleAtomWhichMayBeAKeyword = (
-  possibleKeyword: Atom,
-  scope: CompiledMolecule,
-): Either<KeywordError, CompiledAtom | CompiledMolecule> =>
-  option.match(keywordPrefixOf(possibleKeyword), {
-    none: () => {
-      if (/^@[^@]/.test(possibleKeyword)) {
-        return either.makeLeft({
-          kind: 'unknownKeyword',
-          message: `unknown keyword: \`${possibleKeyword}\``,
-        })
-      } else {
-        return either.makeRight(
-          withPhantomData<KeywordsApplied>()({
-            ...scope,
-            0: unescapeKeywordSigil(possibleKeyword),
-          }),
-        )
-      }
-    },
+const handleMoleculeWhichMayBeAKeywordCall = ({
+  0: possibleKeyword,
+  ...possibleArguments
+}: CompiledMolecule & {
+  readonly 0: Atom
+}): Either<KeywordError, CompiledAtom | CompiledMolecule> =>
+  option.match(option.fromPredicate(possibleKeyword, isKeyword), {
+    none: () =>
+      /^@[^@]/.test(possibleKeyword)
+        ? either.makeLeft({
+            kind: 'unknownKeyword',
+            message: `unknown keyword: \`${possibleKeyword}\``,
+          })
+        : either.makeRight(
+            withPhantomData<KeywordsApplied>()({
+              ...possibleArguments,
+              0: unescapeKeywordSigil(possibleKeyword),
+            }),
+          ),
     some: keyword =>
-      either.map(keywordTransforms[keyword](scope), transformOutput =>
-        option.match(transformOutput, {
-          none: () => withPhantomData<KeywordsApplied>()({}),
-          some: x => x,
-        }),
+      either.map(
+        keywordTransforms[keyword](possibleArguments),
+        transformOutput =>
+          option.match(transformOutput, {
+            none: () => withPhantomData<KeywordsApplied>()({}),
+            some: x => x,
+          }),
       ),
   })
 
