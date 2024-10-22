@@ -3,16 +3,16 @@ import test from 'node:test'
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
 import { withPhantomData } from '../phantom-data.js'
+import type { Atom } from './atom.js'
 import type { CompilationError } from './errors.js'
 import * as keywordApplication from './keyword-application.js'
 import type { Molecule } from './molecule.js'
 import type { Canonicalized } from './stages.js'
 
-const expectedOutput = (molecule: Molecule) => either.makeRight(molecule)
-
 const cases: readonly (readonly [
   input: Molecule,
   check:
+    | Atom
     | Molecule
     | ((
         output: Either<
@@ -47,7 +47,7 @@ const cases: readonly (readonly [
 ]
 
 cases.forEach(([input, check]) =>
-  test(`transforming \`${JSON.stringify(
+  test(`applying keywords in \`${JSON.stringify(
     input,
   )}\` produces expected output`, () => {
     const output = keywordApplication.applyKeywords(
@@ -56,7 +56,7 @@ cases.forEach(([input, check]) =>
     if (typeof check === 'function') {
       check(output)
     } else {
-      assert.deepEqual(output, expectedOutput(check))
+      assert.deepEqual(output, either.makeRight(check))
     }
   }),
 )
