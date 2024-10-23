@@ -1,7 +1,7 @@
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
 import * as option from '../adts/option.js'
-import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
+import { withPhantomData } from '../phantom-data.js'
 import type { Writable } from '../utility-types.js'
 import { type Atom } from './atom.js'
 import type { InvalidSyntaxError, KeywordError } from './errors.js'
@@ -10,11 +10,13 @@ import type {
   CanonicalizedMolecule,
   Molecule,
 } from './index.js'
-import { isKeyword, keywordTransforms } from './keywords.js'
+import {
+  isKeyword,
+  keywordTransforms,
+  type CompiledAtom,
+  type CompiledMolecule,
+} from './keywords.js'
 import type { KeywordsApplied } from './stages.js'
-
-export type CompiledAtom = WithPhantomData<Atom, KeywordsApplied>
-export type CompiledMolecule = WithPhantomData<Molecule, KeywordsApplied>
 
 export const applyKeywords = (
   value: CanonicalizedAtom | CanonicalizedMolecule,
