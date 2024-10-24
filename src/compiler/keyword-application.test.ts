@@ -4,6 +4,7 @@ import * as either from '../adts/either.js'
 import { withPhantomData } from '../phantom-data.js'
 import type { Atom } from './atom.js'
 import * as keywordApplication from './keyword-application.js'
+import { literalValueToSemanticNode } from './keywords.js'
 import type { Molecule } from './molecule.js'
 import type { Canonicalized, KeywordsApplied } from './stages.js'
 
@@ -14,7 +15,9 @@ const applyKeywordsSuite = testCases(
 )
 
 const success = (output: Atom | Molecule) =>
-  either.makeRight(withPhantomData<KeywordsApplied>()(output))
+  either.makeRight(
+    withPhantomData<KeywordsApplied>()(literalValueToSemanticNode(output)),
+  )
 
 applyKeywordsSuite('basic keyword syntax', [
   [{}, success({})],

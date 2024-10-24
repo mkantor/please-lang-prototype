@@ -1,18 +1,62 @@
 import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
-import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
+import type { Writable } from '../utility-types.js'
 import type { Atom } from './atom.js'
 import type { KeywordError } from './errors.js'
 import type { Molecule } from './molecule.js'
-import * as molecule from './molecule.js'
-import type { KeywordsApplied } from './stages.js'
 
-export type CompiledAtom = WithPhantomData<Atom, KeywordsApplied>
-export type CompiledMolecule = WithPhantomData<Molecule, KeywordsApplied>
+const nodeTag = Symbol('nodeTag')
 
-type KeywordTransform = (
-  value: CompiledMolecule,
-) => Either<KeywordError, CompiledAtom | CompiledMolecule>
+export type AtomNode = {
+  readonly [nodeTag]: 'atom'
+  readonly atom: Atom
+}
+export type ObjectNode = {
+  readonly [nodeTag]: 'object'
+  readonly children: Readonly<Record<Atom, SemanticNode>>
+}
+
+export type SemanticNode = AtomNode | ObjectNode
+
+type KeywordTransform = (call: ObjectNode) => Either<KeywordError, SemanticNode>
+
+export const literalValueToSemanticNode = (
+  value: Atom | Molecule,
+): SemanticNode =>
+  typeof value === 'string'
+    ? literalAtomToSemanticNode(value)
+    : literalMoleculeToSemanticNode(value)
+
+export const literalAtomToSemanticNode = (atom: Atom): AtomNode => ({
+  [nodeTag]: 'atom',
+  atom,
+})
+
+export const literalMoleculeToSemanticNode = (
+  molecule: Molecule,
+): ObjectNode => {
+  const children: Writable<ObjectNode['children']> = {}
+  for (const [key, propertyValue] of Object.entries(molecule)) {
+    children[key] = literalValueToSemanticNode(propertyValue)
+  }
+  return {
+    [nodeTag]: 'object',
+    children,
+  }
+}
+
+export const semanticNodeToMoleculeOrAtom = (
+  node: SemanticNode,
+): Atom | Molecule =>
+  node[nodeTag] === 'atom' ? node.atom : objectNodeToMolecule(node)
+
+const objectNodeToMolecule = (node: ObjectNode): Molecule => {
+  const molecule: Writable<Molecule> = {}
+  for (const [key, propertyValue] of Object.entries(node.children)) {
+    molecule[key] = semanticNodeToMoleculeOrAtom(propertyValue)
+  }
+  return molecule
+}
 
 const handlers = {
   /**
@@ -22,26 +66,25 @@ const handlers = {
     value,
     type,
   }: {
-    readonly value: Atom | Molecule
-    readonly type: Atom | Molecule
+    readonly value: SemanticNode
+    readonly type: SemanticNode
   }): ReturnType<KeywordTransform> => {
-    if (value === type) {
-      // This case is just an optimization. It allows skipping more expensive checks.
-      return either.makeRight(withPhantomData<KeywordsApplied>()(value))
-    } else if (typeof value === 'string' || typeof type === 'string') {
-      // If either the value or the type are `string`s and aren't strictly-equal then we have a type
-      // error. This also narrows `value` and `type` to objects for the next case.
-      return either.makeLeft({
-        kind: 'typeMismatch',
-        message: `the value \`${JSON.stringify(
-          value,
-        )}\` is not assignable to the type \`${JSON.stringify(type)}\``,
-      })
+    if (value[nodeTag] === 'atom' || type[nodeTag] === 'atom') {
+      return value[nodeTag] === 'atom' &&
+        type[nodeTag] === 'atom' &&
+        value.atom === type.atom
+        ? either.makeRight(value)
+        : either.makeLeft({
+            kind: 'typeMismatch',
+            message: `the value \`${JSON.stringify(
+              value,
+            )}\` is not assignable to the type \`${JSON.stringify(type)}\``,
+          })
     } else {
       // Make sure all properties in the type are present and valid in the value (recursively).
       // Values may legally have additional properties beyond what is required by the type.
-      for (const [key, typePropertyValue] of Object.entries(type)) {
-        if (value[key] === undefined) {
+      for (const [key, typePropertyValue] of Object.entries(type.children)) {
+        if (value.children[key] === undefined) {
           return either.makeLeft({
             kind: 'typeMismatch',
             message: `the value \`${JSON.stringify(
@@ -53,7 +96,7 @@ const handlers = {
         } else {
           // Recursively check the property:
           const resultOfCheckingProperty = handlers.check({
-            value: value[key],
+            value: value.children[key],
             type: typePropertyValue,
           })
           if (either.isLeft(resultOfCheckingProperty)) {
@@ -62,7 +105,7 @@ const handlers = {
         }
       }
       // If this function has not yet returned then the value is assignable to the type.
-      return either.makeRight(withPhantomData<KeywordsApplied>()(value))
+      return either.makeRight(value)
     }
   },
 
@@ -70,14 +113,13 @@ const handlers = {
    * Ignores all arguments and evaluates to an empty molecule.
    */
   todo: (): ReturnType<KeywordTransform> =>
-    either.makeRight(withPhantomData<KeywordsApplied>()(molecule.unit)),
+    either.makeRight({ [nodeTag]: 'object', children: {} }),
 }
 
 export const keywordTransforms = {
   '@check': configuration => {
-    const value = configuration.value ?? configuration['1']
-    const type = configuration.type ?? configuration['2']
-
+    const value = configuration.children.value ?? configuration.children['1']
+    const type = configuration.children.type ?? configuration.children['2']
     if (value === undefined) {
       return either.makeLeft({
         kind: 'invalidKeywordArguments',
@@ -101,5 +143,5 @@ export type Keyword = keyof typeof keywordTransforms
 
 // `isKeyword` is correct as long as `keywordTransforms` does not have excess properties.
 const allKeywords = new Set(Object.keys(keywordTransforms))
-export const isKeyword = (input: string): input is Keyword =>
-  allKeywords.has(input)
+export const isKeyword = (input: unknown): input is Keyword =>
+  typeof input === 'string' && allKeywords.has(input)

@@ -2,6 +2,7 @@ import * as util from 'node:util'
 import type { Either } from './adts/either.js'
 import * as either from './adts/either.js'
 import * as compiler from './compiler/index.js'
+import { semanticNodeToMoleculeOrAtom } from './compiler/keywords.js'
 import type { JSONValue } from './utility-types.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
@@ -33,19 +34,25 @@ const handleInput = (
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
-  either.match(either.flatMap(handleInput(rawInput), compiler.applyKeywords), {
-    left: error => {
-      throw new Error(error.message) // TODO: improve error reporting
+  either.match(
+    either.map(
+      either.flatMap(handleInput(rawInput), compiler.applyKeywords),
+      semanticNodeToMoleculeOrAtom,
+    ),
+    {
+      left: error => {
+        throw new Error(error.message) // TODO: improve error reporting
+      },
+      right: output => {
+        process.stdout.write(
+          util.inspect(output, {
+            colors: true,
+            depth: Infinity,
+          }),
+        )
+      },
     },
-    right: output => {
-      process.stdout.write(
-        util.inspect(output, {
-          colors: true,
-          depth: Infinity,
-        }),
-      )
-    },
-  })
+  )
 
   // Writing a newline ensures that output is flushed before terminating, otherwise nothing may be
   // printed to the console. See:
