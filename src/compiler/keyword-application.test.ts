@@ -2,10 +2,10 @@ import assert from 'node:assert'
 import { testCases } from '../_lib.test.js'
 import * as either from '../adts/either.js'
 import { withPhantomData } from '../phantom-data.js'
-import type { Atom } from './atom.js'
 import * as keywordApplication from './keyword-application.js'
 import { literalValueToSemanticNode } from './keywords.js'
-import type { Molecule } from './molecule.js'
+import type { Atom } from './parsing/atom.js'
+import type { Molecule } from './parsing/molecule.js'
 import type { Canonicalized, KeywordsApplied } from './stages.js'
 
 const applyKeywordsSuite = testCases(

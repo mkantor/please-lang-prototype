@@ -1,7 +1,7 @@
-import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
-import type { JSONValue, Writable } from '../utility-types.js'
+import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
+import type { JSONValue, Writable } from '../../utility-types.js'
+import type { Canonicalized } from '../stages.js'
 import type { Atom } from './atom.js'
-import type { Canonicalized } from './stages.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
