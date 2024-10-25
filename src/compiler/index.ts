@@ -1,3 +1,4 @@
+export { serialize } from './code-generation/serialization.js'
 export type { CompilationError } from './errors.js'
 export type { Atom } from './parsing/atom.js'
 export { canonicalize as canonicalizeMolecule } from './parsing/molecule.js'

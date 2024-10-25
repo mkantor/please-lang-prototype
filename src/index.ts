@@ -2,7 +2,6 @@ import * as util from 'node:util'
 import type { Either } from './adts/either.js'
 import * as either from './adts/either.js'
 import * as compiler from './compiler/index.js'
-import { semanticNodeToMoleculeOrAtom } from './compiler/semantics/keywords.js'
 import type { JSONValue } from './utility-types.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
@@ -37,13 +36,13 @@ const main = async (process: NodeJS.Process): Promise<undefined> => {
   either.match(
     either.map(
       either.flatMap(handleInput(rawInput), compiler.applyKeywords),
-      semanticNodeToMoleculeOrAtom,
+      compiler.serialize,
     ),
     {
       left: error => {
         throw new Error(error.message) // TODO: improve error reporting
       },
-      right: output => {
+      right: (output: JSONValue) => {
         process.stdout.write(
           util.inspect(output, {
             colors: true,
