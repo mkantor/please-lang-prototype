@@ -1,10 +1,4 @@
 export { serialize } from './code-generation/serialization.js'
-export type { CompilationError } from './errors.js'
-export type { Atom } from './parsing/atom.js'
-export { canonicalize as canonicalizeMolecule } from './parsing/molecule.js'
-export type {
-  CanonicalizedAtom,
-  CanonicalizedMolecule,
-  Molecule,
-} from './parsing/molecule.js'
-export { applyKeywords } from './semantics/keyword-application.js'
+export { canonicalize, type SyntaxTree } from './parsing/syntax-tree.js'
+export { elaborate } from './semantics/expression-elaboration.js'
+export type { SemanticGraph } from './semantics/semantic-graph.js'

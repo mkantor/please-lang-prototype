@@ -14,10 +14,7 @@ const read = async (stream: AsyncIterable<string>): Promise<string> => {
 
 const handleInput = (
   source: string,
-): Either<
-  { readonly message: string },
-  compiler.CanonicalizedAtom | compiler.CanonicalizedMolecule
-> =>
+): Either<{ readonly message: string }, compiler.SyntaxTree> =>
   either.map(
     either.mapLeft(
       either.tryCatch((): JSONValue => JSON.parse(source)),
@@ -28,14 +25,14 @@ const handleInput = (
             : 'Invalid JSON',
       }),
     ),
-    compiler.canonicalizeMolecule,
+    compiler.canonicalize,
   )
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
   either.match(
     either.map(
-      either.flatMap(handleInput(rawInput), compiler.applyKeywords),
+      either.flatMap(handleInput(rawInput), compiler.elaborate),
       compiler.serialize,
     ),
     {

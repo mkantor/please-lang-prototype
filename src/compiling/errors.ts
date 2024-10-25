@@ -1,5 +1,5 @@
-export type InvalidKeywordArgumentsError = {
-  readonly kind: 'invalidKeywordArguments'
+export type InvalidExpressionError = {
+  readonly kind: 'invalidExpression'
   readonly message: string
 }
 
@@ -18,10 +18,10 @@ export type TypeMismatch = {
   readonly message: string
 }
 
-export type KeywordError =
-  | InvalidKeywordArgumentsError
+export type ElaborationError =
+  | InvalidExpressionError
   | InvalidSyntaxError
   | TypeMismatch
   | UnknownKeywordError
 
-export type CompilationError = KeywordError
+export type CompilationError = ElaborationError

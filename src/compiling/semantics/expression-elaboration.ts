@@ -3,42 +3,36 @@ import * as either from '../../adts/either.js'
 import * as option from '../../adts/option.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
-import type {
-  CanonicalizedAtom,
-  CanonicalizedMolecule,
-  Molecule,
-} from '../compiler.js'
-import type { InvalidSyntaxError, KeywordError } from '../errors.js'
-import { type Atom } from '../parsing/atom.js'
-import type { KeywordsApplied } from '../stages.js'
+import type { SyntaxTree } from '../compiler.js'
+import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
+import type { Atom } from '../parsing/atom.js'
+import type { Molecule } from '../parsing/molecule.js'
+import type { Canonicalized, Elaborated } from '../stages.js'
+import { isKeyword, keywordTransforms } from './keywords.js'
 import {
-  isKeyword,
-  keywordTransforms,
-  literalAtomToSemanticNode,
-  literalMoleculeToSemanticNode,
-  literalValueToSemanticNode,
-  semanticNodeToMoleculeOrAtom,
+  literalMoleculeToObjectNode,
+  literalValueToSemanticGraph,
+  makeAtomNode,
+  semanticGraphToSyntaxTree,
   type AtomNode,
-  type SemanticNode,
-} from './keywords.js'
+  type SemanticGraph,
+} from './semantic-graph.js'
 
-export type CompiledValue = WithPhantomData<SemanticNode, KeywordsApplied>
+export type ElaboratedValue = WithPhantomData<SemanticGraph, Elaborated>
 
-export const applyKeywords = (
-  value: CanonicalizedAtom | CanonicalizedMolecule,
-): Either<KeywordError, CompiledValue> =>
+export const elaborate = (
+  value: SyntaxTree,
+): Either<ElaborationError, ElaboratedValue> =>
   either.map(
     typeof value === 'string'
       ? handleAtomWhichMayNotBeAKeyword(value)
-      : applyKeywordsWithinMolecule(value),
-    withPhantomData<KeywordsApplied>(),
+      : elaborateWithinMolecule(value),
+    withPhantomData<Elaborated>(),
   )
 
-const applyKeywordsWithinMolecule = (
-  // `CanonicalizedMolecule`s aren't branded all the way down, so we need to operate on unbranded
-  // `Molecule`s as we recurse.
+const elaborateWithinMolecule = (
   molecule: Molecule,
-): Either<KeywordError, SemanticNode> => {
+): Either<ElaborationError, SemanticGraph> => {
   let possibleKeywordCallAsMolecule: Writable<Molecule> = {}
   for (let [key, value] of Object.entries(molecule)) {
     const keyUpdateResult = handleAtomWhichMayNotBeAKeyword(key)
@@ -50,13 +44,13 @@ const applyKeywordsWithinMolecule = (
       if (typeof value === 'string') {
         possibleKeywordCallAsMolecule[updatedKey.atom] = value
       } else {
-        const result = applyKeywordsWithinMolecule(value)
+        const result = elaborateWithinMolecule(value)
         if (either.isLeft(result)) {
           // Immediately bail on error.
           return result
         }
         possibleKeywordCallAsMolecule[updatedKey.atom] =
-          semanticNodeToMoleculeOrAtom(result.value)
+          semanticGraphToSyntaxTree(result.value)
       }
     }
   }
@@ -64,8 +58,8 @@ const applyKeywordsWithinMolecule = (
   const { 0: possibleKeyword, ...propertiesInNeedOfFinalization } =
     possibleKeywordCallAsMolecule
 
-  // At this point `possibleKeywordCallAsMolecule` may still have unapplied escape sequences at the
-  // top level (whether it is a keyword call or not).
+  // At this point `possibleKeywordCallAsMolecule` may still have raw escape sequences at the top
+  // level (whether it is a keyword call or not).
   for (let [key, value] of Object.entries(propertiesInNeedOfFinalization)) {
     if (typeof value === 'string') {
       const valueUpdateResult = handleAtomWhichMayNotBeAKeyword(value)
@@ -75,7 +69,7 @@ const applyKeywordsWithinMolecule = (
       } else {
         const updatedValue = valueUpdateResult.value
         possibleKeywordCallAsMolecule[key] =
-          semanticNodeToMoleculeOrAtom(updatedValue)
+          semanticGraphToSyntaxTree(updatedValue)
       }
     }
   }
@@ -88,7 +82,7 @@ const applyKeywordsWithinMolecule = (
   } else {
     // The input was actually just a literal object, not a keyword call.
     return either.makeRight(
-      literalMoleculeToSemanticNode(possibleKeywordCallAsMolecule),
+      literalMoleculeToObjectNode(possibleKeywordCallAsMolecule),
     )
   }
 }
@@ -96,7 +90,7 @@ const applyKeywordsWithinMolecule = (
 const handleMoleculeWhichMayBeAKeywordCall = ({
   0: possibleKeyword,
   ...possibleArguments
-}: Molecule & { readonly 0: Atom }): Either<KeywordError, SemanticNode> =>
+}: Molecule & { readonly 0: Atom }): Either<ElaborationError, SemanticGraph> =>
   option.match(option.fromPredicate(possibleKeyword, isKeyword), {
     none: () =>
       /^@[^@]/.test(possibleKeyword)
@@ -105,14 +99,16 @@ const handleMoleculeWhichMayBeAKeywordCall = ({
             message: `unknown keyword: \`${possibleKeyword}\``,
           })
         : either.makeRight(
-            literalValueToSemanticNode({
-              ...possibleArguments,
-              0: unescapeKeywordSigil(possibleKeyword),
-            }),
+            literalValueToSemanticGraph(
+              withPhantomData<Canonicalized>()({
+                ...possibleArguments,
+                0: unescapeKeywordSigil(possibleKeyword),
+              }),
+            ),
           ),
     some: keyword =>
       keywordTransforms[keyword](
-        literalMoleculeToSemanticNode(possibleArguments),
+        literalMoleculeToObjectNode(possibleArguments),
       ),
   })
 
@@ -125,9 +121,7 @@ const handleAtomWhichMayNotBeAKeyword = (
       message: `keywords cannot be used here: ${atom}`,
     })
   } else {
-    return either.makeRight(
-      literalAtomToSemanticNode(unescapeKeywordSigil(atom)),
-    )
+    return either.makeRight(makeAtomNode(unescapeKeywordSigil(atom)))
   }
 }
 

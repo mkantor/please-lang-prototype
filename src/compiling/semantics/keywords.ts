@@ -1,62 +1,16 @@
 import type { Either } from '../../adts/either.js'
 import * as either from '../../adts/either.js'
-import type { Writable } from '../../utility-types.js'
-import type { KeywordError } from '../errors.js'
-import type { Atom } from '../parsing/atom.js'
-import type { Molecule } from '../parsing/molecule.js'
+import type { ElaborationError } from '../errors.js'
+import {
+  isAtomNode,
+  makeObjectNode,
+  type ObjectNode,
+  type SemanticGraph,
+} from './semantic-graph.js'
 
-const nodeTag = Symbol('nodeTag')
-
-export type AtomNode = {
-  readonly [nodeTag]: 'atom'
-  readonly atom: Atom
-}
-export type ObjectNode = {
-  readonly [nodeTag]: 'object'
-  readonly children: Readonly<Record<Atom, SemanticNode>>
-}
-
-export type SemanticNode = AtomNode | ObjectNode
-
-type KeywordTransform = (call: ObjectNode) => Either<KeywordError, SemanticNode>
-
-export const literalValueToSemanticNode = (
-  value: Atom | Molecule,
-): SemanticNode =>
-  typeof value === 'string'
-    ? literalAtomToSemanticNode(value)
-    : literalMoleculeToSemanticNode(value)
-
-export const literalAtomToSemanticNode = (atom: Atom): AtomNode => ({
-  [nodeTag]: 'atom',
-  atom,
-})
-
-export const literalMoleculeToSemanticNode = (
-  molecule: Molecule,
-): ObjectNode => {
-  const children: Writable<ObjectNode['children']> = {}
-  for (const [key, propertyValue] of Object.entries(molecule)) {
-    children[key] = literalValueToSemanticNode(propertyValue)
-  }
-  return {
-    [nodeTag]: 'object',
-    children,
-  }
-}
-
-export const semanticNodeToMoleculeOrAtom = (
-  node: SemanticNode,
-): Atom | Molecule =>
-  node[nodeTag] === 'atom' ? node.atom : objectNodeToMolecule(node)
-
-const objectNodeToMolecule = (node: ObjectNode): Molecule => {
-  const molecule: Writable<Molecule> = {}
-  for (const [key, propertyValue] of Object.entries(node.children)) {
-    molecule[key] = semanticNodeToMoleculeOrAtom(propertyValue)
-  }
-  return molecule
-}
+type KeywordHandler = (
+  expression: ObjectNode,
+) => Either<ElaborationError, SemanticGraph>
 
 const handlers = {
   /**
@@ -66,13 +20,11 @@ const handlers = {
     value,
     type,
   }: {
-    readonly value: SemanticNode
-    readonly type: SemanticNode
-  }): ReturnType<KeywordTransform> => {
-    if (value[nodeTag] === 'atom' || type[nodeTag] === 'atom') {
-      return value[nodeTag] === 'atom' &&
-        type[nodeTag] === 'atom' &&
-        value.atom === type.atom
+    readonly value: SemanticGraph
+    readonly type: SemanticGraph
+  }): ReturnType<KeywordHandler> => {
+    if (isAtomNode(value) || isAtomNode(type)) {
+      return isAtomNode(value) && isAtomNode(type) && value.atom === type.atom
         ? either.makeRight(value)
         : either.makeLeft({
             kind: 'typeMismatch',
@@ -108,12 +60,10 @@ const handlers = {
       return either.makeRight(value)
     }
   },
-
   /**
-   * Ignores all arguments and evaluates to an empty molecule.
+   * Ignores all arguments and evaluates to an empty object.
    */
-  todo: (): ReturnType<KeywordTransform> =>
-    either.makeRight({ [nodeTag]: 'object', children: {} }),
+  todo: (): ReturnType<KeywordHandler> => either.makeRight(makeObjectNode({})),
 }
 
 export const keywordTransforms = {
@@ -122,13 +72,13 @@ export const keywordTransforms = {
     const type = configuration.children.type ?? configuration.children['2']
     if (value === undefined) {
       return either.makeLeft({
-        kind: 'invalidKeywordArguments',
+        kind: 'invalidExpression',
         message:
           'value must be provided via a property named `value` or the first positional argument',
       })
     } else if (type === undefined) {
       return either.makeLeft({
-        kind: 'invalidKeywordArguments',
+        kind: 'invalidExpression',
         message:
           'type must be provided via a property named `type` or the second positional argument',
       })
@@ -137,7 +87,7 @@ export const keywordTransforms = {
     }
   },
   '@todo': handlers.todo,
-} satisfies Record<`@${string}`, KeywordTransform>
+} satisfies Record<`@${string}`, KeywordHandler>
 
 export type Keyword = keyof typeof keywordTransforms
 

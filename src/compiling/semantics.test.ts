@@ -4,22 +4,24 @@ import * as either from '../adts/either.js'
 import { withPhantomData } from '../phantom-data.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
-import * as keywordApplication from './semantics/keyword-application.js'
-import { literalValueToSemanticNode } from './semantics/keywords.js'
-import type { Canonicalized, KeywordsApplied } from './stages.js'
+import * as elaboration from './semantics/expression-elaboration.js'
+import { literalValueToSemanticGraph } from './semantics/semantic-graph.js'
+import type { Canonicalized, Elaborated } from './stages.js'
 
-const applyKeywordsSuite = testCases(
+const elaborationSuite = testCases(
   (input: Atom | Molecule) =>
-    keywordApplication.applyKeywords(withPhantomData<Canonicalized>()(input)),
-  input => `applying keywords in \`${JSON.stringify(input)}\``,
+    elaboration.elaborate(withPhantomData<Canonicalized>()(input)),
+  input => `elaborating expressions in \`${JSON.stringify(input)}\``,
 )
 
 const success = (output: Atom | Molecule) =>
   either.makeRight(
-    withPhantomData<KeywordsApplied>()(literalValueToSemanticNode(output)),
+    withPhantomData<Elaborated>()(
+      literalValueToSemanticGraph(withPhantomData<Canonicalized>()(output)),
+    ),
   )
 
-applyKeywordsSuite('basic keyword syntax', [
+elaborationSuite('basic keyword syntax', [
   [{}, success({})],
   ['', success('')],
   [{ key: 'value' }, success({ key: 'value' })],
@@ -48,7 +50,7 @@ applyKeywordsSuite('basic keyword syntax', [
   ],
 ])
 
-applyKeywordsSuite('@todo', [
+elaborationSuite('@todo', [
   [{ 0: '@todo', 1: 'blah' }, success({})],
   [{ 0: '@todo', 1: { 0: '@@blah' } }, success({})],
   [
@@ -60,7 +62,7 @@ applyKeywordsSuite('@todo', [
   ],
 ])
 
-applyKeywordsSuite('@check', [
+elaborationSuite('@check', [
   [{ 0: '@check', 1: 'a', 2: 'a' }, success('a')],
   [{ 0: '@check', type: 'a', value: 'a' }, success('a')],
   [{ 0: '@check', type: '', value: '' }, success('')],

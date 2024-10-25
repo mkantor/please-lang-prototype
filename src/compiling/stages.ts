@@ -4,6 +4,6 @@ export type Canonicalized = {
   readonly [_compilationStageKey]: 'canonicalized'
 }
 
-export type KeywordsApplied = {
-  readonly [_compilationStageKey]: 'keywordsApplied'
+export type Elaborated = {
+  readonly [_compilationStageKey]: 'elaborated'
 }
