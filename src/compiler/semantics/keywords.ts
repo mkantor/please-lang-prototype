@@ -1,9 +1,9 @@
-import type { Either } from '../adts/either.js'
-import * as either from '../adts/either.js'
-import type { Writable } from '../utility-types.js'
-import type { KeywordError } from './errors.js'
-import type { Atom } from './parsing/atom.js'
-import type { Molecule } from './parsing/molecule.js'
+import type { Either } from '../../adts/either.js'
+import * as either from '../../adts/either.js'
+import type { Writable } from '../../utility-types.js'
+import type { KeywordError } from '../errors.js'
+import type { Atom } from '../parsing/atom.js'
+import type { Molecule } from '../parsing/molecule.js'
 
 const nodeTag = Symbol('nodeTag')
 

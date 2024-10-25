@@ -1,14 +1,16 @@
-import type { Either } from '../adts/either.js'
-import * as either from '../adts/either.js'
-import * as option from '../adts/option.js'
-import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
-import type { Writable } from '../utility-types.js'
-import type { InvalidSyntaxError, KeywordError } from './errors.js'
+import type { Either } from '../../adts/either.js'
+import * as either from '../../adts/either.js'
+import * as option from '../../adts/option.js'
+import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
+import type { Writable } from '../../utility-types.js'
+import type { InvalidSyntaxError, KeywordError } from '../errors.js'
 import type {
   CanonicalizedAtom,
   CanonicalizedMolecule,
   Molecule,
-} from './index.js'
+} from '../index.js'
+import { type Atom } from '../parsing/atom.js'
+import type { KeywordsApplied } from '../stages.js'
 import {
   isKeyword,
   keywordTransforms,
@@ -19,8 +21,6 @@ import {
   type AtomNode,
   type SemanticNode,
 } from './keywords.js'
-import { type Atom } from './parsing/atom.js'
-import type { KeywordsApplied } from './stages.js'
 
 export type CompiledValue = WithPhantomData<SemanticNode, KeywordsApplied>
 

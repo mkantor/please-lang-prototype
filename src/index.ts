@@ -2,7 +2,7 @@ import * as util from 'node:util'
 import type { Either } from './adts/either.js'
 import * as either from './adts/either.js'
 import * as compiler from './compiler/index.js'
-import { semanticNodeToMoleculeOrAtom } from './compiler/keywords.js'
+import { semanticNodeToMoleculeOrAtom } from './compiler/semantics/keywords.js'
 import type { JSONValue } from './utility-types.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
