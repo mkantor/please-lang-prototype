@@ -3,12 +3,12 @@ import * as either from '../../adts/either.js'
 import * as option from '../../adts/option.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
-import type { InvalidSyntaxError, KeywordError } from '../errors.js'
 import type {
   CanonicalizedAtom,
   CanonicalizedMolecule,
   Molecule,
-} from '../index.js'
+} from '../compiler.js'
+import type { InvalidSyntaxError, KeywordError } from '../errors.js'
 import { type Atom } from '../parsing/atom.js'
 import type { KeywordsApplied } from '../stages.js'
 import {
