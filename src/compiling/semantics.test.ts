@@ -148,3 +148,64 @@ elaborationSuite('@check', [
     success({ a: { b: 'c' } }),
   ],
 ])
+
+elaborationSuite('@lookup', [
+  [
+    {
+      foo: 'bar',
+      bar: { 0: '@lookup', 1: { 0: 'foo' } },
+    },
+    success({ foo: 'bar', bar: 'bar' }),
+  ],
+  [
+    {
+      foo: 'bar',
+      bar: { 0: '@lookup', query: { 0: 'foo' } },
+    },
+    success({ foo: 'bar', bar: 'bar' }),
+  ],
+  [
+    {
+      a: 'A',
+      b: {
+        a: 'different A',
+        b: { 0: '@lookup', query: { 0: 'a' } },
+      },
+    },
+    success({
+      a: 'A',
+      b: {
+        a: 'different A',
+        b: 'different A',
+      },
+    }),
+  ],
+  [
+    {
+      a: 'A',
+      b: {
+        a: { nested: 'nested A' },
+        b: { 0: '@lookup', query: { 0: 'a', 1: 'nested' } },
+      },
+    },
+    success({
+      a: 'A',
+      b: {
+        a: { nested: 'nested A' },
+        b: 'nested A',
+      },
+    }),
+  ],
+  [
+    { 0: '@lookup', _: 'missing query' },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    { 0: '@lookup', query: 'not a valid selector' },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    { 0: '@lookup', query: { 0: 'thisPropertyDoesNotExist' } },
+    output => assert(either.isLeft(output)),
+  ],
+])
