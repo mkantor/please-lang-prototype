@@ -1,3 +1,5 @@
+import type { Option } from '../../adts/option.js'
+import * as option from '../../adts/option.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { SyntaxTree } from '../compiler.js'
@@ -27,6 +29,27 @@ export const makeObjectNode = (
 ): ObjectNode => ({ [nodeTag]: 'object', children })
 
 export type SemanticGraph = AtomNode | ObjectNode
+
+export type KeyPath = readonly string[]
+
+export const applyKeyPath = (
+  graph: SemanticGraph,
+  keyPath: readonly string[],
+): Option<SemanticGraph> => {
+  const [firstKey, ...remainingKeyPath] = keyPath
+  if (firstKey === undefined) {
+    return option.makeSome(graph)
+  } else if (!isObjectNode(graph)) {
+    return option.none
+  } else {
+    const next = graph.children[firstKey]
+    if (next === undefined) {
+      return option.none
+    } else {
+      return applyKeyPath(next, remainingKeyPath)
+    }
+  }
+}
 
 export const literalValueToSemanticGraph = (
   value: Atom | Molecule,

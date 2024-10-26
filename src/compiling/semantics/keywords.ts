@@ -4,12 +4,19 @@ import type { ElaborationError } from '../errors.js'
 import {
   isAtomNode,
   makeObjectNode,
+  type KeyPath,
   type ObjectNode,
   type SemanticGraph,
 } from './semantic-graph.js'
 
+export type ExpressionContext = {
+  readonly program: SemanticGraph
+  readonly location: KeyPath
+}
+
 type KeywordHandler = (
   expression: ObjectNode,
+  context: ExpressionContext,
 ) => Either<ElaborationError, SemanticGraph>
 
 const handlers = {
@@ -67,9 +74,9 @@ const handlers = {
 }
 
 export const keywordTransforms = {
-  '@check': configuration => {
-    const value = configuration.children.value ?? configuration.children['1']
-    const type = configuration.children.type ?? configuration.children['2']
+  '@check': (expression, _context) => {
+    const value = expression.children.value ?? expression.children['1']
+    const type = expression.children.type ?? expression.children['2']
     if (value === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',

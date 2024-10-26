@@ -8,7 +8,11 @@ import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
 import type { Atom } from '../parsing/atom.js'
 import type { Molecule } from '../parsing/molecule.js'
 import type { Canonicalized, Elaborated } from '../stages.js'
-import { isKeyword, keywordTransforms } from './keywords.js'
+import {
+  isKeyword,
+  keywordTransforms,
+  type ExpressionContext,
+} from './keywords.js'
 import {
   literalMoleculeToObjectNode,
   literalValueToSemanticGraph,
@@ -21,17 +25,21 @@ import {
 export type ElaboratedValue = WithPhantomData<SemanticGraph, Elaborated>
 
 export const elaborate = (
-  value: SyntaxTree,
+  program: SyntaxTree,
 ): Either<ElaborationError, ElaboratedValue> =>
   either.map(
-    typeof value === 'string'
-      ? handleAtomWhichMayNotBeAKeyword(value)
-      : elaborateWithinMolecule(value),
+    typeof program === 'string'
+      ? handleAtomWhichMayNotBeAKeyword(program)
+      : elaborateWithinMolecule(program, {
+          location: [],
+          program: literalMoleculeToObjectNode(program),
+        }),
     withPhantomData<Elaborated>(),
   )
 
 const elaborateWithinMolecule = (
   molecule: Molecule,
+  context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
   let possibleKeywordCallAsMolecule: Writable<Molecule> = {}
   for (let [key, value] of Object.entries(molecule)) {
@@ -44,7 +52,10 @@ const elaborateWithinMolecule = (
       if (typeof value === 'string') {
         possibleKeywordCallAsMolecule[updatedKey.atom] = value
       } else {
-        const result = elaborateWithinMolecule(value)
+        const result = elaborateWithinMolecule(value, {
+          location: [...context.location, key],
+          program: context.program,
+        })
         if (either.isLeft(result)) {
           // Immediately bail on error.
           return result
@@ -75,10 +86,13 @@ const elaborateWithinMolecule = (
   }
 
   if (typeof possibleKeywordCallAsMolecule['0'] === 'string') {
-    return handleMoleculeWhichMayBeAKeywordCall({
-      0: possibleKeywordCallAsMolecule['0'],
-      ...possibleKeywordCallAsMolecule,
-    })
+    return handleMoleculeWhichMayBeAKeywordCall(
+      {
+        0: possibleKeywordCallAsMolecule['0'],
+        ...possibleKeywordCallAsMolecule,
+      },
+      context,
+    )
   } else {
     // The input was actually just a literal object, not a keyword call.
     return either.makeRight(
@@ -87,10 +101,10 @@ const elaborateWithinMolecule = (
   }
 }
 
-const handleMoleculeWhichMayBeAKeywordCall = ({
-  0: possibleKeyword,
-  ...possibleArguments
-}: Molecule & { readonly 0: Atom }): Either<ElaborationError, SemanticGraph> =>
+const handleMoleculeWhichMayBeAKeywordCall = (
+  { 0: possibleKeyword, ...possibleArguments }: Molecule & { readonly 0: Atom },
+  context: ExpressionContext,
+): Either<ElaborationError, SemanticGraph> =>
   option.match(option.fromPredicate(possibleKeyword, isKeyword), {
     none: () =>
       /^@[^@]/.test(possibleKeyword)
@@ -109,6 +123,7 @@ const handleMoleculeWhichMayBeAKeywordCall = ({
     some: keyword =>
       keywordTransforms[keyword](
         literalMoleculeToObjectNode(possibleArguments),
+        context,
       ),
   })
 
