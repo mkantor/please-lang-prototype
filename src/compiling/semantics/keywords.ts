@@ -2,6 +2,7 @@ import type { Either } from '../../adts/either.js'
 import * as either from '../../adts/either.js'
 import * as option from '../../adts/option.js'
 import type { ElaborationError } from '../errors.js'
+import { prelude } from './prelude.js'
 import {
   applyKeyPath,
   isAtomNode,
@@ -85,11 +86,15 @@ const handlers = {
     const absolutePath = [...pathToLocalScope, ...relativePath]
     return option.match(applyKeyPath(context.program, absolutePath), {
       none: () =>
-        either.makeLeft({
-          kind: 'invalidExpression',
-          message: 'selector must refer to an existing property',
+        option.match(applyKeyPath(prelude, relativePath), {
+          none: () =>
+            either.makeLeft({
+              kind: 'invalidExpression',
+              message: 'property not found',
+            }),
+          some: valueFromPrelude => either.makeRight(valueFromPrelude),
         }),
-      some: resolvedValue => either.makeRight(resolvedValue),
+      some: valueFromProgram => either.makeRight(valueFromProgram),
     })
   },
 

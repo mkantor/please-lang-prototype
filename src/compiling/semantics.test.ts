@@ -197,15 +197,19 @@ elaborationSuite('@lookup', [
     }),
   ],
   [
-    { 0: '@lookup', _: 'missing query' },
+    { a: { 0: '@lookup', _: 'missing query' } },
     output => assert(either.isLeft(output)),
   ],
   [
-    { 0: '@lookup', query: 'not a valid selector' },
+    { a: { 0: '@lookup', query: 'not a valid selector' } },
     output => assert(either.isLeft(output)),
   ],
   [
-    { 0: '@lookup', query: { 0: 'thisPropertyDoesNotExist' } },
+    { a: { 0: '@lookup', query: { 0: 'thisPropertyDoesNotExist' } } },
     output => assert(either.isLeft(output)),
+  ],
+  [
+    { a: { 0: '@lookup', query: { 0: 'language', 1: 'version' } } },
+    success({ a: { major: '0', minor: '0', patch: '0' } }),
   ],
 ])
