@@ -7,18 +7,19 @@ import type { SyntaxTree } from '../compiler.js'
 import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
 import type { Atom } from '../parsing/atom.js'
 import type { Molecule } from '../parsing/molecule.js'
-import type { Canonicalized, Elaborated } from '../stages.js'
+import type { Elaborated } from '../stages.js'
 import {
   isKeyword,
   keywordTransforms,
   type ExpressionContext,
 } from './keywords.js'
 import {
+  isAtomNode,
   literalMoleculeToObjectNode,
-  literalValueToSemanticGraph,
   makeAtomNode,
-  semanticGraphToSyntaxTree,
+  makeObjectNode,
   type AtomNode,
+  type ObjectNode,
   type SemanticGraph,
 } from './semantic-graph.js'
 
@@ -41,7 +42,9 @@ const elaborateWithinMolecule = (
   molecule: Molecule,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
-  let possibleKeywordCallAsMolecule: Writable<Molecule> = {}
+  let possibleKeywordCallAsObjectNode: ObjectNode & {
+    readonly children: Writable<ObjectNode['children']>
+  } = makeObjectNode({})
   for (let [key, value] of Object.entries(molecule)) {
     const keyUpdateResult = handleAtomWhichMayNotBeAKeyword(key)
     if (either.isLeft(keyUpdateResult)) {
@@ -50,7 +53,8 @@ const elaborateWithinMolecule = (
     } else {
       const updatedKey = keyUpdateResult.value
       if (typeof value === 'string') {
-        possibleKeywordCallAsMolecule[updatedKey.atom] = value
+        possibleKeywordCallAsObjectNode.children[updatedKey.atom] =
+          makeAtomNode(value)
       } else {
         const result = elaborateWithinMolecule(value, {
           location: [...context.location, key],
@@ -60,72 +64,75 @@ const elaborateWithinMolecule = (
           // Immediately bail on error.
           return result
         }
-        possibleKeywordCallAsMolecule[updatedKey.atom] =
-          semanticGraphToSyntaxTree(result.value)
+        possibleKeywordCallAsObjectNode.children[updatedKey.atom] = result.value
       }
     }
   }
 
-  const { 0: possibleKeyword, ...propertiesInNeedOfFinalization } =
-    possibleKeywordCallAsMolecule
+  const { 0: possibleKeywordAsNode, ...propertiesInNeedOfFinalizationAsNodes } =
+    possibleKeywordCallAsObjectNode.children
 
-  // At this point `possibleKeywordCallAsMolecule` may still have raw escape sequences at the top
+  // At this point `possibleKeywordCallAsObjectNode` may still have raw escape sequences at the top
   // level (whether it is a keyword call or not).
-  for (let [key, value] of Object.entries(propertiesInNeedOfFinalization)) {
-    if (typeof value === 'string') {
-      const valueUpdateResult = handleAtomWhichMayNotBeAKeyword(value)
+  for (let [key, value] of Object.entries(
+    propertiesInNeedOfFinalizationAsNodes,
+  )) {
+    if (isAtomNode(value)) {
+      const valueUpdateResult = handleAtomWhichMayNotBeAKeyword(value.atom)
       if (either.isLeft(valueUpdateResult)) {
         // Immediately bail on error.
         return valueUpdateResult
       } else {
         const updatedValue = valueUpdateResult.value
-        possibleKeywordCallAsMolecule[key] =
-          semanticGraphToSyntaxTree(updatedValue)
+        possibleKeywordCallAsObjectNode.children[key] = updatedValue
       }
     }
   }
 
-  if (typeof possibleKeywordCallAsMolecule['0'] === 'string') {
-    return handleMoleculeWhichMayBeAKeywordCall(
+  const possibleKeyword = possibleKeywordCallAsObjectNode.children['0']
+  if (possibleKeyword !== undefined && isAtomNode(possibleKeyword)) {
+    return handleObjectNodeWhichMayBeAKeywordCall(
       {
-        0: possibleKeywordCallAsMolecule['0'],
-        ...possibleKeywordCallAsMolecule,
+        ...possibleKeywordCallAsObjectNode,
+        children: {
+          ...possibleKeywordCallAsObjectNode.children,
+          0: possibleKeyword,
+        },
       },
       context,
     )
   } else {
     // The input was actually just a literal object, not a keyword call.
-    return either.makeRight(
-      literalMoleculeToObjectNode(possibleKeywordCallAsMolecule),
-    )
+    return either.makeRight(possibleKeywordCallAsObjectNode)
   }
 }
 
-const handleMoleculeWhichMayBeAKeywordCall = (
-  { 0: possibleKeyword, ...possibleArguments }: Molecule & { readonly 0: Atom },
+const handleObjectNodeWhichMayBeAKeywordCall = (
+  node: ObjectNode & { readonly children: { readonly 0: AtomNode } },
   context: ExpressionContext,
-): Either<ElaborationError, SemanticGraph> =>
-  option.match(option.fromPredicate(possibleKeyword, isKeyword), {
+): Either<ElaborationError, SemanticGraph> => {
+  const {
+    0: { atom: possibleKeyword },
+    ...possibleArguments
+  } = node.children
+  return option.match(option.fromPredicate(possibleKeyword, isKeyword), {
     none: () =>
       /^@[^@]/.test(possibleKeyword)
         ? either.makeLeft({
             kind: 'unknownKeyword',
             message: `unknown keyword: \`${possibleKeyword}\``,
           })
-        : either.makeRight(
-            literalValueToSemanticGraph(
-              withPhantomData<Canonicalized>()({
-                ...possibleArguments,
-                0: unescapeKeywordSigil(possibleKeyword),
-              }),
-            ),
-          ),
+        : either.makeRight({
+            ...node,
+            children: {
+              ...node.children,
+              0: makeAtomNode(unescapeKeywordSigil(possibleKeyword)),
+            },
+          }),
     some: keyword =>
-      keywordTransforms[keyword](
-        literalMoleculeToObjectNode(possibleArguments),
-        context,
-      ),
+      keywordTransforms[keyword](makeObjectNode(possibleArguments), context),
   })
+}
 
 const handleAtomWhichMayNotBeAKeyword = (
   atom: Atom,
