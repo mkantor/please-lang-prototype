@@ -42,7 +42,7 @@ const elaborateWithinMolecule = (
   molecule: Molecule,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
-  let possibleKeywordCallAsObjectNode: ObjectNode & {
+  let possibleExpressionAsObjectNode: ObjectNode & {
     readonly children: Writable<ObjectNode['children']>
   } = makeObjectNode({})
   for (let [key, value] of Object.entries(molecule)) {
@@ -53,7 +53,7 @@ const elaborateWithinMolecule = (
     } else {
       const updatedKey = keyUpdateResult.value
       if (typeof value === 'string') {
-        possibleKeywordCallAsObjectNode.children[updatedKey.atom] =
+        possibleExpressionAsObjectNode.children[updatedKey.atom] =
           makeAtomNode(value)
       } else {
         const result = elaborateWithinMolecule(value, {
@@ -64,16 +64,16 @@ const elaborateWithinMolecule = (
           // Immediately bail on error.
           return result
         }
-        possibleKeywordCallAsObjectNode.children[updatedKey.atom] = result.value
+        possibleExpressionAsObjectNode.children[updatedKey.atom] = result.value
       }
     }
   }
 
   const { 0: possibleKeywordAsNode, ...propertiesInNeedOfFinalizationAsNodes } =
-    possibleKeywordCallAsObjectNode.children
+    possibleExpressionAsObjectNode.children
 
-  // At this point `possibleKeywordCallAsObjectNode` may still have raw escape sequences at the top
-  // level (whether it is a keyword call or not).
+  // At this point `possibleExpressionAsObjectNode` may still have raw escape sequences at the top
+  // level (whether it is an expression or not).
   for (let [key, value] of Object.entries(
     propertiesInNeedOfFinalizationAsNodes,
   )) {
@@ -84,30 +84,30 @@ const elaborateWithinMolecule = (
         return valueUpdateResult
       } else {
         const updatedValue = valueUpdateResult.value
-        possibleKeywordCallAsObjectNode.children[key] = updatedValue
+        possibleExpressionAsObjectNode.children[key] = updatedValue
       }
     }
   }
 
-  const possibleKeyword = possibleKeywordCallAsObjectNode.children['0']
+  const possibleKeyword = possibleExpressionAsObjectNode.children['0']
   if (possibleKeyword !== undefined && isAtomNode(possibleKeyword)) {
-    return handleObjectNodeWhichMayBeAKeywordCall(
+    return handleObjectNodeWhichMayBeAExpression(
       {
-        ...possibleKeywordCallAsObjectNode,
+        ...possibleExpressionAsObjectNode,
         children: {
-          ...possibleKeywordCallAsObjectNode.children,
+          ...possibleExpressionAsObjectNode.children,
           0: possibleKeyword,
         },
       },
       context,
     )
   } else {
-    // The input was actually just a literal object, not a keyword call.
-    return either.makeRight(possibleKeywordCallAsObjectNode)
+    // The input was actually just a literal object, not an expression.
+    return either.makeRight(possibleExpressionAsObjectNode)
   }
 }
 
-const handleObjectNodeWhichMayBeAKeywordCall = (
+const handleObjectNodeWhichMayBeAExpression = (
   node: ObjectNode & { readonly children: { readonly 0: AtomNode } },
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
