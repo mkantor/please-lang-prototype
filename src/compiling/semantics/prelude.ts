@@ -1,5 +1,6 @@
 import {
   makeAtomNode,
+  makeFunctionNode,
   makeObjectNode,
   type ObjectNode,
 } from './semantic-graph.js'
@@ -12,4 +13,6 @@ export const prelude: ObjectNode = makeObjectNode({
       patch: makeAtomNode('0'),
     }),
   }),
+
+  identity: makeFunctionNode(a => a),
 })
