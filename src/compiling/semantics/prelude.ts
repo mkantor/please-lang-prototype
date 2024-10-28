@@ -1,3 +1,4 @@
+import * as either from '../../adts/either.js'
 import {
   makeAtomNode,
   makeFunctionNode,
@@ -14,5 +15,5 @@ export const prelude: ObjectNode = makeObjectNode({
     }),
   }),
 
-  identity: makeFunctionNode(a => a),
+  identity: makeFunctionNode(either.makeRight),
 })

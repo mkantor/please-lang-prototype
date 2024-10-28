@@ -8,8 +8,8 @@ export type InvalidSyntaxError = {
   readonly message: string
 }
 
-export type UnknownKeywordError = {
-  readonly kind: 'unknownKeyword'
+export type Panic = {
+  readonly kind: 'panic'
   readonly message: string
 }
 
@@ -18,9 +18,15 @@ export type TypeMismatch = {
   readonly message: string
 }
 
+export type UnknownKeywordError = {
+  readonly kind: 'unknownKeyword'
+  readonly message: string
+}
+
 export type ElaborationError =
   | InvalidExpressionError
   | InvalidSyntaxError
+  | Panic
   | TypeMismatch
   | UnknownKeywordError
 

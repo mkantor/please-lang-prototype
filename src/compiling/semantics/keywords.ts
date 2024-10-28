@@ -55,7 +55,11 @@ const handlers = {
       })
     } else if (isFunctionNode(type)) {
       const result = type.function(value)
-      if (!isAtomNode(result) || result.atom !== 'true') {
+      if (either.isLeft(result)) {
+        // The compile-time-evaluated function panicked.
+        return result
+      }
+      if (!isAtomNode(result.value) || result.value.atom !== 'true') {
         return either.makeLeft({
           kind: 'typeMismatch',
           message: `the value \`${stringifyGraphForEndUser(

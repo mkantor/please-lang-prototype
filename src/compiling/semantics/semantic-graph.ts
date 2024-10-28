@@ -1,6 +1,8 @@
+import type { Either } from '../../adts/either.js'
 import type { Option } from '../../adts/option.js'
 import * as option from '../../adts/option.js'
 import type { Writable } from '../../utility-types.js'
+import type { Panic } from '../errors.js'
 import type { Atom } from '../parsing/atom.js'
 import type { Molecule } from '../parsing/molecule.js'
 
@@ -18,13 +20,13 @@ export const makeAtomNode = (atom: Atom): AtomNode => ({
 
 export type FunctionNode = {
   readonly [nodeTag]: 'function'
-  readonly function: (value: SemanticGraph) => SemanticGraph
+  readonly function: (value: SemanticGraph) => Either<Panic, SemanticGraph>
   // TODO: model the function's type signature as data in here?
 }
 export const isFunctionNode = (node: SemanticGraph) =>
   node[nodeTag] === 'function'
 export const makeFunctionNode = (
-  f: (value: SemanticGraph) => SemanticGraph,
+  f: (value: SemanticGraph) => Either<Panic, SemanticGraph>,
 ): FunctionNode => ({ [nodeTag]: 'function', function: f })
 
 export type ObjectNode = {
