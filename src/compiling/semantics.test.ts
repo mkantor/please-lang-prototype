@@ -1,23 +1,30 @@
 import assert from 'node:assert'
 import { testCases } from '../_lib.test.js'
+import type { Either } from '../adts/either.js'
 import * as either from '../adts/either.js'
 import { withPhantomData } from '../phantom-data.js'
+import type { ElaborationError } from './errors.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
-import * as elaboration from './semantics/expression-elaboration.js'
+import type { ElaboratedValue } from './semantics/expression-elaboration.js'
+import { elaborate } from './semantics/expression-elaboration.js'
 import { literalValueToSemanticGraph } from './semantics/semantic-graph.js'
 import type { Canonicalized, Elaborated } from './stages.js'
 
 const elaborationSuite = testCases(
   (input: Atom | Molecule) =>
-    elaboration.elaborate(withPhantomData<Canonicalized>()(input)),
+    elaborate(withPhantomData<Canonicalized>()(input)),
   input => `elaborating expressions in \`${JSON.stringify(input)}\``,
 )
 
-const success = (output: Atom | Molecule) =>
+const success = (
+  expectedOutput: Atom | Molecule,
+): Either<ElaborationError, ElaboratedValue> =>
   either.makeRight(
     withPhantomData<Elaborated>()(
-      literalValueToSemanticGraph(withPhantomData<Canonicalized>()(output)),
+      literalValueToSemanticGraph(
+        withPhantomData<Canonicalized>()(expectedOutput),
+      ),
     ),
   )
 
