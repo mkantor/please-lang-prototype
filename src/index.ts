@@ -1,7 +1,8 @@
 import * as util from 'node:util'
 import type { Either } from './adts/either.js'
 import * as either from './adts/either.js'
-import * as compiler from './compiling/compiler.js'
+import type { JSONValueForbiddingSymbolicKeys } from './compiling/compiler.js'
+import { compile } from './compiling/compiler.js'
 import type { JSONValue } from './utility-types.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {
@@ -14,41 +15,33 @@ const read = async (stream: AsyncIterable<string>): Promise<string> => {
 
 const handleInput = (
   source: string,
-): Either<{ readonly message: string }, compiler.SyntaxTree> =>
-  either.map(
-    either.mapLeft(
-      either.tryCatch((): JSONValue => JSON.parse(source)),
-      jsonParseError => ({
-        message:
-          jsonParseError instanceof Error
-            ? jsonParseError.message
-            : 'Invalid JSON',
-      }),
-    ),
-    compiler.canonicalize,
+): Either<{ readonly message: string }, JSONValueForbiddingSymbolicKeys> =>
+  either.mapLeft(
+    either.tryCatch((): JSONValueForbiddingSymbolicKeys => JSON.parse(source)),
+    jsonParseError => ({
+      message:
+        jsonParseError instanceof Error
+          ? jsonParseError.message
+          : 'Invalid JSON',
+    }),
   )
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const rawInput = await read(process.stdin)
-  either.match(
-    either.map(
-      either.flatMap(handleInput(rawInput), compiler.elaborate),
-      compiler.serialize,
-    ),
-    {
-      left: error => {
-        throw new Error(error.message) // TODO: improve error reporting
-      },
-      right: (output: JSONValue) => {
-        process.stdout.write(
-          util.inspect(output, {
-            colors: true,
-            depth: Infinity,
-          }),
-        )
-      },
+  const compilationResult = either.flatMap(handleInput(rawInput), compile)
+  either.match(compilationResult, {
+    left: error => {
+      throw new Error(error.message) // TODO: improve error reporting
     },
-  )
+    right: (output: JSONValue) => {
+      process.stdout.write(
+        util.inspect(output, {
+          colors: true,
+          depth: Infinity,
+        }),
+      )
+    },
+  })
 
   // Writing a newline ensures that output is flushed before terminating, otherwise nothing may be
   // printed to the console. See:

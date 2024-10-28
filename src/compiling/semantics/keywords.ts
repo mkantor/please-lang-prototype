@@ -1,7 +1,7 @@
 import type { Either } from '../../adts/either.js'
 import * as either from '../../adts/either.js'
 import * as option from '../../adts/option.js'
-import { serialize } from '../compiler.js'
+import { serialize } from '../code-generation/serialization.js'
 import type { ElaborationError } from '../errors.js'
 import { prelude } from './prelude.js'
 import {
