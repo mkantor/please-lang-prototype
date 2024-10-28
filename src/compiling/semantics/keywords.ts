@@ -6,8 +6,10 @@ import { prelude } from './prelude.js'
 import {
   applyKeyPath,
   isAtomNode,
+  isFunctionNode,
   isObjectNode,
   makeObjectNode,
+  semanticGraphToSyntaxTree,
   type KeyPath,
   type ObjectNode,
   type SemanticGraph,
@@ -34,15 +36,39 @@ const handlers = {
     readonly value: SemanticGraph
     readonly type: SemanticGraph
   }): ReturnType<KeywordHandler> => {
-    if (isAtomNode(value) || isAtomNode(type)) {
+    if (isAtomNode(type)) {
       return isAtomNode(value) && isAtomNode(type) && value.atom === type.atom
         ? either.makeRight(value)
         : either.makeLeft({
             kind: 'typeMismatch',
             message: `the value \`${JSON.stringify(
-              value,
-            )}\` is not assignable to the type \`${JSON.stringify(type)}\``,
+              semanticGraphToSyntaxTree(value),
+            )}\` is not assignable to the type \`${JSON.stringify(
+              semanticGraphToSyntaxTree(type),
+            )}\``,
           })
+    } else if (isFunctionNode(value)) {
+      // TODO: model function signatures as data and allow checking them
+      return either.makeLeft({
+        kind: 'invalidSyntax',
+        message: 'functions cannot be type checked',
+      })
+    } else if (isFunctionNode(type)) {
+      // TODO: if the function is a predicate, call it to check the value
+      return either.makeLeft({
+        kind: 'invalidSyntax',
+        message: 'functions cannot be used as types',
+      })
+    } else if (isAtomNode(value)) {
+      // The only remaining case is when the type is an object, so we must have a type error.
+      return either.makeLeft({
+        kind: 'typeMismatch',
+        message: `the value \`${JSON.stringify(
+          semanticGraphToSyntaxTree(value),
+        )}\` is not assignable to the type \`${JSON.stringify(
+          semanticGraphToSyntaxTree(type),
+        )}\``,
+      })
     } else {
       // Make sure all properties in the type are present and valid in the value (recursively).
       // Values may legally have additional properties beyond what is required by the type.

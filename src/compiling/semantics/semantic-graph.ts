@@ -19,6 +19,17 @@ export const makeAtomNode = (atom: Atom): AtomNode => ({
   atom,
 })
 
+export type FunctionNode = {
+  readonly [nodeTag]: 'function'
+  readonly function: (value: SemanticGraph) => SemanticGraph
+  // TODO: model the function's type signature as data in here?
+}
+export const isFunctionNode = (node: SemanticGraph) =>
+  node[nodeTag] === 'function'
+export const makeFunctionNode = (
+  f: (value: SemanticGraph) => SemanticGraph,
+): FunctionNode => ({ [nodeTag]: 'function', function: f })
+
 export type ObjectNode = {
   readonly [nodeTag]: 'object'
   readonly children: Readonly<Record<Atom, SemanticGraph>>
@@ -28,7 +39,7 @@ export const makeObjectNode = (
   children: Readonly<Record<Atom, SemanticGraph>>,
 ): ObjectNode => ({ [nodeTag]: 'object', children })
 
-export type SemanticGraph = AtomNode | ObjectNode
+export type SemanticGraph = AtomNode | FunctionNode | ObjectNode
 
 export type KeyPath = readonly string[]
 
@@ -67,9 +78,11 @@ export const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
 }
 
 export const semanticGraphToSyntaxTree = (node: SemanticGraph): SyntaxTree =>
-  node[nodeTag] === 'atom'
+  isAtomNode(node)
     ? withPhantomData<Canonicalized>()(node.atom)
-    : objectNodeToMolecule(node)
+    : isObjectNode(node)
+    ? objectNodeToMolecule(node)
+    : withPhantomData<Canonicalized>()({}) // TODO: model (runtime) functions in code generation
 
 const objectNodeToMolecule = (
   node: ObjectNode,
