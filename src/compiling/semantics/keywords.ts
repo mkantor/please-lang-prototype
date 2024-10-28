@@ -54,11 +54,18 @@ const handlers = {
         message: 'functions cannot be type checked',
       })
     } else if (isFunctionNode(type)) {
-      // TODO: if the function is a predicate, call it to check the value
-      return either.makeLeft({
-        kind: 'invalidSyntax',
-        message: 'functions cannot be used as types',
-      })
+      const result = type.function(value)
+      if (!isAtomNode(result) || result.atom !== 'true') {
+        return either.makeLeft({
+          kind: 'typeMismatch',
+          message: `the value \`${stringifyGraphForEndUser(
+            value,
+          )}\` did not pass the given type guard`,
+        })
+      } else {
+        // The value was valid according to the type guard.
+        return either.makeRight(value)
+      }
     } else if (isAtomNode(value)) {
       // The only remaining case is when the type is an object, so we must have a type error.
       return either.makeLeft({
