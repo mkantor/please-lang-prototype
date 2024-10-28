@@ -1,6 +1,7 @@
 import type { Either } from '../../adts/either.js'
 import * as either from '../../adts/either.js'
 import * as option from '../../adts/option.js'
+import { serialize } from '../compiler.js'
 import type { ElaborationError } from '../errors.js'
 import { prelude } from './prelude.js'
 import {
@@ -9,7 +10,6 @@ import {
   isFunctionNode,
   isObjectNode,
   makeObjectNode,
-  semanticGraphToSyntaxTree,
   type KeyPath,
   type ObjectNode,
   type SemanticGraph,
@@ -41,10 +41,10 @@ const handlers = {
         ? either.makeRight(value)
         : either.makeLeft({
             kind: 'typeMismatch',
-            message: `the value \`${JSON.stringify(
-              semanticGraphToSyntaxTree(value),
-            )}\` is not assignable to the type \`${JSON.stringify(
-              semanticGraphToSyntaxTree(type),
+            message: `the value \`${stringifyGraphForEndUser(
+              value,
+            )}\` is not assignable to the type \`${stringifyGraphForEndUser(
+              type,
             )}\``,
           })
     } else if (isFunctionNode(value)) {
@@ -63,10 +63,10 @@ const handlers = {
       // The only remaining case is when the type is an object, so we must have a type error.
       return either.makeLeft({
         kind: 'typeMismatch',
-        message: `the value \`${JSON.stringify(
-          semanticGraphToSyntaxTree(value),
-        )}\` is not assignable to the type \`${JSON.stringify(
-          semanticGraphToSyntaxTree(type),
+        message: `the value \`${stringifyGraphForEndUser(
+          value,
+        )}\` is not assignable to the type \`${stringifyGraphForEndUser(
+          type,
         )}\``,
       })
     } else {
@@ -76,11 +76,11 @@ const handlers = {
         if (value.children[key] === undefined) {
           return either.makeLeft({
             kind: 'typeMismatch',
-            message: `the value \`${JSON.stringify(
+            message: `the value \`${stringifyGraphForEndUser(
               value,
-            )}\` is not assignable to the type \`${JSON.stringify(
+            )}\` is not assignable to the type \`${stringifyGraphForEndUser(
               type,
-            )}\` because it is missing the property \`${JSON.stringify(key)}\``,
+            )}\` because it is missing the property \`${key}\``,
           })
         } else {
           // Recursively check the property:
@@ -215,3 +215,6 @@ export type Keyword = keyof typeof keywordTransforms
 const allKeywords = new Set(Object.keys(keywordTransforms))
 export const isKeyword = (input: unknown): input is Keyword =>
   typeof input === 'string' && allKeywords.has(input)
+
+const stringifyGraphForEndUser = (graph: SemanticGraph): string =>
+  JSON.stringify(serialize(graph))

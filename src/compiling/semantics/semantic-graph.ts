@@ -1,11 +1,8 @@
 import type { Option } from '../../adts/option.js'
 import * as option from '../../adts/option.js'
-import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
-import type { SyntaxTree } from '../compiler.js'
 import type { Atom } from '../parsing/atom.js'
 import type { Molecule } from '../parsing/molecule.js'
-import type { Canonicalized } from '../stages.js'
 
 const nodeTag = Symbol('nodeTag')
 
@@ -75,21 +72,4 @@ export const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
     children[key] = literalValueToSemanticGraph(propertyValue)
   }
   return { [nodeTag]: 'object', children }
-}
-
-export const semanticGraphToSyntaxTree = (node: SemanticGraph): SyntaxTree =>
-  isAtomNode(node)
-    ? withPhantomData<Canonicalized>()(node.atom)
-    : isObjectNode(node)
-    ? objectNodeToMolecule(node)
-    : withPhantomData<Canonicalized>()({}) // TODO: model (runtime) functions in code generation
-
-const objectNodeToMolecule = (
-  node: ObjectNode,
-): WithPhantomData<Molecule, Canonicalized> => {
-  const molecule: Writable<Molecule> = {}
-  for (const [key, propertyValue] of Object.entries(node.children)) {
-    molecule[key] = semanticGraphToSyntaxTree(propertyValue)
-  }
-  return withPhantomData<Canonicalized>()(molecule)
 }
