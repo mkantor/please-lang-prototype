@@ -22,9 +22,15 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       {
         true: ['@check', true, ['@lookup', ['identity']]],
         false: ['@check', false, ['@lookup', ['boolean', 'is']]],
+        alsoTrue: ['@apply', ['@lookup', ['boolean', 'not']], false],
         alsoFalse: ['@apply', ['@lookup', ['boolean', 'is']], 'not a boolean'],
       },
-      success({ true: 'true', false: 'false', alsoFalse: 'false' }),
+      success({
+        true: 'true',
+        false: 'false',
+        alsoTrue: 'true',
+        alsoFalse: 'false',
+      }),
     ],
     [
       ['@check', 'not a boolean', ['@lookup', ['boolean', 'is']]],
