@@ -20,16 +20,43 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
     [['@check', true, ['@lookup', ['identity']]], success('true')],
     [
       {
-        true: ['@check', true, ['@lookup', ['identity']]],
-        false: ['@check', false, ['@lookup', ['boolean', 'is']]],
-        alsoTrue: ['@apply', ['@lookup', ['boolean', 'not']], false],
-        alsoFalse: ['@apply', ['@lookup', ['boolean', 'is']], 'not a boolean'],
+        true1: ['@check', true, ['@lookup', ['identity']]],
+        true2: ['@apply', ['@lookup', ['boolean', 'not']], false],
+        true3: [
+          '@apply',
+          [
+            '@apply',
+            ['@lookup', ['compose']],
+            [
+              ['@lookup', ['boolean', 'not']],
+              ['@lookup', ['boolean', 'not']],
+            ],
+          ],
+          true,
+        ],
+        false1: ['@check', false, ['@lookup', ['boolean', 'is']]],
+        false2: ['@apply', ['@lookup', ['boolean', 'is']], 'not a boolean'],
+        false3: [
+          '@apply',
+          [
+            '@apply',
+            ['@lookup', ['compose']],
+            [
+              ['@lookup', ['boolean', 'not']],
+              ['@lookup', ['boolean', 'not']],
+              ['@lookup', ['boolean', 'not']],
+            ],
+          ],
+          true,
+        ],
       },
       success({
-        true: 'true',
-        false: 'false',
-        alsoTrue: 'true',
-        alsoFalse: 'false',
+        true1: 'true',
+        true2: 'true',
+        true3: 'true',
+        false1: 'false',
+        false2: 'false',
+        false3: 'false',
       }),
     ],
     [
