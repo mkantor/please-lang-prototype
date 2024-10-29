@@ -33,7 +33,7 @@ const handlers = {
   }: {
     readonly value: SemanticGraph
     readonly type: SemanticGraph
-  }): ReturnType<KeywordHandler> => {
+  }): Either<ElaborationError, SemanticGraph> => {
     if (isAtomNode(type)) {
       return isAtomNode(value) && isAtomNode(type) && value.atom === type.atom
         ? either.makeRight(value)
@@ -116,7 +116,7 @@ const handlers = {
   }: {
     readonly context: ExpressionContext
     readonly relativePath: KeyPath
-  }): ReturnType<KeywordHandler> => {
+  }): Either<ElaborationError, SemanticGraph> => {
     const pathToLocalScope = context.location.slice(0, -1)
     const absolutePath = [...pathToLocalScope, ...relativePath]
     return option.match(applyKeyPath(context.program, absolutePath), {
@@ -136,11 +136,39 @@ const handlers = {
   /**
    * Ignores all arguments and evaluates to an empty object.
    */
-  todo: (): ReturnType<KeywordHandler> => either.makeRight(makeObjectNode({})),
+  todo: (): Either<ElaborationError, SemanticGraph> =>
+    either.makeRight(makeObjectNode({})),
 }
 
 export const keywordTransforms = {
-  '@check': (expression, _context) => {
+  '@apply': (expression): ReturnType<KeywordHandler> => {
+    const functionToApply =
+      expression.children['function'] ?? expression.children['1']
+    const argument = expression.children.argument ?? expression.children['2']
+
+    if (functionToApply === undefined) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message:
+          'function must be provided via a property named `function` or the first positional argument',
+      })
+    } else if (argument === undefined) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message:
+          'argument must be provided via a property named `argument` or the second positional argument',
+      })
+    } else if (!isFunctionNode(functionToApply)) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message: 'only functions can be applied',
+      })
+    } else {
+      return functionToApply.function(argument)
+    }
+  },
+
+  '@check': (expression): ReturnType<KeywordHandler> => {
     const value = expression.children.value ?? expression.children['1']
     const type = expression.children.type ?? expression.children['2']
     if (value === undefined) {
@@ -160,7 +188,7 @@ export const keywordTransforms = {
     }
   },
 
-  '@lookup': (expression, context) => {
+  '@lookup': (expression, context): ReturnType<KeywordHandler> => {
     const query = expression.children.query ?? expression.children['1']
     if (query === undefined) {
       return either.makeLeft({

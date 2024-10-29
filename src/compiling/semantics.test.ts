@@ -221,3 +221,30 @@ elaborationSuite('@lookup', [
     success({ a: { major: '0', minor: '0', patch: '0' } }),
   ],
 ])
+
+elaborationSuite('@apply', [
+  [
+    { 0: '@apply', 1: { 0: '@lookup', query: { 0: 'identity' } }, 2: 'a' },
+    success('a'),
+  ],
+  [
+    {
+      0: '@apply',
+      function: { 0: '@lookup', query: { 0: 'identity' } },
+      argument: 'a',
+    },
+    success('a'),
+  ],
+  [
+    {
+      0: '@apply',
+      function: { 0: '@lookup', query: { 0: 'identity' } },
+      argument: { foo: 'bar' },
+    },
+    success({ foo: 'bar' }),
+  ],
+  [
+    { 0: '@apply', function: 'not a function', argument: 'a' },
+    output => assert(either.isLeft(output)),
+  ],
+])

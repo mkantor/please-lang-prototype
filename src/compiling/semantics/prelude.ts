@@ -1,5 +1,6 @@
 import { either } from '../../adts/index.js'
 import {
+  isAtomNode,
   makeAtomNode,
   makeFunctionNode,
   makeObjectNode,
@@ -16,4 +17,14 @@ export const prelude: ObjectNode = makeObjectNode({
   }),
 
   identity: makeFunctionNode(either.makeRight),
+
+  boolean: makeObjectNode({
+    is: makeFunctionNode(value => {
+      const isBoolean =
+        isAtomNode(value) && (value.atom === 'true' || value.atom === 'false')
+      return either.makeRight(
+        isBoolean ? makeAtomNode('true') : makeAtomNode('false'),
+      )
+    }),
+  }),
 })
