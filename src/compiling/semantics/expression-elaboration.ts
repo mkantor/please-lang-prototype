@@ -1,6 +1,4 @@
-import type { Either } from '../../adts/either.js'
-import * as either from '../../adts/either.js'
-import * as option from '../../adts/option.js'
+import { either, option, type Either } from '../../adts/index.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { SyntaxTree } from '../compiler.js'

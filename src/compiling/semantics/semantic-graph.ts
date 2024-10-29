@@ -1,6 +1,4 @@
-import type { Either } from '../../adts/either.js'
-import type { Option } from '../../adts/option.js'
-import * as option from '../../adts/option.js'
+import { type Either, type Option, option } from '../../adts/index.js'
 import type { Writable } from '../../utility-types.js'
 import type { Panic } from '../errors.js'
 import type { Atom } from '../parsing/atom.js'

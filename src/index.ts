@@ -1,8 +1,9 @@
 import * as util from 'node:util'
-import type { Either } from './adts/either.js'
-import * as either from './adts/either.js'
-import type { JSONValueForbiddingSymbolicKeys } from './compiling/compiler.js'
-import { compile } from './compiling/compiler.js'
+import { either, type Either } from './adts/index.js'
+import {
+  compile,
+  type JSONValueForbiddingSymbolicKeys,
+} from './compiling/compiler.js'
 import type { JSONValue } from './utility-types.js'
 
 const read = async (stream: AsyncIterable<string>): Promise<string> => {

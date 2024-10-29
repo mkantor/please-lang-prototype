@@ -1,4 +1,4 @@
-import * as either from '../../adts/either.js'
+import { either } from '../../adts/index.js'
 import {
   makeAtomNode,
   makeFunctionNode,

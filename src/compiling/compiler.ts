@@ -1,4 +1,4 @@
-import * as either from '../adts/either.js'
+import { either, type Either } from '../adts/index.js'
 import type { JSONArray, JSONRecord, JSONValue } from '../utility-types.js'
 import { serialize } from './code-generation/serialization.js'
 import type { SyntaxTree } from './compiler.js'
@@ -11,7 +11,7 @@ export type { SemanticGraph } from './semantics/semantic-graph.js'
 
 export const compile = (
   input: JSONValueForbiddingSymbolicKeys,
-): either.Either<CompilationError, SyntaxTree> => {
+): Either<CompilationError, SyntaxTree> => {
   const syntaxTree = canonicalize(input)
   const semanticGraphResult = elaborate(syntaxTree)
   return either.map(semanticGraphResult, serialize)
