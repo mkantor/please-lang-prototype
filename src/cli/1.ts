@@ -1,5 +1,5 @@
 import * as util from 'node:util'
-import { either, type Either } from '../adts/index.js'
+import { either, type Either } from '../adts.js'
 import {
   compile,
   type JSONValueForbiddingSymbolicKeys,

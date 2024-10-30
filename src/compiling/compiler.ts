@@ -1,4 +1,4 @@
-import { either, type Either } from '../adts/index.js'
+import { either, type Either } from '../adts.js'
 import type { JSONArray, JSONRecord, JSONValue } from '../utility-types.js'
 import { serialize } from './code-generation/serialization.js'
 import type { SyntaxTree } from './compiler.js'

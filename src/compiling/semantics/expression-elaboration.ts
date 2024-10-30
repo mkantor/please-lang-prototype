@@ -1,4 +1,4 @@
-import { either, option, type Either } from '../../adts/index.js'
+import { either, option, type Either } from '../../adts.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import {
   isAtomNode,

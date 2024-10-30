@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { testCases } from '../_lib.test.js'
-import { either, type Either } from '../adts/index.js'
+import { either, type Either } from '../adts.js'
 import { withPhantomData } from '../phantom-data.js'
 import { literalValueToSemanticGraph } from '../semantics/semantic-graph.js'
 import type { ElaborationError } from './errors.js'

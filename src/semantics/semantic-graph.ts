@@ -1,4 +1,4 @@
-import { type Either, type Option, option } from '../adts/index.js'
+import { type Either, type Option, option } from '../adts.js'
 import type { Panic } from '../compiling/errors.js'
 import type { Atom } from '../compiling/parsing/atom.js'
 import type { Molecule } from '../compiling/parsing/molecule.js'

@@ -1,4 +1,4 @@
-import { either, type Either } from '../../adts/index.js'
+import { either, type Either } from '../../adts.js'
 import {
   isAtomNode,
   isFunctionNode,
