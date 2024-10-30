@@ -60,6 +60,10 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       }),
     ],
     [
+      ['@runtime', ['@lookup', ['identity']]],
+      success({ 0: '@runtime', 1: { 0: '@lookup', 1: { 0: 'identity' } } }),
+    ],
+    [
       ['@check', 'not a boolean', ['@lookup', ['boolean', 'is']]],
       output => assert(either.isLeft(output)),
     ],

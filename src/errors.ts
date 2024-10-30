@@ -1,3 +1,8 @@
+export type Bug = {
+  readonly kind: 'bug'
+  readonly message: string
+}
+
 export type InvalidExpressionError = {
   readonly kind: 'invalidExpression'
   readonly message: string
@@ -24,6 +29,7 @@ export type UnknownKeywordError = {
 }
 
 export type ElaborationError =
+  | Bug
   | InvalidExpressionError
   | InvalidSyntaxError
   | Panic

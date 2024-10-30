@@ -239,3 +239,14 @@ elaborationSuite('@apply', [
     output => assert(either.isLeft(output)),
   ],
 ])
+
+elaborationSuite('@runtime', [
+  [
+    { 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } },
+    success({ 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } }),
+  ],
+  [
+    { 0: '@runtime', 1: 'not a function' },
+    output => assert(either.isLeft(output)),
+  ],
+])

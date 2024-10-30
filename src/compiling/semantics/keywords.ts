@@ -234,6 +234,31 @@ export const handlers = {
   },
 
   /**
+   * Preserves a raw function node for emission into the runtime code.
+   */
+  '@runtime': (expression, context): KeywordElaborationResult => {
+    const runtimeFunction =
+      expression.children.function ?? expression.children['1']
+    if (runtimeFunction === undefined || !isFunctionNode(runtimeFunction)) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message:
+          'a function must be provided via a property named `function` or the first positional argument',
+      })
+    } else {
+      return option.match(applyKeyPath(context.program, context.location), {
+        none: () =>
+          // this should not be possible
+          either.makeLeft({
+            kind: 'bug',
+            message: 'failed to locate self in `@runtime` handler',
+          }),
+        some: valueFromProgram => either.makeRight(valueFromProgram),
+      })
+    }
+  },
+
+  /**
    * Ignores all arguments and evaluates to an empty object.
    */
   '@todo': todo,
