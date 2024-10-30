@@ -4,10 +4,10 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
+    "1": "node ./dist/cli/1.js",
     "build": "tsc --build tsconfig.app.json",
     "build:tests": "tsc --project tsconfig.app.json --outDir dist-test --declarationDir dist --tsBuildInfoFile tsconfig.app-for-tests.tsbuildinfo && tsc --build tsconfig.test.json",
     "clean": "rm -rf dist* *.tsbuildinfo",
-    "start": "npm run build && node ./dist/index.js",
     "test": "npm run clean && npm run build:tests && node ./dist-test/index.test.js"
   },
   "devDependencies": {
