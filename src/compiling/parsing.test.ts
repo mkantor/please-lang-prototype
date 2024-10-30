@@ -1,5 +1,5 @@
-import { testCases } from '../_lib.test.js'
 import { withPhantomData } from '../phantom-data.js'
+import { testCases } from '../test-utilities.test.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
 import * as syntaxTree from './parsing/syntax-tree.js'
