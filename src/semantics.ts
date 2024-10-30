@@ -1,0 +1,15 @@
+export {
+  applyKeyPath,
+  isAtomNode,
+  isFunctionNode,
+  isObjectNode,
+  literalValueToSemanticGraph,
+  makeAtomNode,
+  makeFunctionNode,
+  makeObjectNode,
+  type AtomNode,
+  type FunctionNode,
+  type KeyPath,
+  type ObjectNode,
+  type SemanticGraph,
+} from './semantics/semantic-graph.js'

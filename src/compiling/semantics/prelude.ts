@@ -10,7 +10,7 @@ import {
   type FunctionNode,
   type ObjectNode,
   type SemanticGraph,
-} from '../../semantics/semantic-graph.js'
+} from '../../semantics.js'
 import type { Panic } from '../errors.js'
 
 export const prelude: ObjectNode = makeObjectNode({

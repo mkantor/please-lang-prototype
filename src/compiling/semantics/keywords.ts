@@ -8,7 +8,7 @@ import {
   type KeyPath,
   type ObjectNode,
   type SemanticGraph,
-} from '../../semantics/semantic-graph.js'
+} from '../../semantics.js'
 import { serialize } from '../code-generation/serialization.js'
 import type { ElaborationError } from '../errors.js'
 import { prelude } from './prelude.js'

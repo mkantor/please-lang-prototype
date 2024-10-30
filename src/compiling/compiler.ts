@@ -1,13 +1,10 @@
 import { either, type Either } from '../adts.js'
 import type { JSONArray, JSONRecord, JSONValue } from '../utility-types.js'
 import { serialize } from './code-generation/serialization.js'
-import type { SyntaxTree } from './compiler.js'
 import type { CompilationError } from './errors.js'
+import type { SyntaxTree } from './parsing/syntax-tree.js'
 import { canonicalize } from './parsing/syntax-tree.js'
 import { elaborate } from './semantics/expression-elaboration.js'
-
-export type { SemanticGraph } from '../semantics/semantic-graph.js'
-export { type SyntaxTree } from './parsing/syntax-tree.js'
 
 export const compile = (
   input: JSONValueForbiddingSymbolicKeys,

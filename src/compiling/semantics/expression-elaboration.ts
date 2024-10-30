@@ -2,18 +2,18 @@ import { either, option, type Either } from '../../adts.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import {
   isAtomNode,
-  literalMoleculeToObjectNode,
+  literalValueToSemanticGraph,
   makeAtomNode,
   makeObjectNode,
   type AtomNode,
   type ObjectNode,
   type SemanticGraph,
-} from '../../semantics/semantic-graph.js'
+} from '../../semantics.js'
 import type { Writable } from '../../utility-types.js'
-import type { SyntaxTree } from '../compiler.js'
 import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
 import type { Atom } from '../parsing/atom.js'
 import type { Molecule } from '../parsing/molecule.js'
+import type { SyntaxTree } from '../parsing/syntax-tree.js'
 import type { Elaborated } from '../stages.js'
 import {
   isKeyword,
@@ -31,7 +31,7 @@ export const elaborate = (
       ? handleAtomWhichMayNotBeAKeyword(program)
       : elaborateWithinMolecule(program, {
           location: [],
-          program: literalMoleculeToObjectNode(program),
+          program: literalValueToSemanticGraph(program),
         }),
     withPhantomData<Elaborated>(),
   )
