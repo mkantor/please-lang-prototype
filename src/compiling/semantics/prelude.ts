@@ -14,14 +14,6 @@ import {
 } from '../../semantics.js'
 
 export const prelude: ObjectNode = makeObjectNode({
-  language: makeObjectNode({
-    version: makeObjectNode({
-      major: makeAtomNode('0'),
-      minor: makeAtomNode('0'),
-      patch: makeAtomNode('0'),
-    }),
-  }),
-
   compose: makeFunctionNode(value => {
     if (!isObjectNode(value)) {
       return either.makeLeft({

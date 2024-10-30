@@ -216,10 +216,6 @@ elaborationSuite('@lookup', [
     { a: { 0: '@lookup', query: { 0: 'thisPropertyDoesNotExist' } } },
     output => assert(either.isLeft(output)),
   ],
-  [
-    { a: { 0: '@lookup', query: { 0: 'language', 1: 'version' } } },
-    success({ a: { major: '0', minor: '0', patch: '0' } }),
-  ],
 ])
 
 elaborationSuite('@apply', [
