@@ -8,11 +8,10 @@ import { testCases } from '../test-utilities.test.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
 import * as keywordModule from './semantics/keywords.js'
-import type { Canonicalized, Elaborated } from './stages.js'
 
 const elaborationSuite = testCases(
   (input: Atom | Molecule) =>
-    elaborate(withPhantomData<Canonicalized>()(input), keywordModule),
+    elaborate(withPhantomData<never>()(input), keywordModule),
   input => `elaborating expressions in \`${JSON.stringify(input)}\``,
 )
 
@@ -20,10 +19,8 @@ const success = (
   expectedOutput: Atom | Molecule,
 ): Either<ElaborationError, ElaboratedValue> =>
   either.makeRight(
-    withPhantomData<Elaborated>()(
-      literalValueToSemanticGraph(
-        withPhantomData<Canonicalized>()(expectedOutput),
-      ),
+    withPhantomData<never>()(
+      literalValueToSemanticGraph(withPhantomData<never>()(expectedOutput)),
     ),
   )
 

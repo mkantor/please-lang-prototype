@@ -10,34 +10,34 @@ import {
 import type { Writable } from '../../utility-types.js'
 import type { Atom } from '../parsing/atom.js'
 import type { Molecule } from '../parsing/molecule.js'
-import type { SyntaxTree } from '../parsing/syntax-tree.js'
-import type { Canonicalized } from '../stages.js'
 
-export const serialize = (node: SemanticGraph): SyntaxTree =>
+declare const _generated: unique symbol
+type Generated = { readonly [_generated]: true }
+export type Code = WithPhantomData<Atom | Molecule, Generated>
+
+export const serialize = (node: SemanticGraph): Code =>
   isAtomNode(node)
     ? serializeAtomNode(node)
     : isObjectNode(node)
     ? serializeObjectNode(node)
     : serializeFunctionNode(node)
 
-const serializeAtomNode = (
-  node: AtomNode,
-): WithPhantomData<Atom, Canonicalized> =>
-  withPhantomData<Canonicalized>()(node.atom)
+const serializeAtomNode = (node: AtomNode): WithPhantomData<Atom, Generated> =>
+  withPhantomData<Generated>()(node.atom)
 
 const serializeFunctionNode = (
   _node: FunctionNode,
-): WithPhantomData<Molecule, Canonicalized> =>
-  withPhantomData<Canonicalized>()({
+): WithPhantomData<Molecule, Generated> =>
+  withPhantomData<Generated>()({
     // TODO: model (runtime) functions in code generation
   })
 
 const serializeObjectNode = (
   node: ObjectNode,
-): WithPhantomData<Molecule, Canonicalized> => {
+): WithPhantomData<Molecule, Generated> => {
   const molecule: Writable<Molecule> = {}
   for (const [key, propertyValue] of Object.entries(node.children)) {
     molecule[key] = serialize(propertyValue)
   }
-  return withPhantomData<Canonicalized>()(molecule)
+  return withPhantomData<Generated>()(molecule)
 }

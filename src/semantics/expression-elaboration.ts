@@ -1,6 +1,5 @@
 import { either, option, type Either } from '../adts.js'
 import type { Atom, Molecule, SyntaxTree } from '../compiling.js'
-import type { Elaborated } from '../compiling/stages.js'
 import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
 import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
 import {
@@ -15,6 +14,8 @@ import {
 } from '../semantics.js'
 import type { Writable } from '../utility-types.js'
 
+declare const _elaborated: unique symbol
+type Elaborated = { readonly [_elaborated]: true }
 export type ElaboratedValue = WithPhantomData<SemanticGraph, Elaborated>
 
 export type ExpressionContext = {

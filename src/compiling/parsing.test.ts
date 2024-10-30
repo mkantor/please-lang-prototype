@@ -3,9 +3,8 @@ import { testCases } from '../test-utilities.test.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
 import * as syntaxTree from './parsing/syntax-tree.js'
-import type { Canonicalized } from './stages.js'
 
-const output = withPhantomData<Canonicalized>()<Atom | Molecule>
+const output = withPhantomData<never>()<Atom | Molecule>
 
 testCases(
   syntaxTree.canonicalize,

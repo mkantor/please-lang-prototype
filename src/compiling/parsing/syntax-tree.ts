@@ -1,9 +1,10 @@
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { JSONValue, Writable } from '../../utility-types.js'
-import type { Canonicalized } from '../stages.js'
 import type { Atom } from './atom.js'
 import type { Molecule } from './molecule.js'
 
+declare const _canonicalized: unique symbol
+type Canonicalized = { readonly [_canonicalized]: true }
 export type SyntaxTree = WithPhantomData<Atom | Molecule, Canonicalized>
 
 /**

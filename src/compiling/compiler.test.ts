@@ -1,18 +1,17 @@
 import assert from 'node:assert'
 import { either, type Either } from '../adts.js'
-import type { SyntaxTree } from '../compiling.js'
 import type { ElaborationError } from '../errors.js'
 import { withPhantomData } from '../phantom-data.js'
 import { testCases } from '../test-utilities.test.js'
+import type { Code } from './code-generation/serialization.js'
 import { compile } from './compiler.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
-import type { Canonicalized } from './stages.js'
 
 const success = (
   expectedOutput: Atom | Molecule,
-): Either<ElaborationError, SyntaxTree> =>
-  either.makeRight(withPhantomData<Canonicalized>()(expectedOutput))
+): Either<ElaborationError, Code> =>
+  either.makeRight(withPhantomData<never>()(expectedOutput))
 
 testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
   'compiler',
