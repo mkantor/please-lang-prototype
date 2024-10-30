@@ -1,5 +1,10 @@
 import { either, option, type Either } from '../../adts.js'
 import type { ElaborationError } from '../../errors.js'
+import type {
+  ExpressionContext,
+  KeywordElaborationResult,
+  KeywordModule,
+} from '../../semantics.js'
 import {
   applyKeyPath,
   isAtomNode,
@@ -7,141 +12,120 @@ import {
   isObjectNode,
   makeObjectNode,
   type KeyPath,
-  type ObjectNode,
   type SemanticGraph,
 } from '../../semantics.js'
 import { serialize } from '../code-generation/serialization.js'
 import { prelude } from './prelude.js'
 
-export type ExpressionContext = {
-  readonly program: SemanticGraph
-  readonly location: KeyPath
-}
-
-type KeywordHandler = (
-  expression: ObjectNode,
-  context: ExpressionContext,
-) => Either<ElaborationError, SemanticGraph>
-
-const handlers = {
-  /**
-   * Checks whether a given value is assignable to a given type.
-   */
-  check: ({
-    value,
-    type,
-  }: {
-    readonly value: SemanticGraph
-    readonly type: SemanticGraph
-  }): Either<ElaborationError, SemanticGraph> => {
-    if (isAtomNode(type)) {
-      return isAtomNode(value) && isAtomNode(type) && value.atom === type.atom
-        ? either.makeRight(value)
-        : either.makeLeft({
-            kind: 'typeMismatch',
-            message: `the value \`${stringifyGraphForEndUser(
-              value,
-            )}\` is not assignable to the type \`${stringifyGraphForEndUser(
-              type,
-            )}\``,
-          })
-    } else if (isFunctionNode(value)) {
-      // TODO: model function signatures as data and allow checking them
-      return either.makeLeft({
-        kind: 'invalidSyntax',
-        message: 'functions cannot be type checked',
-      })
-    } else if (isFunctionNode(type)) {
-      const result = type.function(value)
-      if (either.isLeft(result)) {
-        // The compile-time-evaluated function panicked.
-        return result
-      }
-      if (!isAtomNode(result.value) || result.value.atom !== 'true') {
-        return either.makeLeft({
+const check = ({
+  value,
+  type,
+}: {
+  readonly value: SemanticGraph
+  readonly type: SemanticGraph
+}): Either<ElaborationError, SemanticGraph> => {
+  if (isAtomNode(type)) {
+    return isAtomNode(value) && isAtomNode(type) && value.atom === type.atom
+      ? either.makeRight(value)
+      : either.makeLeft({
           kind: 'typeMismatch',
           message: `the value \`${stringifyGraphForEndUser(
             value,
-          )}\` did not pass the given type guard`,
+          )}\` is not assignable to the type \`${stringifyGraphForEndUser(
+            type,
+          )}\``,
         })
-      } else {
-        // The value was valid according to the type guard.
-        return either.makeRight(value)
-      }
-    } else if (isAtomNode(value)) {
-      // The only remaining case is when the type is an object, so we must have a type error.
+  } else if (isFunctionNode(value)) {
+    // TODO: model function signatures as data and allow checking them
+    return either.makeLeft({
+      kind: 'invalidSyntax',
+      message: 'functions cannot be type checked',
+    })
+  } else if (isFunctionNode(type)) {
+    const result = type.function(value)
+    if (either.isLeft(result)) {
+      // The compile-time-evaluated function panicked.
+      return result
+    }
+    if (!isAtomNode(result.value) || result.value.atom !== 'true') {
       return either.makeLeft({
         kind: 'typeMismatch',
         message: `the value \`${stringifyGraphForEndUser(
           value,
-        )}\` is not assignable to the type \`${stringifyGraphForEndUser(
-          type,
-        )}\``,
+        )}\` did not pass the given type guard`,
       })
     } else {
-      // Make sure all properties in the type are present and valid in the value (recursively).
-      // Values may legally have additional properties beyond what is required by the type.
-      for (const [key, typePropertyValue] of Object.entries(type.children)) {
-        if (value.children[key] === undefined) {
-          return either.makeLeft({
-            kind: 'typeMismatch',
-            message: `the value \`${stringifyGraphForEndUser(
-              value,
-            )}\` is not assignable to the type \`${stringifyGraphForEndUser(
-              type,
-            )}\` because it is missing the property \`${key}\``,
-          })
-        } else {
-          // Recursively check the property:
-          const resultOfCheckingProperty = handlers.check({
-            value: value.children[key],
-            type: typePropertyValue,
-          })
-          if (either.isLeft(resultOfCheckingProperty)) {
-            return resultOfCheckingProperty
-          }
-        }
-      }
-      // If this function has not yet returned then the value is assignable to the type.
+      // The value was valid according to the type guard.
       return either.makeRight(value)
     }
-  },
-
-  /**
-   * Resolves to the value of a property within the program.
-   */
-  lookup: ({
-    context,
-    relativePath,
-  }: {
-    readonly context: ExpressionContext
-    readonly relativePath: KeyPath
-  }): Either<ElaborationError, SemanticGraph> => {
-    const pathToLocalScope = context.location.slice(0, -1)
-    const absolutePath = [...pathToLocalScope, ...relativePath]
-    return option.match(applyKeyPath(context.program, absolutePath), {
-      none: () =>
-        option.match(applyKeyPath(prelude, relativePath), {
-          none: () =>
-            either.makeLeft({
-              kind: 'invalidExpression',
-              message: 'property not found',
-            }),
-          some: valueFromPrelude => either.makeRight(valueFromPrelude),
-        }),
-      some: valueFromProgram => either.makeRight(valueFromProgram),
+  } else if (isAtomNode(value)) {
+    // The only remaining case is when the type is an object, so we must have a type error.
+    return either.makeLeft({
+      kind: 'typeMismatch',
+      message: `the value \`${stringifyGraphForEndUser(
+        value,
+      )}\` is not assignable to the type \`${stringifyGraphForEndUser(type)}\``,
     })
-  },
-
-  /**
-   * Ignores all arguments and evaluates to an empty object.
-   */
-  todo: (): Either<ElaborationError, SemanticGraph> =>
-    either.makeRight(makeObjectNode({})),
+  } else {
+    // Make sure all properties in the type are present and valid in the value (recursively).
+    // Values may legally have additional properties beyond what is required by the type.
+    for (const [key, typePropertyValue] of Object.entries(type.children)) {
+      if (value.children[key] === undefined) {
+        return either.makeLeft({
+          kind: 'typeMismatch',
+          message: `the value \`${stringifyGraphForEndUser(
+            value,
+          )}\` is not assignable to the type \`${stringifyGraphForEndUser(
+            type,
+          )}\` because it is missing the property \`${key}\``,
+        })
+      } else {
+        // Recursively check the property:
+        const resultOfCheckingProperty = check({
+          value: value.children[key],
+          type: typePropertyValue,
+        })
+        if (either.isLeft(resultOfCheckingProperty)) {
+          return resultOfCheckingProperty
+        }
+      }
+    }
+    // If this function has not yet returned then the value is assignable to the type.
+    return either.makeRight(value)
+  }
 }
 
-export const keywordTransforms = {
-  '@apply': (expression): ReturnType<KeywordHandler> => {
+const lookup = ({
+  context,
+  relativePath,
+}: {
+  readonly context: ExpressionContext
+  readonly relativePath: KeyPath
+}): Either<ElaborationError, SemanticGraph> => {
+  const pathToLocalScope = context.location.slice(0, -1)
+  const absolutePath = [...pathToLocalScope, ...relativePath]
+  return option.match(applyKeyPath(context.program, absolutePath), {
+    none: () =>
+      option.match(applyKeyPath(prelude, relativePath), {
+        none: () =>
+          either.makeLeft({
+            kind: 'invalidExpression',
+            message: 'property not found',
+          }),
+        some: valueFromPrelude => either.makeRight(valueFromPrelude),
+      }),
+    some: valueFromProgram => either.makeRight(valueFromProgram),
+  })
+}
+
+const todo = (): Either<ElaborationError, SemanticGraph> =>
+  either.makeRight(makeObjectNode({}))
+
+export const handlers = {
+  /**
+   * Calls the given `FunctionNode` with a given argument.
+   */
+  '@apply': (expression, _context): KeywordElaborationResult => {
     const functionToApply =
       expression.children['function'] ?? expression.children['1']
     const argument = expression.children.argument ?? expression.children['2']
@@ -168,7 +152,10 @@ export const keywordTransforms = {
     }
   },
 
-  '@check': (expression): ReturnType<KeywordHandler> => {
+  /**
+   * Checks whether a given value is assignable to a given type.
+   */
+  '@check': (expression): KeywordElaborationResult => {
     const value = expression.children.value ?? expression.children['1']
     const type = expression.children.type ?? expression.children['2']
     if (value === undefined) {
@@ -184,11 +171,14 @@ export const keywordTransforms = {
           'type must be provided via a property named `type` or the second positional argument',
       })
     } else {
-      return handlers.check({ value, type })
+      return check({ value, type })
     }
   },
 
-  '@lookup': (expression, context): ReturnType<KeywordHandler> => {
+  /**
+   * Given a query, resolves the value of a property within the program.
+   */
+  '@lookup': (expression, context): KeywordElaborationResult => {
     const query = expression.children.query ?? expression.children['1']
     if (query === undefined) {
       return either.makeLeft({
@@ -234,7 +224,7 @@ export const keywordTransforms = {
               'the program is not an object, so there are no properties to look up',
           })
         } else {
-          return handlers.lookup({
+          return lookup({
             context,
             relativePath: relativePathResult.value,
           })
@@ -243,15 +233,18 @@ export const keywordTransforms = {
     }
   },
 
-  '@todo': handlers.todo,
-} satisfies Record<`@${string}`, KeywordHandler>
+  /**
+   * Ignores all arguments and evaluates to an empty object.
+   */
+  '@todo': todo,
+} satisfies KeywordModule<`@${string}`>['handlers']
 
-export type Keyword = keyof typeof keywordTransforms
+export type Keyword = keyof typeof handlers
 
-// `isKeyword` is correct as long as `keywordTransforms` does not have excess properties.
-const allKeywords = new Set(Object.keys(keywordTransforms))
-export const isKeyword = (input: unknown): input is Keyword =>
-  typeof input === 'string' && allKeywords.has(input)
+// `isKeyword` is correct as long as `handlers` does not have excess properties.
+const allKeywords = new Set(Object.keys(handlers))
+export const isKeyword = (input: string): input is Keyword =>
+  allKeywords.has(input)
 
 const stringifyGraphForEndUser = (graph: SemanticGraph): string =>
   JSON.stringify(serialize(graph))

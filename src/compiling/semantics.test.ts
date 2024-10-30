@@ -2,19 +2,17 @@ import assert from 'node:assert'
 import { either, type Either } from '../adts.js'
 import type { ElaborationError } from '../errors.js'
 import { withPhantomData } from '../phantom-data.js'
+import { elaborate, type ElaboratedValue } from '../semantics.js'
 import { literalValueToSemanticGraph } from '../semantics/semantic-graph.js'
 import { testCases } from '../test-utilities.test.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
-import {
-  elaborate,
-  type ElaboratedValue,
-} from './semantics/expression-elaboration.js'
+import * as keywordModule from './semantics/keywords.js'
 import type { Canonicalized, Elaborated } from './stages.js'
 
 const elaborationSuite = testCases(
   (input: Atom | Molecule) =>
-    elaborate(withPhantomData<Canonicalized>()(input)),
+    elaborate(withPhantomData<Canonicalized>()(input), keywordModule),
   input => `elaborating expressions in \`${JSON.stringify(input)}\``,
 )
 

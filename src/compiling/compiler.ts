@@ -1,16 +1,17 @@
 import { either, type Either } from '../adts.js'
 import type { CompilationError } from '../errors.js'
+import { elaborate } from '../semantics.js'
 import type { JSONArray, JSONRecord, JSONValue } from '../utility-types.js'
 import { serialize } from './code-generation/serialization.js'
 import type { SyntaxTree } from './parsing/syntax-tree.js'
 import { canonicalize } from './parsing/syntax-tree.js'
-import { elaborate } from './semantics/expression-elaboration.js'
+import * as keywordModule from './semantics/keywords.js'
 
 export const compile = (
   input: JSONValueForbiddingSymbolicKeys,
 ): Either<CompilationError, SyntaxTree> => {
   const syntaxTree = canonicalize(input)
-  const semanticGraphResult = elaborate(syntaxTree)
+  const semanticGraphResult = elaborate(syntaxTree, keywordModule)
   return either.map(semanticGraphResult, serialize)
 }
 
