@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { testCases } from '../_lib.test.js'
 import { either, type Either } from '../adts/index.js'
 import { withPhantomData } from '../phantom-data.js'
+import { literalValueToSemanticGraph } from '../semantics/semantic-graph.js'
 import type { ElaborationError } from './errors.js'
 import type { Atom } from './parsing/atom.js'
 import type { Molecule } from './parsing/molecule.js'
@@ -9,7 +10,6 @@ import {
   elaborate,
   type ElaboratedValue,
 } from './semantics/expression-elaboration.js'
-import { literalValueToSemanticGraph } from './semantics/semantic-graph.js'
 import type { Canonicalized, Elaborated } from './stages.js'
 
 const elaborationSuite = testCases(

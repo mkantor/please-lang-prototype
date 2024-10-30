@@ -1,5 +1,14 @@
 import { either, option, type Either } from '../../adts/index.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
+import {
+  isAtomNode,
+  literalMoleculeToObjectNode,
+  makeAtomNode,
+  makeObjectNode,
+  type AtomNode,
+  type ObjectNode,
+  type SemanticGraph,
+} from '../../semantics/semantic-graph.js'
 import type { Writable } from '../../utility-types.js'
 import type { SyntaxTree } from '../compiler.js'
 import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
@@ -11,15 +20,6 @@ import {
   keywordTransforms,
   type ExpressionContext,
 } from './keywords.js'
-import {
-  isAtomNode,
-  literalMoleculeToObjectNode,
-  makeAtomNode,
-  makeObjectNode,
-  type AtomNode,
-  type ObjectNode,
-  type SemanticGraph,
-} from './semantic-graph.js'
 
 export type ElaboratedValue = WithPhantomData<SemanticGraph, Elaborated>
 

@@ -1,8 +1,8 @@
-import { type Either, type Option, option } from '../../adts/index.js'
-import type { Writable } from '../../utility-types.js'
-import type { Panic } from '../errors.js'
-import type { Atom } from '../parsing/atom.js'
-import type { Molecule } from '../parsing/molecule.js'
+import { type Either, type Option, option } from '../adts/index.js'
+import type { Panic } from '../compiling/errors.js'
+import type { Atom } from '../compiling/parsing/atom.js'
+import type { Molecule } from '../compiling/parsing/molecule.js'
+import type { Writable } from '../utility-types.js'
 
 const nodeTag = Symbol('nodeTag')
 

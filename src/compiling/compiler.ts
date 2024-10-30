@@ -6,8 +6,8 @@ import type { CompilationError } from './errors.js'
 import { canonicalize } from './parsing/syntax-tree.js'
 import { elaborate } from './semantics/expression-elaboration.js'
 
+export type { SemanticGraph } from '../semantics/semantic-graph.js'
 export { type SyntaxTree } from './parsing/syntax-tree.js'
-export type { SemanticGraph } from './semantics/semantic-graph.js'
 
 export const compile = (
   input: JSONValueForbiddingSymbolicKeys,

@@ -1,8 +1,4 @@
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
-import type { Writable } from '../../utility-types.js'
-import type { SyntaxTree } from '../compiler.js'
-import type { Atom } from '../parsing/atom.js'
-import type { Molecule } from '../parsing/molecule.js'
 import {
   isAtomNode,
   isObjectNode,
@@ -10,7 +6,11 @@ import {
   type FunctionNode,
   type ObjectNode,
   type SemanticGraph,
-} from '../semantics/semantic-graph.js'
+} from '../../semantics/semantic-graph.js'
+import type { Writable } from '../../utility-types.js'
+import type { SyntaxTree } from '../compiler.js'
+import type { Atom } from '../parsing/atom.js'
+import type { Molecule } from '../parsing/molecule.js'
 import type { Canonicalized } from '../stages.js'
 
 export const serialize = (node: SemanticGraph): SyntaxTree =>
