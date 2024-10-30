@@ -1,4 +1,5 @@
 import { either, type Either } from '../../adts.js'
+import type { Panic } from '../../errors.js'
 import {
   isAtomNode,
   isFunctionNode,
@@ -11,7 +12,6 @@ import {
   type ObjectNode,
   type SemanticGraph,
 } from '../../semantics.js'
-import type { Panic } from '../errors.js'
 
 export const prelude: ObjectNode = makeObjectNode({
   language: makeObjectNode({

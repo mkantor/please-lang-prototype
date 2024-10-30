@@ -1,7 +1,7 @@
 import { either, type Either } from '../adts.js'
+import type { CompilationError } from '../errors.js'
 import type { JSONArray, JSONRecord, JSONValue } from '../utility-types.js'
 import { serialize } from './code-generation/serialization.js'
-import type { CompilationError } from './errors.js'
 import type { SyntaxTree } from './parsing/syntax-tree.js'
 import { canonicalize } from './parsing/syntax-tree.js'
 import { elaborate } from './semantics/expression-elaboration.js'

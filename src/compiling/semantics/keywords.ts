@@ -1,4 +1,5 @@
 import { either, option, type Either } from '../../adts.js'
+import type { ElaborationError } from '../../errors.js'
 import {
   applyKeyPath,
   isAtomNode,
@@ -10,7 +11,6 @@ import {
   type SemanticGraph,
 } from '../../semantics.js'
 import { serialize } from '../code-generation/serialization.js'
-import type { ElaborationError } from '../errors.js'
 import { prelude } from './prelude.js'
 
 export type ExpressionContext = {

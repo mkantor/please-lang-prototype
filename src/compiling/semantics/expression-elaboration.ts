@@ -1,4 +1,5 @@
 import { either, option, type Either } from '../../adts.js'
+import type { ElaborationError, InvalidSyntaxError } from '../../errors.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import {
   isAtomNode,
@@ -10,7 +11,6 @@ import {
   type SemanticGraph,
 } from '../../semantics.js'
 import type { Writable } from '../../utility-types.js'
-import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
 import type { Atom } from '../parsing/atom.js'
 import type { Molecule } from '../parsing/molecule.js'
 import type { SyntaxTree } from '../parsing/syntax-tree.js'
