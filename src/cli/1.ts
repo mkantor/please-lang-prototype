@@ -1,33 +1,12 @@
 import * as util from 'node:util'
-import { either, type Either } from '../adts.js'
+import { either } from '../adts.js'
 import { compile } from '../compiling/compiler.js'
-import { type JSONValueForbiddingSymbolicKeys } from '../parsing.js'
 import type { JSONValue } from '../utility-types.js'
-
-const read = async (stream: AsyncIterable<string>): Promise<string> => {
-  let input: string = ''
-  for await (const chunk of stream) {
-    input += chunk
-  }
-  return input
-}
-
-const handleInput = (
-  source: string,
-): Either<{ readonly message: string }, JSONValueForbiddingSymbolicKeys> =>
-  either.mapLeft(
-    either.tryCatch((): JSONValueForbiddingSymbolicKeys => JSON.parse(source)),
-    jsonParseError => ({
-      message:
-        jsonParseError instanceof Error
-          ? jsonParseError.message
-          : 'Invalid JSON',
-    }),
-  )
+import { readJSON } from './jsonInput.js'
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
-  const rawInput = await read(process.stdin)
-  const compilationResult = either.flatMap(handleInput(rawInput), compile)
+  const jsonResult = await readJSON(process.stdin)
+  const compilationResult = either.flatMap(jsonResult, compile)
   either.match(compilationResult, {
     left: error => {
       throw new Error(error.message) // TODO: improve error reporting
