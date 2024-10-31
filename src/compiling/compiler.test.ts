@@ -3,13 +3,13 @@ import { either, type Either } from '../adts.js'
 import type { ElaborationError } from '../errors.js'
 import { type Atom, type Molecule } from '../parsing.js'
 import { withPhantomData } from '../phantom-data.js'
+import type { Output } from '../semantics.js'
 import { testCases } from '../test-utilities.test.js'
-import type { Code } from './code-generation/serialization.js'
 import { compile } from './compiler.js'
 
 const success = (
   expectedOutput: Atom | Molecule,
-): Either<ElaborationError, Code> =>
+): Either<ElaborationError, Output> =>
   either.makeRight(withPhantomData<never>()(expectedOutput))
 
 testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(

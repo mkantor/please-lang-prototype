@@ -14,9 +14,11 @@ export {
   makeAtomNode,
   makeFunctionNode,
   makeObjectNode,
+  serialize,
   type AtomNode,
   type FunctionNode,
   type KeyPath,
   type ObjectNode,
+  type Output,
   type SemanticGraph,
 } from './semantics/semantic-graph.js'

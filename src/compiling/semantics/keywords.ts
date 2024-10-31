@@ -1,20 +1,18 @@
 import { either, option, type Either } from '../../adts.js'
 import type { ElaborationError } from '../../errors.js'
-import type {
-  ExpressionContext,
-  KeywordElaborationResult,
-  KeywordModule,
-} from '../../semantics.js'
 import {
   applyKeyPath,
   isAtomNode,
   isFunctionNode,
   isObjectNode,
   makeObjectNode,
+  serialize,
+  type ExpressionContext,
   type KeyPath,
+  type KeywordElaborationResult,
+  type KeywordModule,
   type SemanticGraph,
 } from '../../semantics.js'
-import { serialize } from '../code-generation/serialization.js'
 import { prelude } from './prelude.js'
 
 const check = ({
