@@ -1,26 +1,11 @@
-import * as util from 'node:util'
-import { either, type Either } from '../adts.js'
-import type { Code } from '../compiling/code-generation/serialization.js'
+import { coloredJSONStringify } from 'colored-json-stringify'
 import type { JSONValue } from '../utility-types.js'
 
 export const writeJSON = (
   writeStream: NodeJS.WriteStream,
-  result: Either<{ readonly message: string }, Code>,
+  output: JSONValue,
 ): void => {
-  either.match(result, {
-    left: error => {
-      throw new Error(error.message) // TODO: improve error reporting
-    },
-    right: (output: JSONValue) => {
-      writeStream.write(
-        // TODO: emit valid JSON (colors & formatting would still be nice)
-        util.inspect(output, {
-          colors: true,
-          depth: Infinity,
-        }),
-      )
-    },
-  })
+  writeStream.write(coloredJSONStringify(output))
 
   // Writing a newline ensures that output is flushed before terminating, otherwise nothing may be
   // printed to the console. See:
