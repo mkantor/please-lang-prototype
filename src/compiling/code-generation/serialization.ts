@@ -1,3 +1,4 @@
+import type { Atom, Molecule } from '../../parsing.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import {
   isAtomNode,
@@ -8,8 +9,6 @@ import {
   type SemanticGraph,
 } from '../../semantics.js'
 import type { Writable } from '../../utility-types.js'
-import type { Atom } from '../parsing/atom.js'
-import type { Molecule } from '../parsing/molecule.js'
 
 declare const _generated: unique symbol
 type Generated = { readonly [_generated]: true }

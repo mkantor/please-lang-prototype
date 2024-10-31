@@ -1,12 +1,11 @@
 import assert from 'node:assert'
 import { either, type Either } from '../adts.js'
 import type { ElaborationError } from '../errors.js'
+import { type Atom, type Molecule } from '../parsing.js'
 import { withPhantomData } from '../phantom-data.js'
 import { testCases } from '../test-utilities.test.js'
 import type { Code } from './code-generation/serialization.js'
 import { compile } from './compiler.js'
-import type { Atom } from './parsing/atom.js'
-import type { Molecule } from './parsing/molecule.js'
 
 const success = (
   expectedOutput: Atom | Molecule,

@@ -1,6 +1,6 @@
 import { either, option, type Either } from '../adts.js'
-import type { Atom, Molecule, SyntaxTree } from '../compiling.js'
 import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
+import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
 import {
   isAtomNode,

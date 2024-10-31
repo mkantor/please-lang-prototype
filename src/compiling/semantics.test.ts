@@ -1,12 +1,11 @@
 import assert from 'node:assert'
 import { either, type Either } from '../adts.js'
 import type { ElaborationError } from '../errors.js'
+import type { Atom, Molecule } from '../parsing.js'
 import { withPhantomData } from '../phantom-data.js'
 import { elaborate, type ElaboratedValue } from '../semantics.js'
 import { literalValueToSemanticGraph } from '../semantics/semantic-graph.js'
 import { testCases } from '../test-utilities.test.js'
-import type { Atom } from './parsing/atom.js'
-import type { Molecule } from './parsing/molecule.js'
 import * as keywordModule from './semantics/keywords.js'
 
 const elaborationSuite = testCases(
