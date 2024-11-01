@@ -18,7 +18,7 @@ export type Panic = {
   readonly message: string
 }
 
-export type TypeMismatch = {
+export type TypeMismatchError = {
   readonly kind: 'typeMismatch'
   readonly message: string
 }
@@ -33,7 +33,7 @@ export type ElaborationError =
   | InvalidExpressionError
   | InvalidSyntaxError
   | Panic
-  | TypeMismatch
+  | TypeMismatchError
   | UnknownKeywordError
 
 export type CompilationError = ElaborationError
