@@ -25,7 +25,7 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
           '@apply',
           [
             '@apply',
-            ['@lookup', ['compose']],
+            ['@lookup', ['flow']],
             [
               ['@lookup', ['boolean', 'not']],
               ['@lookup', ['boolean', 'not']],
@@ -39,7 +39,7 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
           '@apply',
           [
             '@apply',
-            ['@lookup', ['compose']],
+            ['@lookup', ['flow']],
             [
               ['@lookup', ['boolean', 'not']],
               ['@lookup', ['boolean', 'not']],

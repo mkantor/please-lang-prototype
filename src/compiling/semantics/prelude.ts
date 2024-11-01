@@ -14,11 +14,11 @@ import {
 } from '../../semantics.js'
 
 export const prelude: ObjectNode = makeObjectNode({
-  compose: makeFunctionNode(value => {
+  flow: makeFunctionNode(value => {
     if (!isObjectNode(value)) {
       return either.makeLeft({
         kind: 'panic',
-        message: '`compose` must be given an object',
+        message: '`flow` must be given an object',
       })
     } else {
       const functionNodesResult: Either<Panic, readonly FunctionNode[]> =
@@ -31,7 +31,7 @@ export const prelude: ObjectNode = makeObjectNode({
             if (!isFunctionNode(node)) {
               return either.makeLeft({
                 kind: 'panic',
-                message: '`compose` may only be passed functions',
+                message: '`flow` may only be passed functions',
               })
             } else {
               functionNodes.push(node)
@@ -45,7 +45,7 @@ export const prelude: ObjectNode = makeObjectNode({
       return either.map(functionNodesResult, functionNodes =>
         makeFunctionNode(
           (initialValue: SemanticGraph): Either<Panic, SemanticGraph> =>
-            functionNodes.reduceRight(
+            functionNodes.reduce(
               (value: Either<Panic, SemanticGraph>, node) =>
                 either.flatMap(value, node.function),
               either.makeRight(initialValue),
