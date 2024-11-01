@@ -26,6 +26,23 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
       },
     ],
     [
+      [
+        '@runtime',
+        [
+          '@apply',
+          ['@lookup', ['flow']],
+          [
+            ['@apply', ['@lookup', ['object', 'get']], 'environment'],
+            ['@apply', ['@lookup', ['object', 'get']], 'PATH'],
+          ],
+        ],
+      ],
+      output => {
+        assert(!either.isLeft(output))
+        assert(typeof output.value === 'string')
+      },
+    ],
+    [
       ['@check', 'not a boolean', ['@lookup', ['boolean', 'is']]],
       output => assert(either.isLeft(output)),
     ],

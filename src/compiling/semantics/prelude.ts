@@ -76,6 +76,38 @@ export const prelude: ObjectNode = makeObjectNode({
       }
     }),
   }),
+
+  object: makeObjectNode({
+    get: makeFunctionNode(key => {
+      if (!isAtomNode(key)) {
+        return either.makeLeft({
+          kind: 'panic',
+          message: 'key was not an atom',
+        })
+      } else {
+        return either.makeRight(
+          makeFunctionNode(value => {
+            if (!isObjectNode(value)) {
+              return either.makeLeft({
+                kind: 'panic',
+                message: 'value was not an object',
+              })
+            } else {
+              const propertyValue = value.children[key.atom]
+              if (propertyValue === undefined) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: `value did not have a property named '${key.atom}'`,
+                })
+              } else {
+                return either.makeRight(propertyValue)
+              }
+            }
+          }),
+        )
+      }
+    }),
+  }),
 })
 
 const nodeIsBoolean = (
