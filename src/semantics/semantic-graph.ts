@@ -1,5 +1,5 @@
-import { type Either, type Option, option } from '../adts.js'
-import type { Panic } from '../errors.js'
+import { either, type Either, type Option, option } from '../adts.js'
+import type { Panic, UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
 import type { Writable } from '../utility-types.js'
@@ -15,8 +15,10 @@ export const makeAtomNode = (atom: Atom): AtomNode => ({
   [nodeTag]: 'atom',
   atom,
 })
-const serializeAtomNode = (node: AtomNode): WithPhantomData<Atom, Serialized> =>
-  withPhantomData<Serialized>()(node.atom)
+const serializeAtomNode = (
+  node: AtomNode,
+): Either<never, WithPhantomData<Atom, Serialized>> =>
+  either.makeRight(withPhantomData<Serialized>()(node.atom))
 
 export type FunctionNode = {
   readonly [nodeTag]: 'function'
@@ -30,9 +32,10 @@ export const makeFunctionNode = (
 ): FunctionNode => ({ [nodeTag]: 'function', function: f })
 const serializeFunctionNode = (
   _node: FunctionNode,
-): WithPhantomData<Molecule, Serialized> =>
-  withPhantomData<Serialized>()({
-    // TODO: model (runtime) functions in code generation, or treat attempts to serialize functions as an error
+): Either<UnserializableValueError, Output> =>
+  either.makeLeft({
+    kind: 'unserializableValue',
+    message: 'functions cannot be serialized',
   })
 
 export type ObjectNode = {
@@ -45,12 +48,17 @@ export const makeObjectNode = (
 ): ObjectNode => ({ [nodeTag]: 'object', children })
 const serializeObjectNode = (
   node: ObjectNode,
-): WithPhantomData<Molecule, Serialized> => {
+): Either<UnserializableValueError, Output> => {
   const molecule: Writable<Molecule> = {}
   for (const [key, propertyValue] of Object.entries(node.children)) {
-    molecule[key] = serialize(propertyValue)
+    const serializedPropertyValueResult = serialize(propertyValue)
+    if (either.isLeft(serializedPropertyValueResult)) {
+      return serializedPropertyValueResult
+    } else {
+      molecule[key] = serializedPropertyValueResult.value
+    }
   }
-  return withPhantomData<Serialized>()(molecule)
+  return either.makeRight(withPhantomData<Serialized>()(molecule))
 }
 
 export type SemanticGraph = AtomNode | FunctionNode | ObjectNode
@@ -95,9 +103,11 @@ declare const _serialized: unique symbol
 type Serialized = { readonly [_serialized]: true }
 export type Output = WithPhantomData<Atom | Molecule, Serialized>
 
-export const serialize = (node: SemanticGraph): Output =>
+export const serialize = (
+  node: SemanticGraph,
+): Either<UnserializableValueError, Output> =>
   isAtomNode(node)
     ? serializeAtomNode(node)
-    : isObjectNode(node)
-    ? serializeObjectNode(node)
-    : serializeFunctionNode(node)
+    : isFunctionNode(node)
+    ? serializeFunctionNode(node)
+    : serializeObjectNode(node)

@@ -18,6 +18,11 @@ export type Panic = {
   readonly message: string
 }
 
+export type UnserializableValueError = {
+  readonly kind: 'unserializableValue'
+  readonly message: string
+}
+
 export type TypeMismatchError = {
   readonly kind: 'typeMismatch'
   readonly message: string
@@ -36,4 +41,6 @@ export type ElaborationError =
   | TypeMismatchError
   | UnknownKeywordError
 
-export type CompilationError = ElaborationError
+export type CompilationError = ElaborationError | UnserializableValueError
+
+export type RuntimeError = ElaborationError | UnserializableValueError

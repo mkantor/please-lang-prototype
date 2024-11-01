@@ -66,5 +66,6 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       ['@check', 'not a boolean', ['@lookup', ['boolean', 'is']]],
       output => assert(either.isLeft(output)),
     ],
+    [['@lookup', ['compose']], output => assert(either.isLeft(output))],
   ],
 )

@@ -10,5 +10,5 @@ export const compile = (
 ): Either<CompilationError, Output> => {
   const syntaxTree = canonicalize(input)
   const semanticGraphResult = elaborate(syntaxTree, keywordModule)
-  return either.map(semanticGraphResult, serialize)
+  return either.flatMap(semanticGraphResult, serialize)
 }
