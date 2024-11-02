@@ -3,6 +3,8 @@ import test, { suite } from 'node:test'
 
 type UnknownFunction = (...args: never) => unknown
 
+const testNameLengthLimit = 100
+
 export const testCases =
   <Input, Output>(
     // Validate that `Output` is not a function. This avoids unsafe `typeof` narrowing within the
@@ -10,7 +12,7 @@ export const testCases =
     functionToTest: (
       input: Input,
     ) => Output extends UnknownFunction ? never : Output,
-    testName: (input: Input) => string,
+    getTestName: (input: Input) => string,
   ) =>
   (
     suiteName: string,
@@ -20,16 +22,22 @@ export const testCases =
     ])[],
   ) =>
     suite(suiteName, _ =>
-      cases.forEach(([input, check]) =>
-        test(testName(input), () => {
-          const output = functionToTest(input)
-          const widenedCheck: unknown = check
-          // This narrowing is only safe because `Output` cannot be a function.
-          if (typeof widenedCheck === 'function') {
-            widenedCheck(output)
-          } else {
-            assert.deepEqual(output, check)
-          }
-        }),
-      ),
+      cases.forEach(([input, check]) => {
+        const testName = getTestName(input)
+        test(
+          testName.length > testNameLengthLimit
+            ? `${testName.slice(0, testNameLengthLimit - 1)}…`
+            : testName,
+          () => {
+            const output = functionToTest(input)
+            const widenedCheck: unknown = check
+            // This narrowing is only safe because `Output` cannot be a function.
+            if (typeof widenedCheck === 'function') {
+              widenedCheck(output)
+            } else {
+              assert.deepEqual(output, check)
+            }
+          },
+        )
+      }),
     )
