@@ -41,7 +41,6 @@ typeAssignabilitySuite('prelude types', [
   [[boolean, value], true],
   [[string, value], true],
   [[object, value], true],
-
   [[nullType, nothing], false],
   [[nullType, boolean], false],
   [[nullType, object], false],
@@ -175,39 +174,171 @@ typeAssignabilitySuite('custom types', [
     ],
     true,
   ],
-  // TODO: implement type canonicalization, then make sure the following examples pass:
+  [
+    [
+      // `{ a: 'a' } | { a: 'b' } | 'c'` is assignable to `{ a: 'a' | 'b' } | 'c'`
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a']),
+        }),
+        makeObjectType('', {
+          a: makeUnionType('', ['b']),
+        }),
+        'c',
+      ]),
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a', 'b']),
+        }),
+        'c',
+      ]),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: 'a' | 'b' }` is assignable to `{ a: 'a' } | { a: 'b' }`
+      makeObjectType('', {
+        a: makeUnionType('', ['a', 'b']),
+      }),
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a']),
+        }),
+        makeObjectType('', {
+          a: makeUnionType('', ['b']),
+        }),
+      ]),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: 'a' | 'b' }` is assignable to `{ a: 'a' } | { a: 'b' } | { a: 'c' }`
+      makeObjectType('', {
+        a: makeUnionType('', ['a', 'b']),
+      }),
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a']),
+        }),
+        makeObjectType('', {
+          a: makeUnionType('', ['b']),
+        }),
+        makeObjectType('', {
+          a: makeUnionType('', ['c']),
+        }),
+      ]),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: { a: 'a' | 'b' } }` is assignable to `{ a: { a: 'a' } | { a: 'b' } }`
+      makeObjectType('', {
+        a: makeObjectType('', {
+          a: makeUnionType('', ['a', 'b']),
+        }),
+      }),
+      makeObjectType('', {
+        a: makeUnionType('', [
+          makeObjectType('', {
+            a: makeUnionType('', ['a']),
+          }),
+          makeObjectType('', {
+            a: makeUnionType('', ['b']),
+          }),
+        ]),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: 'a' } | { a: 'b', b: 'c' }` is assignable to `{ a: 'a' | 'b' }`
+      makeUnionType('', [
+        makeObjectType('', { a: makeUnionType('', ['a']) }),
+        makeObjectType('', {
+          a: makeUnionType('', ['b']),
+          b: makeUnionType('', ['c']),
+        }),
+      ]),
+      makeObjectType('', {
+        a: makeUnionType('', ['a', 'b']),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: 'a' | 'b' } | 'c'` is assignable to `{ a: 'a' } | { a: 'b' } | 'c'`
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a', 'b']),
+        }),
+        'c',
+      ]),
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a']),
+        }),
+        makeObjectType('', {
+          a: makeUnionType('', ['b']),
+        }),
+        'c',
+      ]),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: 'a' | 'b' } | { b: 'a' | 'b' }` is assignable to `{ a: 'a' } | { a: 'b' } | { b: 'a' } | { b: 'b' }`
+      makeObjectType('', {
+        a: makeUnionType('', ['a', 'b']),
+        b: makeUnionType('', ['a', 'b']),
+      }),
+      makeUnionType('', [
+        makeObjectType('', { a: makeUnionType('', ['a']) }),
+        makeObjectType('', { a: makeUnionType('', ['b']) }),
+        makeObjectType('', { b: makeUnionType('', ['a']) }),
+        makeObjectType('', { b: makeUnionType('', ['b']) }),
+      ]),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: 'a' } | { a: 'b' } | { b: 'a' } | { b: 'b' }` is assignable to `{ a: 'a' | 'b' } | { b: 'a' | 'b' }`
+      makeUnionType('', [
+        makeObjectType('', { a: makeUnionType('', ['a']) }),
+        makeObjectType('', { a: makeUnionType('', ['b']) }),
+        makeObjectType('', { b: makeUnionType('', ['a']) }),
+        makeObjectType('', { b: makeUnionType('', ['b']) }),
+      ]),
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a', 'b']),
+        }),
+        makeObjectType('', {
+          b: makeUnionType('', ['a', 'b']),
+        }),
+      ]),
+    ],
+    true,
+  ],
+  // TODO: improve assignability checks for unions of objects to make this test case pass:
   // [
   //   [
-  //     // `{ a: 'a' | 'b' }` is assignable to `{ a: 'a' } | { a: 'b' }`
+  //     // `{ a: 'a' | 'b', b: 'c' }` is assignable to `{ a: 'a' } | { a: 'b', b: 'c' }`
   //     makeObjectType('', {
   //       a: makeUnionType('', ['a', 'b']),
+  //       b: makeUnionType('', ['c']),
   //     }),
   //     makeUnionType('', [
-  //       makeObjectType('', {
-  //         a: makeUnionType('', ['a']),
-  //       }),
+  //       makeObjectType('', { a: makeUnionType('', ['a']) }),
   //       makeObjectType('', {
   //         a: makeUnionType('', ['b']),
-  //       }),
-  //     ]),
-  //   ],
-  //   true,
-  // ],
-  // [
-  //   [
-  //     // `{ a: 'a' | 'b' }` is assignable to `{ a: 'a' } | { a: 'b' } | { a: 'c' }`
-  //     makeObjectType('', {
-  //       a: makeUnionType('', ['a', 'b']),
-  //     }),
-  //     makeUnionType('', [
-  //       makeObjectType('', {
-  //         a: makeUnionType('', ['a']),
-  //       }),
-  //       makeObjectType('', {
-  //         a: makeUnionType('', ['b']),
-  //       }),
-  //       makeObjectType('', {
-  //         a: makeUnionType('', ['c']),
+  //         b: makeUnionType('', ['c']),
   //       }),
   //     ]),
   //   ],
@@ -269,6 +400,25 @@ typeAssignabilitySuite('custom types', [
           b: makeUnionType('', ['b']),
         }),
       ]),
+    ],
+    false,
+  ],
+  [
+    [
+      // `{ a: 'a' } | { a: 'b', b: 'c' }` is not assignable to `{ a: 'a' | 'b', b: 'c' }`
+      makeUnionType('', [
+        makeObjectType('', {
+          a: makeUnionType('', ['a']),
+        }),
+        makeObjectType('', {
+          a: makeUnionType('', ['b']),
+          b: makeUnionType('', ['c']),
+        }),
+      ]),
+      makeObjectType('', {
+        a: makeUnionType('', ['a', 'b']),
+        b: makeUnionType('', ['c']),
+      }),
     ],
     false,
   ],
