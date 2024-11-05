@@ -110,7 +110,7 @@ export const prelude: ObjectNode = makeObjectNode({
   }),
 
   object: makeObjectNode({
-    get: makeFunctionNode(key => {
+    lookup: makeFunctionNode(key => {
       if (!isAtomNode(key)) {
         return either.makeLeft({
           kind: 'panic',

@@ -32,13 +32,13 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
           '@apply',
           ['@lookup', ['flow']],
           [
-            ['@apply', ['@lookup', ['object', 'get']], 'environment'],
+            ['@apply', ['@lookup', ['object', 'lookup']], 'environment'],
             [
               '@apply',
               ['@lookup', ['match']],
               {
                 none: 'environment does not exist!',
-                some: ['@apply', ['@lookup', ['object', 'get']], 'PATH'],
+                some: ['@apply', ['@lookup', ['object', 'lookup']], 'PATH'],
               },
             ],
           ],
