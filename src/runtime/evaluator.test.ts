@@ -18,14 +18,6 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
     ['Hello, world!', success('Hello, world!')],
     [['@check', true, ['@lookup', ['identity']]], success('true')],
     [
-      ['@runtime', ['@lookup', ['identity']]],
-      output => {
-        assert(!either.isLeft(output))
-        assert(typeof output.value === 'object')
-        assert(typeof output.value.environment === 'object')
-      },
-    ],
-    [
       [
         '@runtime',
         [
@@ -38,7 +30,21 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
               ['@lookup', ['match']],
               {
                 none: 'environment does not exist!',
-                some: ['@apply', ['@lookup', ['object', 'lookup']], 'PATH'],
+                some: [
+                  '@apply',
+                  ['@lookup', ['flow']],
+                  [
+                    ['@apply', ['@lookup', ['object', 'lookup']], 'lookup'],
+                    [
+                      '@apply',
+                      ['@lookup', ['match']],
+                      {
+                        none: 'environment.lookup does not exist!',
+                        some: ['@apply', ['@lookup', ['apply']], 'PATH'],
+                      },
+                    ],
+                  ],
+                ],
               },
             ],
           ],
