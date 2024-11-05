@@ -9,6 +9,7 @@ import {
 } from './type-system/prelude-types.js'
 import { isAssignable } from './type-system/subtyping.js'
 import {
+  makeFunctionType,
   makeObjectType,
   makeUnionType,
   showType,
@@ -24,7 +25,7 @@ const typeAssignabilitySuite = testCases(
     )}\``,
 )
 
-typeAssignabilitySuite('prelude types', [
+typeAssignabilitySuite('prelude types (assignable)', [
   [[nothing, nothing], true],
   [[nullType, nullType], true],
   [[boolean, boolean], true],
@@ -41,6 +42,9 @@ typeAssignabilitySuite('prelude types', [
   [[boolean, value], true],
   [[string, value], true],
   [[object, value], true],
+])
+
+typeAssignabilitySuite('prelude types (not assignable)', [
   [[nullType, nothing], false],
   [[nullType, boolean], false],
   [[nullType, object], false],
@@ -62,7 +66,7 @@ typeAssignabilitySuite('prelude types', [
   [[value, object], false],
 ])
 
-typeAssignabilitySuite('custom types', [
+typeAssignabilitySuite('custom types (assignable)', [
   [[makeUnionType('', ['a']), makeUnionType('', ['a', 'b'])], true],
   [[makeUnionType('', ['a']), string], true],
   [[makeUnionType('', ['a', 'b']), string], true],
@@ -326,6 +330,95 @@ typeAssignabilitySuite('custom types', [
     ],
     true,
   ],
+  [
+    [
+      makeFunctionType('', { parameter: value, return: value }),
+      makeFunctionType('', { parameter: value, return: value }),
+    ],
+    true,
+  ],
+  [
+    [
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a']),
+        return: makeUnionType('', ['a']),
+      }),
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a']),
+        return: makeUnionType('', ['a']),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a', 'b', 'c']),
+        return: makeUnionType('', ['d', 'e']),
+      }),
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a', 'b']),
+        return: makeUnionType('', ['d', 'e', 'f']),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a']),
+        return: makeUnionType('', ['a']),
+      }),
+      makeFunctionType('', { parameter: nothing, return: value }),
+    ],
+    true,
+  ],
+  [
+    [
+      makeFunctionType('', { parameter: value, return: nothing }),
+      makeFunctionType('', { parameter: nothing, return: value }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `string => 'a' | string => 'b'` is assignable to `'a' => 'a' | 'b'`
+      makeUnionType('', [
+        makeFunctionType('', {
+          parameter: string,
+          return: makeUnionType('', ['a']),
+        }),
+        makeFunctionType('', {
+          parameter: string,
+          return: makeUnionType('', ['b']),
+        }),
+      ]),
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a']),
+        return: makeUnionType('', ['a', 'b']),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a']),
+        return: makeUnionType('', ['a']),
+      }),
+      makeUnionType('', [
+        makeFunctionType('', {
+          parameter: makeUnionType('', ['a']),
+          return: makeUnionType('', ['a']),
+        }),
+        makeFunctionType('', {
+          parameter: makeUnionType('', ['b']),
+          return: makeUnionType('', ['b']),
+        }),
+      ]),
+    ],
+    true,
+  ],
   // TODO: improve assignability checks for unions of objects to make this test case pass:
   // [
   //   [
@@ -344,7 +437,9 @@ typeAssignabilitySuite('custom types', [
   //   ],
   //   true,
   // ],
+])
 
+typeAssignabilitySuite('custom types (not assignable)', [
   [
     [makeUnionType('', ['a', 'b', 'c']), makeUnionType('', ['b', 'c', 'd'])],
     false,
@@ -418,6 +513,69 @@ typeAssignabilitySuite('custom types', [
       makeObjectType('', {
         a: makeUnionType('', ['a', 'b']),
         b: makeUnionType('', ['c']),
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      makeFunctionType('', { parameter: string, return: string }),
+      makeFunctionType('', { parameter: object, return: object }),
+    ],
+    false,
+  ],
+  [
+    [
+      makeFunctionType('', { parameter: string, return: object }),
+      makeFunctionType('', { parameter: object, return: object }),
+    ],
+    false,
+  ],
+  [
+    [
+      makeFunctionType('', { parameter: object, return: string }),
+      makeFunctionType('', { parameter: object, return: object }),
+    ],
+    false,
+  ],
+  [
+    [
+      makeFunctionType('', { parameter: string, return: string }),
+      makeFunctionType('', { parameter: value, return: value }),
+    ],
+    false,
+  ],
+  [
+    [
+      makeFunctionType('', { parameter: value, return: value }),
+      makeFunctionType('', { parameter: string, return: string }),
+    ],
+    false,
+  ],
+  [
+    [
+      makeFunctionType('', { parameter: nothing, return: value }),
+      makeFunctionType('', { parameter: value, return: nothing }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `'a' => 'a' | 'b' => 'b'` is not assignable to `'a' | 'b' => 'a' | 'b'`
+      // (a value of the former may only be able to handle `'a'` as an argument)
+      makeUnionType('', [
+        makeFunctionType('', {
+          parameter: makeUnionType('', ['a']),
+          return: makeUnionType('', ['a']),
+        }),
+        makeFunctionType('', {
+          parameter: makeUnionType('', ['b']),
+          return: makeUnionType('', ['b']),
+        }),
+      ]),
+      makeFunctionType('', {
+        parameter: makeUnionType('', ['a', 'b']),
+        return: makeUnionType('', ['a', 'b']),
       }),
     ],
     false,

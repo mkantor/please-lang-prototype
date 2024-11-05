@@ -16,6 +16,8 @@ export const boolean = makeUnionType('boolean', ['false', 'true'])
 export const string = makeLazyType('string', {
   isAssignableFrom: source =>
     matchTypeFormat(source, {
+      // functions cannot be assigned to `string`
+      function: _ => false,
       // `string` (currently) has no lazy subtypes (its only subtype is itself)
       lazy: (source): boolean => source === string,
       // `string` can't have object types assigned to it
@@ -35,6 +37,8 @@ export const string = makeLazyType('string', {
     }),
   isAssignableTo: target =>
     matchTypeFormat(target, {
+      // `string` cannot be assigned to a function type
+      function: _ => false,
       // `string` (currently) has no lazy supertypes (its only supertype is itself)
       lazy: (target): boolean => target === string,
       // `string` can't be assigned to object types

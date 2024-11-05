@@ -1,6 +1,24 @@
 import type { Atom } from '../../parsing.js'
 import { nothing } from './prelude-types.js'
 
+export type FunctionType = {
+  readonly name: string
+  readonly kind: 'function'
+  readonly signature: {
+    readonly parameter: Type
+    readonly return: Type
+  }
+}
+
+export const makeFunctionType = (
+  name: string,
+  signature: FunctionType['signature'],
+): FunctionType => ({
+  name,
+  kind: 'function',
+  signature,
+})
+
 export type LazyType = {
   readonly name: string
   readonly kind: 'lazy'
@@ -42,29 +60,34 @@ export const makeObjectType = (
 export type UnionType = {
   readonly name: string
   readonly kind: 'union'
-  readonly members: ReadonlySet<Atom | LazyType | ObjectType>
+  readonly members: ReadonlySet<
+    Atom | Exclude<Type, UnionType> // unions are always flat
+  >
 }
 
 export const makeUnionType = (
   name: string,
-  members: readonly (Atom | LazyType | ObjectType)[],
+  members: readonly (Atom | Exclude<Type, UnionType>)[],
 ): UnionType => ({
   name,
   kind: 'union',
   members: new Set(members),
 })
 
-export type Type = LazyType | ObjectType | UnionType
+export type Type = FunctionType | LazyType | ObjectType | UnionType
 
 export const matchTypeFormat = <Result>(
   type: Type,
   cases: {
+    function: (type: FunctionType) => Result
     lazy: (type: LazyType) => Result
     object: (type: ObjectType) => Result
     union: (type: UnionType) => Result
   },
 ): Result => {
   switch (type.kind) {
+    case 'function':
+      return cases[type.kind](type)
     case 'lazy':
       return cases[type.kind](type)
     case 'object':
@@ -79,6 +102,8 @@ export const showType: (type: Type) => string = type => {
     return type.name
   } else {
     return matchTypeFormat(type, {
+      function: ({ signature }) =>
+        `${showType(signature.parameter)} => ${showType(signature.return)}`,
       lazy: _ => '(unnameable type)',
       object: ({ children }) => {
         const shownProperties: string[] = []

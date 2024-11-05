@@ -3,7 +3,6 @@ import {
   makeObjectType,
   makeUnionType,
   matchTypeFormat,
-  type LazyType,
   type ObjectType,
   type Type,
   type UnionType,
@@ -18,9 +17,26 @@ export const isAssignable = ({
 }): boolean =>
   source === target || // in this case there's no reason to spend time checking structural assignability
   matchTypeFormat(source, {
+    function: source =>
+      matchTypeFormat(target, {
+        function: target =>
+          // Functions are contravariant in parameters, covariant in return types.
+          isAssignable({
+            source: target.signature.parameter,
+            target: source.signature.parameter,
+          }) &&
+          isAssignable({
+            source: source.signature.return,
+            target: target.signature.return,
+          }),
+        lazy: target => target.isAssignableFrom(source),
+        object: _ => false, // functions are never assignable to objects
+        union: target => isNonUnionAssignableToUnion({ source, target }),
+      }),
     lazy: source => source.isAssignableTo(target),
     object: source =>
       matchTypeFormat(target, {
+        function: _ => false, // objects are never assignable to functions
         lazy: target => target.isAssignableFrom(source),
         object: target => {
           // Make sure all properties in the target are present and valid in the source
@@ -49,6 +65,7 @@ export const isAssignable = ({
       }),
     union: source =>
       matchTypeFormat(target, {
+        function: target => isUnionAssignableToNonUnion({ source, target }),
         lazy: target => isUnionAssignableToNonUnion({ source, target }),
         object: target => isUnionAssignableToNonUnion({ source, target }),
         union: target => {
@@ -187,9 +204,8 @@ const prepareTargetUnionTypeForObjectSourceAssignabilityCheck = (
     }
   }
 
-  const canonicalizedTargetMembers: Set<Atom | LazyType | ObjectType> = new Set(
-    [...target.members],
-  )
+  const canonicalizedTargetMembers: Set<Atom | Exclude<Type, UnionType>> =
+    new Set([...target.members])
   // Reduce `reducibleSubsets` by merging all candidate, updating `canonicalizedTargetMembers`.
   // Merge algorithm:
   //  - for each reducible subset of object types:
