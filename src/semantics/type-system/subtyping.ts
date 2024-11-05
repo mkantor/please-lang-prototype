@@ -16,6 +16,7 @@ export const isAssignable = ({
   readonly source: Type
   readonly target: Type
 }): boolean =>
+  source === target || // in this case there's no reason to spend time checking structural assignability
   matchTypeFormat(source, {
     lazy: source => source.isAssignableTo(target),
     object: source =>
@@ -44,44 +45,12 @@ export const isAssignable = ({
           }
           return true
         },
-        union: target => {
-          // The strategy for this case is to check whether any of the target's members are
-          // assignable to the source type. However this alone is not sufficient—for example
-          // `{ a: 'a' | 'b' }` should be assignable to `{ a: 'a' } | { a: 'b' }` even though
-          // `{ a: 'a' | 'b' }` is not directly assignable to `{ a: 'a' }` nor `{ a: 'b' }`. To
-          // make things work the target type is first converted into a standard form (e.g.
-          // `{ a: 'a' } | { a: 'b' }` is translated into `{ a: 'a' | 'b' }`.
-
-          const preparedTarget =
-            prepareTargetUnionTypeForObjectSourceAssignabilityCheck(target)
-
-          for (const type of preparedTarget.members) {
-            if (
-              typeof type !== 'string' &&
-              isAssignable({ target: type, source })
-            ) {
-              return true
-            }
-          }
-          return false
-        },
+        union: target => isNonUnionAssignableToUnion({ source, target }),
       }),
     union: source =>
       matchTypeFormat(target, {
-        lazy: target => target.isAssignableFrom(source),
-        object: target => {
-          // Return true if every member of the source is assignable to the target.
-          for (const sourceMember of source.members) {
-            // Atoms cannot be subtypes of objects.
-            if (typeof sourceMember === 'string') {
-              return false
-            }
-            if (!isAssignable({ target, source: sourceMember })) {
-              return false
-            }
-          }
-          return true
-        },
+        lazy: target => isUnionAssignableToNonUnion({ source, target }),
+        object: target => isUnionAssignableToNonUnion({ source, target }),
         union: target => {
           // Return true if every member of the source is assignable to some member of the target.
           for (const sourceMember of source.members) {
@@ -116,6 +85,70 @@ export const isAssignable = ({
         },
       }),
   })
+
+const isNonUnionAssignableToUnion = ({
+  source,
+  target,
+}: {
+  readonly source: Exclude<Type, UnionType>
+  readonly target: UnionType
+}): boolean => {
+  if (source.kind === 'lazy') {
+    return source.isAssignableTo(target)
+  } else {
+    // The strategy for this case is to check whether any of the target's members are
+    // assignable to the source type. However this alone is not sufficient—for example
+    // `{ a: 'a' | 'b' }` should be assignable to `{ a: 'a' } | { a: 'b' }` even though
+    // `{ a: 'a' | 'b' }` is not directly assignable to `{ a: 'a' }` nor `{ a: 'b' }`. To
+    // make things work the target type is first converted into a standard form (e.g.
+    // `{ a: 'a' } | { a: 'b' }` is translated into `{ a: 'a' | 'b' }`.
+
+    const preparedTarget =
+      prepareTargetUnionTypeForObjectSourceAssignabilityCheck(target)
+
+    for (const type of preparedTarget.members) {
+      if (
+        typeof type !== 'string' &&
+        isAssignable({
+          target: type,
+          source,
+        })
+      ) {
+        return true
+      }
+    }
+    return false
+  }
+}
+
+const isUnionAssignableToNonUnion = ({
+  source,
+  target,
+}: {
+  readonly source: UnionType
+  readonly target: Exclude<Type, UnionType>
+}): boolean => {
+  if (target.kind === 'lazy') {
+    return target.isAssignableFrom(source)
+  } else {
+    // Return true if every member of the source is assignable to the target.
+    for (const sourceMember of source.members) {
+      // Atoms cannot be subtypes of objects.
+      if (typeof sourceMember === 'string') {
+        return false
+      }
+      if (
+        !isAssignable({
+          target,
+          source: sourceMember,
+        })
+      ) {
+        return false
+      }
+    }
+    return true
+  }
+}
 
 // Note that this does not perform a full canonicalization of the given type. For example
 // `{} | { a: string }` does not get reduced to `{}`. It may evolve in that direction, though (a
@@ -164,7 +197,7 @@ const prepareTargetUnionTypeForObjectSourceAssignabilityCheck = (
   //      - get the key's property type from every member of `typesToMerge`
   //      - create a union allowing any of those types
   //    - create single object type where each property has the appropriate union type
-  for (const [fingerprint, { keys, typesToMerge }] of reducibleSubsets) {
+  for (const { keys, typesToMerge } of reducibleSubsets.values()) {
     const typesToMergeAsArray = [...typesToMerge]
     const mergedObjectTypeChildren = Object.fromEntries(
       keys.map(key => {
