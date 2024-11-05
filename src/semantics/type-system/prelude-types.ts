@@ -1,8 +1,10 @@
 import {
+  makeFunctionType,
   makeObjectType,
   makeOpaqueType,
   makeUnionType,
   matchTypeFormat,
+  type Type,
 } from './type-formats.js'
 
 // the bottom type
@@ -52,3 +54,27 @@ export const object = makeObjectType('object', {})
 
 // the top type
 export const value = makeUnionType('value', [string, object])
+
+// `function` unfortunately can't be a variable name
+export const functionType = makeFunctionType('function', {
+  parameter: nothing,
+  return: value,
+})
+
+export const option = (value: Type) =>
+  makeUnionType('option', [
+    makeObjectType('some', {
+      tag: makeUnionType('', ['some']),
+      value,
+    }),
+    makeObjectType('none', {
+      tag: makeUnionType('', ['none']),
+      value: makeObjectType('', {}),
+    }),
+  ])
+
+export const runtimeContext = makeObjectType('runtime_context', {
+  environment: makeObjectType('', {
+    lookup: makeFunctionType('', { parameter: string, return: option(string) }),
+  }),
+})

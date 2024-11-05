@@ -67,5 +67,12 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       output => assert(either.isLeft(output)),
     ],
     [['@lookup', ['compose']], output => assert(either.isLeft(output))],
+    [
+      ['@runtime', ['@lookup', ['boolean', 'not']]],
+      output => {
+        assert(either.isLeft(output))
+        assert(output.value.kind === 'typeMismatch')
+      },
+    ],
   ],
 )

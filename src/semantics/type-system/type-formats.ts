@@ -1,5 +1,4 @@
 import type { Atom } from '../../parsing.js'
-import { nothing } from './prelude-types.js'
 
 export type FunctionType = {
   readonly name: string
@@ -115,7 +114,7 @@ export const showType: (type: Type) => string = type => {
       union: ({ members }) => {
         const [firstMember, ...otherMembers] = [...members]
         if (firstMember === undefined) {
-          return nothing.name
+          return 'nothing'
         } else {
           return otherMembers.reduce<string>(
             (renderedUnion, currentValue) =>

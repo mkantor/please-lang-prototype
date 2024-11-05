@@ -2,11 +2,13 @@ import { either, option, type Either } from '../../adts.js'
 import type { ElaborationError } from '../../errors.js'
 import {
   applyKeyPath,
+  isAssignable,
   isAtomNode,
   isFunctionNode,
   isObjectNode,
   makeObjectNode,
   serialize,
+  types,
   type ExpressionContext,
   type KeyPath,
   type KeywordElaborationResult,
@@ -251,7 +253,17 @@ export const handlers = {
             kind: 'bug',
             message: 'failed to locate self in `@runtime` handler',
           }),
-        some: valueFromProgram => either.makeRight(valueFromProgram),
+        some: valueFromProgram =>
+          !isAssignable({
+            source: types.runtimeContext,
+            target: runtimeFunction.signature.signature.parameter,
+          })
+            ? either.makeLeft({
+                kind: 'typeMismatch',
+                message:
+                  '@runtime function must accept a runtime context argument',
+              })
+            : either.makeRight(valueFromProgram),
       })
     }
   },

@@ -6,37 +6,44 @@ import {
   makeAtomNode,
   makeFunctionNode,
   makeObjectNode,
+  types,
   type KeywordElaborationResult,
   type KeywordModule,
 } from '../semantics.js'
 
-const world = makeObjectNode({
+const runtimeContext = makeObjectNode({
   environment: makeObjectNode({
-    lookup: makeFunctionNode(key => {
-      if (!isAtomNode(key)) {
-        return either.makeLeft({
-          kind: 'panic',
-          message: 'key was not an atom',
-        })
-      } else {
-        const environmentVariable = process.env[key.atom]
-        if (environmentVariable === undefined) {
-          return either.makeRight(
-            makeObjectNode({
-              tag: makeAtomNode('none'),
-              value: makeObjectNode({}),
-            }),
-          )
+    lookup: makeFunctionNode(
+      {
+        parameter: types.string,
+        return: types.option(types.string),
+      },
+      key => {
+        if (!isAtomNode(key)) {
+          return either.makeLeft({
+            kind: 'panic',
+            message: 'key was not an atom',
+          })
         } else {
-          return either.makeRight(
-            makeObjectNode({
-              tag: makeAtomNode('some'),
-              value: makeAtomNode(environmentVariable),
-            }),
-          )
+          const environmentVariable = process.env[key.atom]
+          if (environmentVariable === undefined) {
+            return either.makeRight(
+              makeObjectNode({
+                tag: makeAtomNode('none'),
+                value: makeObjectNode({}),
+              }),
+            )
+          } else {
+            return either.makeRight(
+              makeObjectNode({
+                tag: makeAtomNode('some'),
+                value: makeAtomNode(environmentVariable),
+              }),
+            )
+          }
         }
-      }
-    }),
+      },
+    ),
   }),
 })
 
@@ -55,7 +62,7 @@ export const handlers = {
           'a function must be provided via a property named `function` or the first positional argument',
       })
     } else {
-      return runtimeFunction.function(world)
+      return runtimeFunction.function(runtimeContext)
     }
   },
 } satisfies KeywordModule<`@${string}`>['handlers']

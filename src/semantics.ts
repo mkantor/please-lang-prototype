@@ -28,3 +28,4 @@ export {
   type Output,
   type SemanticGraph,
 } from './semantics/semantic-graph.js'
+export { isAssignable, types } from './semantics/type-system.js'

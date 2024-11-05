@@ -7,6 +7,7 @@ import {
   makeAtomNode,
   makeFunctionNode,
   makeObjectNode,
+  types,
   type AtomNode,
   type FunctionNode,
   type ObjectNode,
@@ -14,153 +15,227 @@ import {
 } from '../../semantics.js'
 
 export const prelude: ObjectNode = makeObjectNode({
-  apply: makeFunctionNode(a =>
-    either.makeRight(
-      makeFunctionNode(f => {
-        if (!isFunctionNode(f)) {
-          return either.makeLeft({
-            kind: 'panic',
-            message: 'expected a function',
-          })
-        } else {
-          return f.function(a)
-        }
-      }),
-    ),
+  // TODO: model this and other type signatures generically (e.g. `apply` is `a => (a => b) => b`)
+  apply: makeFunctionNode(
+    {
+      parameter: types.value,
+      return: types.functionType,
+    },
+    a =>
+      either.makeRight(
+        makeFunctionNode(
+          {
+            parameter: types.functionType,
+            return: types.value,
+          },
+          f => {
+            if (!isFunctionNode(f)) {
+              return either.makeLeft({
+                kind: 'panic',
+                message: 'expected a function',
+              })
+            } else {
+              return f.function(a)
+            }
+          },
+        ),
+      ),
   ),
 
-  flow: makeFunctionNode(value => {
-    if (!isObjectNode(value)) {
-      return either.makeLeft({
-        kind: 'panic',
-        message: '`flow` must be given an object',
-      })
-    } else {
-      const functionNodesResult: Either<Panic, readonly FunctionNode[]> =
-        (() => {
-          const functionNodes: FunctionNode[] = []
-          let index = 0
-          // Consume numeric indexes ("0", "1", …) until exhausted, validating each.
-          let node = value.children[index]
-          while (node !== undefined) {
-            if (!isFunctionNode(node)) {
-              return either.makeLeft({
-                kind: 'panic',
-                message: '`flow` may only be passed functions',
-              })
-            } else {
-              functionNodes.push(node)
+  flow: makeFunctionNode(
+    {
+      // TODO
+      parameter: types.value,
+      return: types.value,
+    },
+    value => {
+      if (!isObjectNode(value)) {
+        return either.makeLeft({
+          kind: 'panic',
+          message: '`flow` must be given an object',
+        })
+      } else {
+        const functionNodesResult: Either<Panic, readonly FunctionNode[]> =
+          (() => {
+            const functionNodes: FunctionNode[] = []
+            let index = 0
+            // Consume numeric indexes ("0", "1", …) until exhausted, validating each.
+            let node = value.children[index]
+            while (node !== undefined) {
+              if (!isFunctionNode(node)) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: '`flow` may only be passed functions',
+                })
+              } else {
+                functionNodes.push(node)
+              }
+              index++
+              node = value.children[index]
             }
-            index++
-            node = value.children[index]
-          }
-          return either.makeRight(functionNodes)
-        })()
+            return either.makeRight(functionNodes)
+          })()
 
-      return either.map(functionNodesResult, functionNodes =>
-        makeFunctionNode(
-          (initialValue: SemanticGraph): Either<Panic, SemanticGraph> =>
-            functionNodes.reduce(
-              (value: Either<Panic, SemanticGraph>, node) =>
-                either.flatMap(value, node.function),
-              either.makeRight(initialValue),
-            ),
-        ),
-      )
-    }
-  }),
+        return either.map(functionNodesResult, functionNodes =>
+          makeFunctionNode(
+            {
+              // TODO
+              parameter: types.value,
+              return: types.value,
+            },
+            (initialValue: SemanticGraph): Either<Panic, SemanticGraph> =>
+              functionNodes.reduce(
+                (value: Either<Panic, SemanticGraph>, node) =>
+                  either.flatMap(value, node.function),
+                either.makeRight(initialValue),
+              ),
+          ),
+        )
+      }
+    },
+  ),
 
-  identity: makeFunctionNode(either.makeRight),
+  identity: makeFunctionNode(
+    {
+      // TODO
+      parameter: types.value,
+      return: types.value,
+    },
+    either.makeRight,
+  ),
 
   boolean: makeObjectNode({
-    is: makeFunctionNode(value => {
-      return either.makeRight(
-        nodeIsBoolean(value) ? makeAtomNode('true') : makeAtomNode('false'),
-      )
-    }),
-    not: makeFunctionNode(value => {
-      if (!nodeIsBoolean(value)) {
+    true: makeAtomNode('true'),
+    false: makeAtomNode('false'),
+    is: makeFunctionNode(
+      {
+        parameter: types.value,
+        return: types.boolean,
+      },
+      value =>
+        either.makeRight(
+          nodeIsBoolean(value) ? makeAtomNode('true') : makeAtomNode('false'),
+        ),
+    ),
+    not: makeFunctionNode(
+      {
+        parameter: types.boolean,
+        return: types.boolean,
+      },
+      value => {
+        if (!nodeIsBoolean(value)) {
+          return either.makeLeft({
+            kind: 'panic',
+            message: 'value was not a boolean',
+          })
+        } else {
+          return either.makeRight(
+            value.atom === 'true'
+              ? makeAtomNode('false')
+              : makeAtomNode('true'),
+          )
+        }
+      },
+    ),
+  }),
+
+  match: makeFunctionNode(
+    {
+      // TODO
+      parameter: types.value,
+      return: types.value,
+    },
+    cases => {
+      if (!isObjectNode(cases)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'value was not a boolean',
+          message: 'match cases must be an object',
         })
       } else {
         return either.makeRight(
-          value.atom === 'true' ? makeAtomNode('false') : makeAtomNode('true'),
+          makeFunctionNode(
+            {
+              // TODO
+              parameter: types.value,
+              return: types.value,
+            },
+            value => {
+              if (!nodeIsTagged(value)) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: 'value was not tagged',
+                })
+              } else {
+                const relevantCase = cases.children[value.children.tag.atom]
+                if (relevantCase === undefined) {
+                  return either.makeLeft({
+                    kind: 'panic',
+                    message: `case for tag '${value.children.tag.atom}' was not defined`,
+                  })
+                } else {
+                  return !isFunctionNode(relevantCase)
+                    ? either.makeRight(relevantCase)
+                    : relevantCase.function(value.children.value)
+                }
+              }
+            },
+          ),
         )
       }
-    }),
-  }),
-
-  match: makeFunctionNode(cases => {
-    if (!isObjectNode(cases)) {
-      return either.makeLeft({
-        kind: 'panic',
-        message: 'match cases must be an object',
-      })
-    } else {
-      return either.makeRight(
-        makeFunctionNode(value => {
-          if (!nodeIsTagged(value)) {
-            return either.makeLeft({
-              kind: 'panic',
-              message: 'value was not tagged',
-            })
-          } else {
-            const relevantCase = cases.children[value.children.tag.atom]
-            if (relevantCase === undefined) {
-              return either.makeLeft({
-                kind: 'panic',
-                message: `case for tag '${value.children.tag.atom}' was not defined`,
-              })
-            } else {
-              return !isFunctionNode(relevantCase)
-                ? either.makeRight(relevantCase)
-                : relevantCase.function(value.children.value)
-            }
-          }
-        }),
-      )
-    }
-  }),
+    },
+  ),
 
   object: makeObjectNode({
-    lookup: makeFunctionNode(key => {
-      if (!isAtomNode(key)) {
-        return either.makeLeft({
-          kind: 'panic',
-          message: 'key was not an atom',
-        })
-      } else {
-        return either.makeRight(
-          makeFunctionNode(value => {
-            if (!isObjectNode(value)) {
-              return either.makeLeft({
-                kind: 'panic',
-                message: 'value was not an object',
-              })
-            } else {
-              const propertyValue = value.children[key.atom]
-              if (propertyValue === undefined) {
-                return either.makeRight(
-                  makeObjectNode({
-                    tag: makeAtomNode('none'),
-                    value: makeObjectNode({}),
-                  }),
-                )
-              } else {
-                return either.makeRight(
-                  makeObjectNode({
-                    tag: makeAtomNode('some'),
-                    value: propertyValue,
-                  }),
-                )
-              }
-            }
-          }),
-        )
-      }
-    }),
+    lookup: makeFunctionNode(
+      {
+        // TODO
+        parameter: types.string,
+        return: types.value,
+      },
+      key => {
+        if (!isAtomNode(key)) {
+          return either.makeLeft({
+            kind: 'panic',
+            message: 'key was not an atom',
+          })
+        } else {
+          return either.makeRight(
+            makeFunctionNode(
+              {
+                // TODO
+                parameter: types.value,
+                return: types.value,
+              },
+              value => {
+                if (!isObjectNode(value)) {
+                  return either.makeLeft({
+                    kind: 'panic',
+                    message: 'value was not an object',
+                  })
+                } else {
+                  const propertyValue = value.children[key.atom]
+                  if (propertyValue === undefined) {
+                    return either.makeRight(
+                      makeObjectNode({
+                        tag: makeAtomNode('none'),
+                        value: makeObjectNode({}),
+                      }),
+                    )
+                  } else {
+                    return either.makeRight(
+                      makeObjectNode({
+                        tag: makeAtomNode('some'),
+                        value: propertyValue,
+                      }),
+                    )
+                  }
+                }
+              },
+            ),
+          )
+        }
+      },
+    ),
   }),
 })
 
