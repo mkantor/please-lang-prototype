@@ -14,6 +14,21 @@ import {
 } from '../../semantics.js'
 
 export const prelude: ObjectNode = makeObjectNode({
+  apply: makeFunctionNode(a =>
+    either.makeRight(
+      makeFunctionNode(f => {
+        if (!isFunctionNode(f)) {
+          return either.makeLeft({
+            kind: 'panic',
+            message: 'expected a function',
+          })
+        } else {
+          return f.function(a)
+        }
+      }),
+    ),
+  ),
+
   flow: makeFunctionNode(value => {
     if (!isObjectNode(value)) {
       return either.makeLeft({
