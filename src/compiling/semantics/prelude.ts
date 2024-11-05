@@ -77,6 +77,38 @@ export const prelude: ObjectNode = makeObjectNode({
     }),
   }),
 
+  match: makeFunctionNode(cases => {
+    if (!isObjectNode(cases)) {
+      return either.makeLeft({
+        kind: 'panic',
+        message: 'match cases must be an object',
+      })
+    } else {
+      return either.makeRight(
+        makeFunctionNode(value => {
+          if (!nodeIsTagged(value)) {
+            return either.makeLeft({
+              kind: 'panic',
+              message: 'value was not tagged',
+            })
+          } else {
+            const relevantCase = cases.children[value.children.tag.atom]
+            if (relevantCase === undefined) {
+              return either.makeLeft({
+                kind: 'panic',
+                message: `case for tag '${value.children.tag.atom}' was not defined`,
+              })
+            } else {
+              return !isFunctionNode(relevantCase)
+                ? either.makeRight(relevantCase)
+                : relevantCase.function(value.children.value)
+            }
+          }
+        }),
+      )
+    }
+  }),
+
   object: makeObjectNode({
     get: makeFunctionNode(key => {
       if (!isAtomNode(key)) {
@@ -95,12 +127,19 @@ export const prelude: ObjectNode = makeObjectNode({
             } else {
               const propertyValue = value.children[key.atom]
               if (propertyValue === undefined) {
-                return either.makeLeft({
-                  kind: 'panic',
-                  message: `value did not have a property named '${key.atom}'`,
-                })
+                return either.makeRight(
+                  makeObjectNode({
+                    tag: makeAtomNode('none'),
+                    value: makeObjectNode({}),
+                  }),
+                )
               } else {
-                return either.makeRight(propertyValue)
+                return either.makeRight(
+                  makeObjectNode({
+                    tag: makeAtomNode('some'),
+                    value: propertyValue,
+                  }),
+                )
               }
             }
           }),
@@ -110,7 +149,18 @@ export const prelude: ObjectNode = makeObjectNode({
   }),
 })
 
-const nodeIsBoolean = (
-  node: SemanticGraph,
-): node is AtomNode & { readonly atom: 'true' | 'false' } =>
+type BooleanNode = AtomNode & { readonly atom: 'true' | 'false' }
+const nodeIsBoolean = (node: SemanticGraph): node is BooleanNode =>
   isAtomNode(node) && (node.atom === 'true' || node.atom === 'false')
+
+type TaggedNode = ObjectNode & {
+  readonly children: {
+    readonly tag: AtomNode
+    readonly value: SemanticGraph
+  }
+}
+const nodeIsTagged = (node: SemanticGraph): node is TaggedNode =>
+  isObjectNode(node) &&
+  node.children.tag !== undefined &&
+  isAtomNode(node.children.tag) &&
+  node.children.value !== undefined

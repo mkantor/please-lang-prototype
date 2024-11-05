@@ -33,13 +33,22 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
           ['@lookup', ['flow']],
           [
             ['@apply', ['@lookup', ['object', 'get']], 'environment'],
-            ['@apply', ['@lookup', ['object', 'get']], 'PATH'],
+            [
+              '@apply',
+              ['@lookup', ['match']],
+              {
+                none: 'environment does not exist!',
+                some: ['@apply', ['@lookup', ['object', 'get']], 'PATH'],
+              },
+            ],
           ],
         ],
       ],
       output => {
         assert(!either.isLeft(output))
-        assert(typeof output.value === 'string')
+        assert(typeof output.value === 'object')
+        assert(output.value.tag === 'some')
+        assert(typeof output.value.value === 'string')
       },
     ],
     [
