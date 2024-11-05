@@ -19,25 +19,6 @@ export const makeFunctionType = (
   signature,
 })
 
-export type LazyType = {
-  readonly name: string
-  readonly kind: 'lazy'
-  readonly isAssignableFrom: (possibleSubtype: Type) => boolean
-  readonly isAssignableTo: (possibleSupertype: Type) => boolean
-}
-
-export const makeLazyType = (
-  name: string,
-  computations: {
-    readonly isAssignableFrom: (source: Type) => boolean
-    readonly isAssignableTo: (target: Type) => boolean
-  },
-): LazyType => ({
-  name,
-  kind: 'lazy',
-  ...computations,
-})
-
 export type ObjectType = {
   readonly name: string
   readonly kind: 'object'
@@ -57,6 +38,25 @@ export const makeObjectType = (
   children,
 })
 
+export type OpaqueType = {
+  readonly name: string
+  readonly kind: 'opaque'
+  readonly isAssignableFrom: (possibleSubtype: Type) => boolean
+  readonly isAssignableTo: (possibleSupertype: Type) => boolean
+}
+
+export const makeOpaqueType = (
+  name: string,
+  computations: {
+    readonly isAssignableFrom: (source: Type) => boolean
+    readonly isAssignableTo: (target: Type) => boolean
+  },
+): OpaqueType => ({
+  name,
+  kind: 'opaque',
+  ...computations,
+})
+
 export type UnionType = {
   readonly name: string
   readonly kind: 'union'
@@ -74,23 +74,23 @@ export const makeUnionType = (
   members: new Set(members),
 })
 
-export type Type = FunctionType | LazyType | ObjectType | UnionType
+export type Type = FunctionType | ObjectType | OpaqueType | UnionType
 
 export const matchTypeFormat = <Result>(
   type: Type,
   cases: {
     function: (type: FunctionType) => Result
-    lazy: (type: LazyType) => Result
     object: (type: ObjectType) => Result
+    opaque: (type: OpaqueType) => Result
     union: (type: UnionType) => Result
   },
 ): Result => {
   switch (type.kind) {
     case 'function':
       return cases[type.kind](type)
-    case 'lazy':
-      return cases[type.kind](type)
     case 'object':
+      return cases[type.kind](type)
+    case 'opaque':
       return cases[type.kind](type)
     case 'union':
       return cases[type.kind](type)
@@ -104,7 +104,6 @@ export const showType: (type: Type) => string = type => {
     return matchTypeFormat(type, {
       function: ({ signature }) =>
         `${showType(signature.parameter)} => ${showType(signature.return)}`,
-      lazy: _ => '(unnameable type)',
       object: ({ children }) => {
         const shownProperties: string[] = []
         for (const [key, value] of Object.entries(children)) {
@@ -112,6 +111,7 @@ export const showType: (type: Type) => string = type => {
         }
         return `{ ${shownProperties.join(', ')} }`
       },
+      opaque: _ => '(unnameable type)',
       union: ({ members }) => {
         const [firstMember, ...otherMembers] = [...members]
         if (firstMember === undefined) {

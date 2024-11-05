@@ -1,6 +1,6 @@
 import {
-  makeLazyType,
   makeObjectType,
+  makeOpaqueType,
   makeUnionType,
   matchTypeFormat,
 } from './type-formats.js'
@@ -13,15 +13,15 @@ export const nullType = makeUnionType('null', ['null'])
 
 export const boolean = makeUnionType('boolean', ['false', 'true'])
 
-export const string = makeLazyType('string', {
+export const string = makeOpaqueType('string', {
   isAssignableFrom: source =>
     matchTypeFormat(source, {
       // functions cannot be assigned to `string`
       function: _ => false,
-      // `string` (currently) has no lazy subtypes (its only subtype is itself)
-      lazy: (source): boolean => source === string,
       // `string` can't have object types assigned to it
       object: _source => false,
+      // `string` (currently) has no opaque subtypes (its only subtype is itself)
+      opaque: (source): boolean => source === string,
       // `string` can have a union assigned to it if all of its members can be assigned to it
       union: source => {
         for (const sourceMember of source.members) {
@@ -39,10 +39,10 @@ export const string = makeLazyType('string', {
     matchTypeFormat(target, {
       // `string` cannot be assigned to a function type
       function: _ => false,
-      // `string` (currently) has no lazy supertypes (its only supertype is itself)
-      lazy: (target): boolean => target === string,
       // `string` can't be assigned to object types
       object: _target => false,
+      // `string` (currently) has no opaque supertypes (its only supertype is itself)
+      opaque: (target): boolean => target === string,
       // `string` can only be assigned to a union type if `string` is one of its members
       union: (target): boolean => target.members.has(string),
     }),

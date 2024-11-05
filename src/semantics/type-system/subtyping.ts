@@ -29,15 +29,13 @@ export const isAssignable = ({
             source: source.signature.return,
             target: target.signature.return,
           }),
-        lazy: target => target.isAssignableFrom(source),
         object: _ => false, // functions are never assignable to objects
+        opaque: target => target.isAssignableFrom(source),
         union: target => isNonUnionAssignableToUnion({ source, target }),
       }),
-    lazy: source => source.isAssignableTo(target),
     object: source =>
       matchTypeFormat(target, {
         function: _ => false, // objects are never assignable to functions
-        lazy: target => target.isAssignableFrom(source),
         object: target => {
           // Make sure all properties in the target are present and valid in the source
           // (recursively). Values may have additional properties beyond what is required by the
@@ -61,13 +59,15 @@ export const isAssignable = ({
           }
           return true
         },
+        opaque: target => target.isAssignableFrom(source),
         union: target => isNonUnionAssignableToUnion({ source, target }),
       }),
+    opaque: source => source.isAssignableTo(target),
     union: source =>
       matchTypeFormat(target, {
         function: target => isUnionAssignableToNonUnion({ source, target }),
-        lazy: target => isUnionAssignableToNonUnion({ source, target }),
         object: target => isUnionAssignableToNonUnion({ source, target }),
+        opaque: target => isUnionAssignableToNonUnion({ source, target }),
         union: target => {
           // Return true if every member of the source is assignable to some member of the target.
           for (const sourceMember of source.members) {
@@ -110,7 +110,7 @@ const isNonUnionAssignableToUnion = ({
   readonly source: Exclude<Type, UnionType>
   readonly target: UnionType
 }): boolean => {
-  if (source.kind === 'lazy') {
+  if (source.kind === 'opaque') {
     return source.isAssignableTo(target)
   } else {
     // The strategy for this case is to check whether any of the target's members are
@@ -124,13 +124,7 @@ const isNonUnionAssignableToUnion = ({
       prepareTargetUnionTypeForObjectSourceAssignabilityCheck(target)
 
     for (const type of preparedTarget.members) {
-      if (
-        typeof type !== 'string' &&
-        isAssignable({
-          target: type,
-          source,
-        })
-      ) {
+      if (typeof type !== 'string' && isAssignable({ target: type, source })) {
         return true
       }
     }
@@ -145,7 +139,7 @@ const isUnionAssignableToNonUnion = ({
   readonly source: UnionType
   readonly target: Exclude<Type, UnionType>
 }): boolean => {
-  if (target.kind === 'lazy') {
+  if (target.kind === 'opaque') {
     return target.isAssignableFrom(source)
   } else {
     // Return true if every member of the source is assignable to the target.
