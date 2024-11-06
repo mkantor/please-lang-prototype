@@ -23,7 +23,9 @@ export const string = makeOpaqueType('string', {
       // `string` can't have object types assigned to it
       object: _source => false,
       // `string` (currently) has no opaque subtypes (its only subtype is itself)
-      opaque: (source): boolean => source === string,
+      opaque: source => source === string,
+      parameter: source =>
+        string.isAssignableFrom(source.constraint.assignableTo),
       // `string` can have a union assigned to it if all of its members can be assigned to it
       union: source => {
         for (const sourceMember of source.members) {
@@ -44,9 +46,10 @@ export const string = makeOpaqueType('string', {
       // `string` can't be assigned to object types
       object: _target => false,
       // `string` (currently) has no opaque supertypes (its only supertype is itself)
-      opaque: (target): boolean => target === string,
+      opaque: target => target === string,
+      parameter: target => target.constraint.assignableTo === string,
       // `string` can only be assigned to a union type if `string` is one of its members
-      union: (target): boolean => target.members.has(string),
+      union: target => target.members.has(string),
     }),
 })
 

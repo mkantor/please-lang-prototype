@@ -40,8 +40,8 @@ export const makeObjectType = (
 export type OpaqueType = {
   readonly name: string
   readonly kind: 'opaque'
-  readonly isAssignableFrom: (possibleSubtype: Type) => boolean
-  readonly isAssignableTo: (possibleSupertype: Type) => boolean
+  readonly isAssignableFrom: (source: Type) => boolean
+  readonly isAssignableTo: (target: Type) => boolean
 }
 
 export const makeOpaqueType = (
@@ -54,6 +54,26 @@ export const makeOpaqueType = (
   name,
   kind: 'opaque',
   ...computations,
+})
+
+export type TypeParameter = {
+  readonly name: string
+  readonly kind: 'parameter'
+  readonly identity: symbol
+  readonly constraint: {
+    readonly assignableTo: Type
+    // readonly assignableFrom: Type // TODO: implement lower bound constraints
+  }
+}
+
+export const makeTypeParameter = (
+  name: string,
+  constraint: TypeParameter['constraint'],
+): TypeParameter => ({
+  name,
+  kind: 'parameter',
+  identity: Symbol(name),
+  constraint,
 })
 
 export type UnionType = {
@@ -73,7 +93,12 @@ export const makeUnionType = (
   members: new Set(members),
 })
 
-export type Type = FunctionType | ObjectType | OpaqueType | UnionType
+export type Type =
+  | FunctionType
+  | ObjectType
+  | OpaqueType
+  | TypeParameter
+  | UnionType
 
 export const matchTypeFormat = <Result>(
   type: Type,
@@ -81,6 +106,7 @@ export const matchTypeFormat = <Result>(
     function: (type: FunctionType) => Result
     object: (type: ObjectType) => Result
     opaque: (type: OpaqueType) => Result
+    parameter: (type: TypeParameter) => Result
     union: (type: UnionType) => Result
   },
 ): Result => {
@@ -91,44 +117,9 @@ export const matchTypeFormat = <Result>(
       return cases[type.kind](type)
     case 'opaque':
       return cases[type.kind](type)
+    case 'parameter':
+      return cases[type.kind](type)
     case 'union':
       return cases[type.kind](type)
-  }
-}
-
-export const showType: (type: Type) => string = type => {
-  if (type.name.trim() !== '') {
-    return type.name
-  } else {
-    return matchTypeFormat(type, {
-      function: ({ signature }) =>
-        `${showType(signature.parameter)} => ${showType(signature.return)}`,
-      object: ({ children }) => {
-        const shownProperties: string[] = []
-        for (const [key, value] of Object.entries(children)) {
-          shownProperties.push(`${JSON.stringify(key)}: ${showType(value)}`)
-        }
-        return `{ ${shownProperties.join(', ')} }`
-      },
-      opaque: _ => '(unnameable type)',
-      union: ({ members }) => {
-        const [firstMember, ...otherMembers] = [...members]
-        if (firstMember === undefined) {
-          return 'nothing'
-        } else {
-          return otherMembers.reduce<string>(
-            (renderedUnion, currentValue) =>
-              `${renderedUnion} | ${
-                typeof currentValue === 'string'
-                  ? JSON.stringify(currentValue)
-                  : showType(currentValue)
-              }`,
-            typeof firstMember === 'string'
-              ? JSON.stringify(firstMember)
-              : showType(firstMember),
-          )
-        }
-      },
-    })
   }
 }

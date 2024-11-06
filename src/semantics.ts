@@ -15,6 +15,7 @@ export {
   makeFunctionNode,
   type FunctionNode,
 } from './semantics/function-node.js'
+export { type KeyPath } from './semantics/key-path.js'
 export {
   isObjectNode,
   makeObjectNode,
@@ -24,7 +25,6 @@ export {
   applyKeyPath,
   literalValueToSemanticGraph,
   serialize,
-  type KeyPath,
   type Output,
   type SemanticGraph,
 } from './semantics/semantic-graph.js'

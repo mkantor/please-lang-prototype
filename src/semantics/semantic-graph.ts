@@ -14,6 +14,7 @@ import {
   serializeFunctionNode,
   type FunctionNode,
 } from './function-node.js'
+import type { KeyPath } from './key-path.js'
 import {
   isObjectNode,
   serializeObjectNode,
@@ -24,24 +25,31 @@ export const nodeTag = Symbol('nodeTag')
 
 export type SemanticGraph = AtomNode | FunctionNode | ObjectNode
 
-export type KeyPath = readonly string[]
-
 export const applyKeyPath = (
   graph: SemanticGraph,
-  keyPath: readonly string[],
+  keyPath: KeyPath,
 ): Option<SemanticGraph> => {
   const [firstKey, ...remainingKeyPath] = keyPath
   if (firstKey === undefined) {
     return option.makeSome(graph)
-  } else if (!isObjectNode(graph)) {
-    return option.none
-  } else {
+  } else if (isObjectNode(graph) && typeof firstKey === 'string') {
     const next = graph.children[firstKey]
     if (next === undefined) {
       return option.none
     } else {
       return applyKeyPath(next, remainingKeyPath)
     }
+  } else if (isFunctionNode(graph) && typeof firstKey === 'symbol') {
+    // TODO: once it is possible to model types in userland, allow this:
+    // switch (firstKey) {
+    //   case functionParameter:
+    //     return option.makeSome(graph.signature.signature.parameter)
+    //   case functionReturn:
+    //     return option.makeSome(graph.signature.signature.return)
+    // }
+    return option.none
+  } else {
+    return option.none
   }
 }
 

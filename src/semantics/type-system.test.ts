@@ -1,4 +1,5 @@
 import { testCases } from '../test-utilities.test.js'
+import { types } from './type-system.js'
 import {
   boolean,
   nothing,
@@ -7,23 +8,78 @@ import {
   string,
   value,
 } from './type-system/prelude-types.js'
-import { isAssignable } from './type-system/subtyping.js'
+import { showType } from './type-system/show-type.js'
+import { isAssignable, simplifyUnionType } from './type-system/subtyping.js'
 import {
   makeFunctionType,
   makeObjectType,
+  makeTypeParameter,
   makeUnionType,
-  showType,
   type Type,
+  type UnionType,
 } from './type-system/type-formats.js'
 
 const typeAssignabilitySuite = testCases(
   ([source, target]: [source: Type, target: Type]) =>
     isAssignable({ source, target }),
   ([source, target]) =>
-    `checking assignability of \`${showType(source)}\` to \`${showType(
-      target,
-    )}\``,
+    `assignability of \`${showType(source)}\` to \`${showType(target)}\``,
 )
+
+const A = makeTypeParameter('a', {
+  assignableTo: types.value,
+})
+const B = makeTypeParameter('b', {
+  assignableTo: types.value,
+})
+const C = makeTypeParameter('c', {
+  assignableTo: types.value,
+})
+const D = makeTypeParameter('d', {
+  assignableTo: types.value,
+})
+const extendsString = makeTypeParameter('z', {
+  assignableTo: types.string,
+})
+const extendsAtom = makeTypeParameter('y', {
+  assignableTo: makeUnionType('', ['a']),
+})
+const extendsUnionOfAtoms = makeTypeParameter('x', {
+  assignableTo: makeUnionType('', ['a', 'b']),
+})
+const extendsA = makeTypeParameter('w', { assignableTo: A })
+const extendsFunctionFromStringToValue = makeTypeParameter('i', {
+  assignableTo: makeFunctionType('', { parameter: string, return: value }),
+})
+const extendsFunctionFromValueToString = makeTypeParameter('v', {
+  assignableTo: makeFunctionType('', { parameter: value, return: string }),
+})
+const extendsExtendsString = makeTypeParameter('u', {
+  assignableTo: extendsString,
+})
+
+testCases(
+  (type: UnionType) => showType(simplifyUnionType(type)),
+  type => `simplifying type \`${showType(type)}\``,
+)('simplifying union types', [
+  [
+    makeUnionType('', [
+      'a',
+      types.string,
+      makeObjectType('', {
+        // a: types.object,
+        a: makeUnionType('', ['a', 'b']),
+      }),
+      makeObjectType('', {
+        a: makeUnionType('', ['b']),
+      }),
+      makeObjectType('', {
+        a: makeUnionType('', ['c']),
+      }),
+    ]),
+    '(string | { a: ("a" | "b" | "c") })',
+  ],
+])
 
 typeAssignabilitySuite('prelude types (assignable)', [
   [[nothing, nothing], true],
@@ -576,6 +632,507 @@ typeAssignabilitySuite('custom types (not assignable)', [
       makeFunctionType('', {
         parameter: makeUnionType('', ['a', 'b']),
         return: makeUnionType('', ['a', 'b']),
+      }),
+    ],
+    false,
+  ],
+])
+
+typeAssignabilitySuite('generic function types (assignable)', [
+  [
+    [
+      // `a => a` is assignable to itself
+      makeFunctionType('', {
+        parameter: A,
+        return: A,
+      }),
+      makeFunctionType('', {
+        parameter: B,
+        return: B,
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `a => a` is assignable to `(a <: string) => a`
+      makeFunctionType('', {
+        parameter: A,
+        return: A,
+      }),
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: extendsString,
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `a => a` is assignable to `string => string`
+      makeFunctionType('', {
+        parameter: A,
+        return: A,
+      }),
+      makeFunctionType('', {
+        parameter: string,
+        return: string,
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `(a <: string) => a` is assignable to `string => value`
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: extendsString,
+      }),
+      makeFunctionType('', {
+        parameter: string,
+        return: value,
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `(a <: string) => { a: a }` is assignable to `string => value`
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: makeObjectType('', { a: extendsString }),
+      }),
+      makeFunctionType('', {
+        parameter: string,
+        return: value,
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `a => { a: a, b: string }` is assignable to `(a <: string) => { a: a }`
+      makeFunctionType('', {
+        parameter: A,
+        return: makeObjectType('', {
+          a: A,
+          b: string,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: makeObjectType('', { a: extendsString }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `(a <: string) => { a: a }` is assignable to `string => { a: string }`
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: makeObjectType('', { a: extendsString }),
+      }),
+      makeFunctionType('', {
+        parameter: types.string,
+        return: makeObjectType('', { a: types.string }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: a } => a` is assignable to `{ a: (a <: string) } => a`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          a: A,
+        }),
+        return: A,
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          a: extendsString,
+        }),
+        return: extendsString,
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: a } => { b: a }` is assignable to `{ a: (a <: string) } => { b: a }`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          a: A,
+        }),
+        return: makeObjectType('', {
+          b: A,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          a: extendsString,
+        }),
+        return: makeObjectType('', {
+          b: extendsString,
+        }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `((a <: string) | object) => (a | "z")` is assignable to `(a <: ("a" | "b")) => (a | "y" | "z")`
+      makeFunctionType('', {
+        parameter: makeUnionType('', [extendsString, types.object]),
+        return: makeUnionType('', [extendsString, 'z']),
+      }),
+      makeFunctionType('', {
+        parameter: extendsUnionOfAtoms,
+        return: makeUnionType('', [extendsUnionOfAtoms, 'y', 'z']),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `(a <: string => value) => a` is assignable to `(b <: value => string) => b`
+      makeFunctionType('', {
+        parameter: extendsFunctionFromStringToValue,
+        return: extendsFunctionFromStringToValue,
+      }),
+      makeFunctionType('', {
+        parameter: extendsFunctionFromValueToString,
+        return: extendsFunctionFromValueToString,
+      }),
+    ],
+    true,
+  ],
+
+  [
+    [
+      // `(a <: (string => value)) => a` is assignable to `(value => value) => (value => value)`
+      makeFunctionType('', {
+        parameter: extendsFunctionFromStringToValue,
+        return: extendsFunctionFromStringToValue,
+      }),
+      makeFunctionType('', {
+        parameter: makeFunctionType('', {
+          parameter: types.value,
+          return: types.value,
+        }),
+        return: makeFunctionType('', {
+          parameter: types.value,
+          return: types.value,
+        }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `a => { 0: a, 1: a }` is assignable to `(a <: string) => { 0: a, 1: string }`
+      makeFunctionType('', {
+        parameter: A,
+        return: makeObjectType('', {
+          0: A,
+          1: A,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: makeObjectType('', {
+          0: extendsString,
+          1: types.string,
+        }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ 0: a, 1: b } => { 0: b, 1: a }` is assignable to `{ 0: a, 1: b } => { 0: b, 1: a }`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: A,
+          1: B,
+        }),
+        return: makeObjectType('', {
+          0: B,
+          1: A,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: C,
+          1: D,
+        }),
+        return: makeObjectType('', {
+          0: D,
+          1: C,
+        }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ 0: a, 1: b } => { 0: b, 1: a }` is assignable to `{ 0: (a <: string), 1: (b <: "a") } => { 0: b, 1: a }`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: A,
+          1: B,
+        }),
+        return: makeObjectType('', {
+          0: B,
+          1: A,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: extendsString,
+          1: extendsAtom,
+        }),
+        return: makeObjectType('', {
+          0: extendsAtom,
+          1: extendsString,
+        }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ 0: a, 1: b } => { 0: b, 1: a }` is assignable to `{ 0: a, 1: (b <: a) } => { 0: b, 1: a }`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: B,
+          1: C,
+        }),
+        return: makeObjectType('', {
+          0: C,
+          1: B,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: A,
+          1: extendsA,
+        }),
+        return: makeObjectType('', {
+          0: extendsA,
+          1: A,
+        }),
+      }),
+    ],
+    true,
+  ],
+  [
+    [
+      // `{ a: a, b: b, c: string | b } => { b: a, a: b, c: a }` is assignable to `{ a: (a <: string), b: (b <: a), c: b } => { b: a, a: b | a, c: string }`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          a: A,
+          b: B,
+          c: makeUnionType('', [types.string, B]),
+        }),
+        return: makeObjectType('', {
+          b: A,
+          a: B,
+          c: A,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          a: extendsString,
+          b: extendsExtendsString,
+          c: extendsExtendsString,
+        }),
+        return: makeObjectType('', {
+          b: extendsString,
+          a: makeUnionType('', [extendsString, extendsExtendsString]),
+          c: types.string,
+        }),
+      }),
+    ],
+    true,
+  ],
+])
+
+typeAssignabilitySuite('generic function types (not assignable)', [
+  [
+    [
+      //  `(a <: string) => a` is not assignable to `object => object`
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: extendsString,
+      }),
+      makeFunctionType('', {
+        parameter: object,
+        return: object,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `(a <: 'a') => a` is not assignable to `string => string`
+      makeFunctionType('', {
+        parameter: extendsAtom,
+        return: extendsAtom,
+      }),
+      makeFunctionType('', {
+        parameter: string,
+        return: string,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `(a <: string) => a` is not assignable to `a => a`
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: extendsString,
+      }),
+      makeFunctionType('', {
+        parameter: A,
+        return: A,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `a => a` is not assignable to `value => string`
+      makeFunctionType('', {
+        parameter: A,
+        return: A,
+      }),
+      makeFunctionType('', {
+        parameter: value,
+        return: string,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `a => { a: a }` is not assignable to `a => { b: a }`
+      makeFunctionType('', {
+        parameter: A,
+        return: makeObjectType('', { a: A }),
+      }),
+      makeFunctionType('', {
+        parameter: A,
+        return: makeObjectType('', { b: A }),
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `((a <: string) | object) => (a | "z")` is not assignable to `(a <: string) => a`
+      makeFunctionType('', {
+        parameter: makeUnionType('', [extendsString, types.object]),
+        return: makeUnionType('', [extendsString, 'z']),
+      }),
+      makeFunctionType('', {
+        parameter: extendsString,
+        return: extendsString,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `{ 0: a, 1: (b <: a) } => { 0: b, 1: a }` is not assignable to `{ 0: a, 1: b } => { 0: b, 1: a }`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: A,
+          1: extendsA,
+        }),
+        return: makeObjectType('', {
+          0: extendsA,
+          1: A,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          0: A,
+          1: B,
+        }),
+        return: makeObjectType('', {
+          0: B,
+          1: A,
+        }),
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `(a <: value => string) => a` is not assignable to `(b <: string => value) => b`
+      makeFunctionType('', {
+        parameter: extendsFunctionFromValueToString,
+        return: extendsFunctionFromValueToString,
+      }),
+      makeFunctionType('', {
+        parameter: extendsFunctionFromStringToValue,
+        return: extendsFunctionFromStringToValue,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `a => a` is not assignable to `(value => value) => string
+      makeFunctionType('', {
+        parameter: A,
+        return: A,
+      }),
+      makeFunctionType('', {
+        parameter: makeFunctionType('', {
+          parameter: types.value,
+          return: types.value,
+        }),
+        return: types.string,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `{ a: a } => a` is not assignable to `{ b: a } => a`
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          a: A,
+        }),
+        return: A,
+      }),
+      makeFunctionType('', {
+        parameter: makeObjectType('', {
+          b: A,
+        }),
+        return: A,
+      }),
+    ],
+    false,
+  ],
+  [
+    [
+      // `a => { a: a }` is not assignable to `a => { b: a }`
+      makeFunctionType('', {
+        parameter: A,
+        return: makeObjectType('', {
+          a: A,
+        }),
+      }),
+      makeFunctionType('', {
+        parameter: A,
+        return: makeObjectType('', {
+          b: A,
+        }),
       }),
     ],
     false,
