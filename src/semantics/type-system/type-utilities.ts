@@ -39,7 +39,7 @@ const containedTypeParametersImplementation = (
   root: KeyPath,
 ): TypeParametersByKeyPath => {
   // Avoid infinite recursion when we hit the top type.
-  if (type === types.value) {
+  if (type === types.something) {
     return new Map()
   } else {
     return matchTypeFormat(type, {
@@ -105,7 +105,7 @@ const findKeyPathsToTypeParameterImplementation = (
   root: KeyPath,
 ): Set<KeyPath> => {
   // Avoid infinite recursion when we hit the top type.
-  if (type === types.value) {
+  if (type === types.something) {
     return new Set()
   } else {
     return matchTypeFormat(type, {
@@ -178,7 +178,7 @@ export const supplyTypeArgument = (
   typeArgument: Type,
 ): Type => {
   // Avoid infinite recursion when we hit the top type.
-  if (type === types.value) {
+  if (type === types.something) {
     return type
   } else {
     return matchTypeFormat(type, {

@@ -56,19 +56,23 @@ export const string = makeOpaqueType('string', {
 
 export const object = makeObjectType('object', {})
 
-// `functionType` and `value` reference each other directly, so we need to do a dance:
+// `functionType` and `something` reference each other directly, so we need to do a dance:
 export const functionType: FunctionType = {} as FunctionType
-export const value: UnionType = {} as UnionType // the top type
+export const something: UnionType = {} as UnionType // the top type
 Object.assign(
   functionType,
   makeFunctionType('function', {
     parameter: nothing,
-    return: value,
+    return: something,
   }) satisfies FunctionType,
 )
 Object.assign(
-  value,
-  makeUnionType('value', [functionType, string, object]) satisfies UnionType,
+  something,
+  makeUnionType('something', [
+    functionType,
+    string,
+    object,
+  ]) satisfies UnionType,
 )
 
 export const option = (value: Type) =>

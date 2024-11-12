@@ -40,7 +40,7 @@ export const showType = (type: Type | Atom): string => {
               // so omit it.
 
               const shownUpperBound = isAssignable({
-                source: types.value,
+                source: types.something,
                 target: constraint.assignableTo,
               })
                 ? ''

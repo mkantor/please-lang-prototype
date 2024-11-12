@@ -18,15 +18,16 @@ export const prelude: ObjectNode = makeObjectNode({
   // TODO: model this and other type signatures generically (e.g. `apply` is `a => (a => b) => b`)
   apply: makeFunctionNode(
     {
-      parameter: types.value,
-      return: types.functionType,
+      // TODO
+      parameter: types.something,
+      return: types.something,
     },
     a =>
       either.makeRight(
         makeFunctionNode(
           {
             parameter: types.functionType,
-            return: types.value,
+            return: types.something,
           },
           f => {
             if (!isFunctionNode(f)) {
@@ -45,8 +46,8 @@ export const prelude: ObjectNode = makeObjectNode({
   flow: makeFunctionNode(
     {
       // TODO
-      parameter: types.value,
-      return: types.value,
+      parameter: types.something,
+      return: types.something,
     },
     value => {
       if (!isObjectNode(value)) {
@@ -80,8 +81,8 @@ export const prelude: ObjectNode = makeObjectNode({
           makeFunctionNode(
             {
               // TODO
-              parameter: types.value,
-              return: types.value,
+              parameter: types.something,
+              return: types.something,
             },
             (initialValue: SemanticGraph): Either<Panic, SemanticGraph> =>
               functionNodes.reduce(
@@ -97,9 +98,8 @@ export const prelude: ObjectNode = makeObjectNode({
 
   identity: makeFunctionNode(
     {
-      // TODO
-      parameter: types.value,
-      return: types.value,
+      parameter: types.something,
+      return: types.something,
     },
     either.makeRight,
   ),
@@ -109,7 +109,7 @@ export const prelude: ObjectNode = makeObjectNode({
     false: makeAtomNode('false'),
     is: makeFunctionNode(
       {
-        parameter: types.value,
+        parameter: types.something,
         return: types.boolean,
       },
       value =>
@@ -142,8 +142,8 @@ export const prelude: ObjectNode = makeObjectNode({
   match: makeFunctionNode(
     {
       // TODO
-      parameter: types.value,
-      return: types.value,
+      parameter: types.something,
+      return: types.something,
     },
     cases => {
       if (!isObjectNode(cases)) {
@@ -156,8 +156,8 @@ export const prelude: ObjectNode = makeObjectNode({
           makeFunctionNode(
             {
               // TODO
-              parameter: types.value,
-              return: types.value,
+              parameter: types.something,
+              return: types.something,
             },
             value => {
               if (!nodeIsTagged(value)) {
@@ -190,7 +190,7 @@ export const prelude: ObjectNode = makeObjectNode({
       {
         // TODO
         parameter: types.string,
-        return: types.value,
+        return: types.something,
       },
       key => {
         if (!isAtomNode(key)) {
@@ -203,8 +203,8 @@ export const prelude: ObjectNode = makeObjectNode({
             makeFunctionNode(
               {
                 // TODO
-                parameter: types.value,
-                return: types.value,
+                parameter: types.something,
+                return: types.something,
               },
               value => {
                 if (!isObjectNode(value)) {
