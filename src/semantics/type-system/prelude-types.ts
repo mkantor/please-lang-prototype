@@ -4,11 +4,12 @@ import {
   makeOpaqueType,
   makeUnionType,
   matchTypeFormat,
+  type FunctionType,
   type Type,
+  type UnionType,
 } from './type-formats.js'
 
-// the bottom type
-export const nothing = makeUnionType('nothing', [])
+export const nothing = makeUnionType('nothing', []) // the bottom type
 
 // `null` unfortunately can't be a variable name
 export const nullType = makeUnionType('null', ['null'])
@@ -49,20 +50,26 @@ export const string = makeOpaqueType('string', {
       opaque: target => target === string,
       parameter: target => target.constraint.assignableTo === string,
       // `string` can only be assigned to a union type if `string` is one of its members
-      union: target => target.members.has(string),
+      union: target => target.members.has(string), // FIXME this and other checks will only work if i make sure all references to `string` use exactly this instance! otherwise i need to use TypeIDs
     }),
 })
 
 export const object = makeObjectType('object', {})
 
-// the top type
-export const value = makeUnionType('value', [string, object])
-
-// `function` unfortunately can't be a variable name
-export const functionType = makeFunctionType('function', {
-  parameter: nothing,
-  return: value,
-})
+// `functionType` and `value` reference each other directly, so we need to do a dance:
+export const functionType: FunctionType = {} as FunctionType
+export const value: UnionType = {} as UnionType // the top type
+Object.assign(
+  functionType,
+  makeFunctionType('function', {
+    parameter: nothing,
+    return: value,
+  }) satisfies FunctionType,
+)
+Object.assign(
+  value,
+  makeUnionType('value', [functionType, string, object]) satisfies UnionType,
+)
 
 export const option = (value: Type) =>
   makeUnionType('option', [

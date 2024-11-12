@@ -2,6 +2,7 @@ import { testCases } from '../test-utilities.test.js'
 import { types } from './type-system.js'
 import {
   boolean,
+  functionType,
   nothing,
   nullType,
   object,
@@ -80,6 +81,15 @@ testCases(
     '(string | { a: ("a" | "b" | "c") })',
   ],
 ])
+typeAssignabilitySuite('prelude types (assignable)', [
+  [
+    [
+      makeFunctionType('', { parameter: value, return: value }),
+      makeFunctionType('', { parameter: value, return: value }),
+    ],
+    true,
+  ],
+])
 
 typeAssignabilitySuite('prelude types (assignable)', [
   [[nothing, nothing], true],
@@ -87,10 +97,12 @@ typeAssignabilitySuite('prelude types (assignable)', [
   [[boolean, boolean], true],
   [[string, string], true],
   [[object, object], true],
+  [[functionType, functionType], true],
   [[value, value], true],
   [[nothing, nullType], true],
   [[nothing, string], true],
   [[nothing, object], true],
+  [[nothing, functionType], true],
   [[nothing, value], true],
   [[nullType, string], true],
   [[nullType, value], true],
@@ -98,28 +110,39 @@ typeAssignabilitySuite('prelude types (assignable)', [
   [[boolean, value], true],
   [[string, value], true],
   [[object, value], true],
+  [[functionType, value], true],
 ])
 
 typeAssignabilitySuite('prelude types (not assignable)', [
   [[nullType, nothing], false],
   [[nullType, boolean], false],
   [[nullType, object], false],
+  [[nullType, functionType], false],
   [[boolean, nothing], false],
   [[boolean, nullType], false],
   [[boolean, object], false],
+  [[boolean, functionType], false],
   [[string, nothing], false],
   [[string, nullType], false],
   [[string, boolean], false],
   [[string, object], false],
+  [[string, functionType], false],
   [[object, nothing], false],
   [[object, nullType], false],
   [[object, boolean], false],
   [[object, string], false],
+  [[object, functionType], false],
+  [[functionType, nothing], false],
+  [[functionType, nullType], false],
+  [[functionType, boolean], false],
+  [[functionType, string], false],
+  [[functionType, object], false],
   [[value, nothing], false],
   [[value, nullType], false],
   [[value, boolean], false],
   [[value, string], false],
   [[value, object], false],
+  [[value, functionType], false],
 ])
 
 typeAssignabilitySuite('custom types (assignable)', [
