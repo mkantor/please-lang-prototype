@@ -1,5 +1,4 @@
 import { testCases } from '../test-utilities.test.js'
-import { types } from './type-system.js'
 import {
   boolean,
   functionType,
@@ -27,20 +26,13 @@ const typeAssignabilitySuite = testCases(
     `assignability of \`${showType(source)}\` to \`${showType(target)}\``,
 )
 
-const A = makeTypeParameter('a', {
-  assignableTo: types.value,
-})
-const B = makeTypeParameter('b', {
-  assignableTo: types.value,
-})
-const C = makeTypeParameter('c', {
-  assignableTo: types.value,
-})
-const D = makeTypeParameter('d', {
-  assignableTo: types.value,
-})
+const A = makeTypeParameter('a', { assignableTo: value })
+const B = makeTypeParameter('b', { assignableTo: value })
+const C = makeTypeParameter('c', { assignableTo: value })
+const D = makeTypeParameter('d', { assignableTo: value })
+
 const extendsString = makeTypeParameter('z', {
-  assignableTo: types.string,
+  assignableTo: string,
 })
 const extendsAtom = makeTypeParameter('y', {
   assignableTo: makeUnionType('', ['a']),
@@ -66,9 +58,8 @@ testCases(
   [
     makeUnionType('', [
       'a',
-      types.string,
+      string,
       makeObjectType('', {
-        // a: types.object,
         a: makeUnionType('', ['a', 'b']),
       }),
       makeObjectType('', {
@@ -757,8 +748,8 @@ typeAssignabilitySuite('generic function types (assignable)', [
         return: makeObjectType('', { a: extendsString }),
       }),
       makeFunctionType('', {
-        parameter: types.string,
-        return: makeObjectType('', { a: types.string }),
+        parameter: string,
+        return: makeObjectType('', { a: string }),
       }),
     ],
     true,
@@ -807,7 +798,7 @@ typeAssignabilitySuite('generic function types (assignable)', [
     [
       // `((a <: string) | object) => (a | "z")` is assignable to `(a <: ("a" | "b")) => (a | "y" | "z")`
       makeFunctionType('', {
-        parameter: makeUnionType('', [extendsString, types.object]),
+        parameter: makeUnionType('', [extendsString, object]),
         return: makeUnionType('', [extendsString, 'z']),
       }),
       makeFunctionType('', {
@@ -841,12 +832,12 @@ typeAssignabilitySuite('generic function types (assignable)', [
       }),
       makeFunctionType('', {
         parameter: makeFunctionType('', {
-          parameter: types.value,
-          return: types.value,
+          parameter: value,
+          return: value,
         }),
         return: makeFunctionType('', {
-          parameter: types.value,
-          return: types.value,
+          parameter: value,
+          return: value,
         }),
       }),
     ],
@@ -866,7 +857,7 @@ typeAssignabilitySuite('generic function types (assignable)', [
         parameter: extendsString,
         return: makeObjectType('', {
           0: extendsString,
-          1: types.string,
+          1: string,
         }),
       }),
     ],
@@ -957,7 +948,7 @@ typeAssignabilitySuite('generic function types (assignable)', [
         parameter: makeObjectType('', {
           a: A,
           b: B,
-          c: makeUnionType('', [types.string, B]),
+          c: makeUnionType('', [string, B]),
         }),
         return: makeObjectType('', {
           b: A,
@@ -974,7 +965,7 @@ typeAssignabilitySuite('generic function types (assignable)', [
         return: makeObjectType('', {
           b: extendsString,
           a: makeUnionType('', [extendsString, extendsExtendsString]),
-          c: types.string,
+          c: string,
         }),
       }),
     ],
@@ -1057,7 +1048,7 @@ typeAssignabilitySuite('generic function types (not assignable)', [
     [
       // `((a <: string) | object) => (a | "z")` is not assignable to `(a <: string) => a`
       makeFunctionType('', {
-        parameter: makeUnionType('', [extendsString, types.object]),
+        parameter: makeUnionType('', [extendsString, object]),
         return: makeUnionType('', [extendsString, 'z']),
       }),
       makeFunctionType('', {
@@ -1116,10 +1107,10 @@ typeAssignabilitySuite('generic function types (not assignable)', [
       }),
       makeFunctionType('', {
         parameter: makeFunctionType('', {
-          parameter: types.value,
-          return: types.value,
+          parameter: value,
+          return: value,
         }),
-        return: types.string,
+        return: string,
       }),
     ],
     false,
