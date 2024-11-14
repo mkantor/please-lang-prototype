@@ -39,7 +39,7 @@ const check = ({
   } else if (isFunctionNode(value)) {
     // TODO: model function signatures as data and allow checking them
     return either.makeLeft({
-      kind: 'invalidSyntax',
+      kind: 'invalidSyntaxTree',
       message: 'functions cannot be type checked',
     })
   } else if (isFunctionNode(type)) {

@@ -1,3 +1,8 @@
+export type BadSyntax = {
+  readonly kind: 'badSyntax'
+  readonly message: string
+}
+
 export type Bug = {
   readonly kind: 'bug'
   readonly message: string
@@ -8,8 +13,8 @@ export type InvalidExpressionError = {
   readonly message: string
 }
 
-export type InvalidSyntaxError = {
-  readonly kind: 'invalidSyntax'
+export type InvalidSyntaxTreeError = {
+  readonly kind: 'invalidSyntaxTree'
   readonly message: string
 }
 
@@ -36,10 +41,12 @@ export type UnknownKeywordError = {
 export type ElaborationError =
   | Bug
   | InvalidExpressionError
-  | InvalidSyntaxError
+  | InvalidSyntaxTreeError
   | Panic
   | TypeMismatchError
   | UnknownKeywordError
+
+export type ParseError = BadSyntax
 
 export type CompilationError = ElaborationError | UnserializableValueError
 

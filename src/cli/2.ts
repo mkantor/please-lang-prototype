@@ -1,7 +1,7 @@
 import { either } from '../adts.js'
 import { evaluate } from '../runtime.js'
-import { readJSON } from './jsonInput.js'
-import { writeJSON } from './jsonOutput.js'
+import { readJSON } from './input.js'
+import { writeJSON } from './output.js'
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
   const jsonResult = await readJSON(process.stdin)

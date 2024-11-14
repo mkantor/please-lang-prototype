@@ -1,5 +1,5 @@
 import { either, option, type Either } from '../adts.js'
-import type { ElaborationError, InvalidSyntaxError } from '../errors.js'
+import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
 import {
@@ -156,10 +156,10 @@ const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
 
 const handleAtomWhichMayNotBeAKeyword = (
   atom: Atom,
-): Either<InvalidSyntaxError, AtomNode> => {
+): Either<InvalidSyntaxTreeError, AtomNode> => {
   if (/^@[^@]/.test(atom)) {
     return either.makeLeft({
-      kind: 'invalidSyntax',
+      kind: 'invalidSyntaxTree',
       message: `keywords cannot be used here: ${atom}`,
     })
   } else {

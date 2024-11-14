@@ -4,6 +4,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
+    "0": "node ./dist/cli/0.js",
     "1": "node ./dist/cli/1.js",
     "2": "node ./dist/cli/2.js",
     "build": "tsc --build tsconfig.app.json",

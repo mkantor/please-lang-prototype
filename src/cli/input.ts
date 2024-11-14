@@ -5,9 +5,9 @@ export const readJSON = async (
   stream: AsyncIterable<string>,
 ): Promise<
   Either<{ readonly message: string }, JSONValueForbiddingSymbolicKeys>
-> => parseJSON(await read(stream))
+> => parseJSON(await readString(stream))
 
-const read = async (stream: AsyncIterable<string>) => {
+export const readString = async (stream: AsyncIterable<string>) => {
   let input: string = ''
   for await (const chunk of stream) {
     input += chunk
