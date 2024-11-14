@@ -1,5 +1,4 @@
-import { either, type Either } from '../../adts.js'
-import type { Panic } from '../../errors.js'
+import { either } from '../../adts.js'
 import {
   isAtomNode,
   isFunctionNode,
@@ -9,18 +8,28 @@ import {
   makeObjectNode,
   types,
   type AtomNode,
-  type FunctionNode,
   type ObjectNode,
   type SemanticGraph,
 } from '../../semantics.js'
+import {
+  makeFunctionType,
+  makeObjectType,
+  makeTypeParameter,
+} from '../../semantics/type-system/type-formats.js'
+
+const A = makeTypeParameter('a', { assignableTo: types.something })
+const B = makeTypeParameter('b', { assignableTo: types.something })
+const C = makeTypeParameter('c', { assignableTo: types.something })
 
 export const prelude: ObjectNode = makeObjectNode({
-  // TODO: model this and other type signatures generically (e.g. `apply` is `a => (a => b) => b`)
   apply: makeFunctionNode(
     {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      // a => ((a => b) => b)
+      parameter: A,
+      return: makeFunctionType('', {
+        parameter: makeFunctionType('', { parameter: A, return: B }),
+        return: B,
+      }),
     },
     a =>
       either.makeRight(
@@ -43,11 +52,23 @@ export const prelude: ObjectNode = makeObjectNode({
       ),
   ),
 
+  // { 0: a => b, 1: b => c } => (a => c)
   flow: makeFunctionNode(
     {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      parameter: makeObjectType('', {
+        0: makeFunctionType('', {
+          parameter: A,
+          return: B,
+        }),
+        1: makeFunctionType('', {
+          parameter: B,
+          return: C,
+        }),
+      }),
+      return: makeFunctionType('', {
+        parameter: A,
+        return: C,
+      }),
     },
     value => {
       if (!isObjectNode(value)) {
@@ -55,54 +76,41 @@ export const prelude: ObjectNode = makeObjectNode({
           kind: 'panic',
           message: '`flow` must be given an object',
         })
+      } else if (
+        value.children['0'] === undefined ||
+        value.children['1'] === undefined
+      ) {
+        return either.makeLeft({
+          kind: 'panic',
+          message:
+            "`flow`'s argument must contain properties named '0' and '1'",
+        })
+      } else if (
+        !isFunctionNode(value.children['0']) ||
+        !isFunctionNode(value.children['1'])
+      ) {
+        return either.makeLeft({
+          kind: 'panic',
+          message: "`flow`'s argument must contain functions",
+        })
       } else {
-        const functionNodesResult: Either<Panic, readonly FunctionNode[]> =
-          (() => {
-            const functionNodes: FunctionNode[] = []
-            let index = 0
-            // Consume numeric indexes ("0", "1", …) until exhausted, validating each.
-            let node = value.children[index]
-            while (node !== undefined) {
-              if (!isFunctionNode(node)) {
-                return either.makeLeft({
-                  kind: 'panic',
-                  message: '`flow` may only be passed functions',
-                })
-              } else {
-                functionNodes.push(node)
-              }
-              index++
-              node = value.children[index]
-            }
-            return either.makeRight(functionNodes)
-          })()
-
-        return either.map(functionNodesResult, functionNodes =>
+        const function0 = value.children['0']
+        const function1 = value.children['1']
+        return either.makeRight(
           makeFunctionNode(
             {
-              // TODO
-              parameter: types.something,
-              return: types.something,
+              parameter: function0.signature.signature.parameter,
+              return: function1.signature.signature.parameter,
             },
-            (initialValue: SemanticGraph): Either<Panic, SemanticGraph> =>
-              functionNodes.reduce(
-                (value: Either<Panic, SemanticGraph>, node) =>
-                  either.flatMap(value, node.function),
-                either.makeRight(initialValue),
-              ),
+            value =>
+              either.flatMap(function0.function(value), function1.function),
           ),
         )
       }
     },
   ),
 
-  identity: makeFunctionNode(
-    {
-      parameter: types.something,
-      return: types.something,
-    },
-    either.makeRight,
-  ),
+  identity: makeFunctionNode({ parameter: A, return: A }, either.makeRight),
 
   boolean: makeObjectNode({
     true: makeAtomNode('true'),

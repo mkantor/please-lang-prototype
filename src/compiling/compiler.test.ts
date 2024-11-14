@@ -41,8 +41,14 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
             '@apply',
             ['@lookup', ['flow']],
             [
-              ['@lookup', ['boolean', 'not']],
-              ['@lookup', ['boolean', 'not']],
+              [
+                '@apply',
+                ['@lookup', ['flow']],
+                [
+                  ['@lookup', ['boolean', 'not']],
+                  ['@lookup', ['boolean', 'not']],
+                ],
+              ],
               ['@lookup', ['boolean', 'not']],
             ],
           ],
@@ -63,12 +69,77 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       success({ 0: '@runtime', 1: { 0: '@lookup', 1: { 0: 'identity' } } }),
     ],
     [
+      [
+        '@runtime',
+        ['@apply', ['@lookup', ['identity']], ['@lookup', ['identity']]],
+      ],
+      success({
+        0: '@runtime',
+        1: {
+          0: '@apply',
+          1: { 0: '@lookup', 1: { 0: 'identity' } },
+          2: { 0: '@lookup', 1: { 0: 'identity' } },
+        },
+      }),
+    ],
+    [
       ['@check', 'not a boolean', ['@lookup', ['boolean', 'is']]],
       output => assert(either.isLeft(output)),
     ],
     [['@lookup', ['compose']], output => assert(either.isLeft(output))],
     [
       ['@runtime', ['@lookup', ['boolean', 'not']]],
+      output => {
+        assert(either.isLeft(output))
+        assert(output.value.kind === 'typeMismatch')
+      },
+    ],
+    [
+      [
+        '@runtime',
+        ['@apply', ['@lookup', ['identity']], ['@lookup', ['boolean', 'not']]],
+      ],
+      output => {
+        assert(either.isLeft(output))
+        assert(output.value.kind === 'typeMismatch')
+      },
+    ],
+    [
+      [
+        '@runtime',
+        [
+          '@apply',
+          ['@lookup', ['flow']],
+          [
+            ['@lookup', ['identity']],
+            ['@lookup', ['identity']],
+          ],
+        ],
+      ],
+      success({
+        0: '@runtime',
+        1: {
+          0: '@apply',
+          1: { 0: '@lookup', 1: { 0: 'flow' } },
+          2: {
+            0: { 0: '@lookup', 1: { 0: 'identity' } },
+            1: { 0: '@lookup', 1: { 0: 'identity' } },
+          },
+        },
+      }),
+    ],
+    [
+      [
+        '@runtime',
+        [
+          '@apply',
+          ['@lookup', ['flow']],
+          [
+            ['@lookup', ['boolean', 'not']],
+            ['@lookup', ['boolean', 'not']],
+          ],
+        ],
+      ],
       output => {
         assert(either.isLeft(output))
         assert(output.value.kind === 'typeMismatch')
