@@ -7,6 +7,7 @@ import {
   isFunctionNode,
   isObjectNode,
   makeObjectNode,
+  replaceAllTypeParametersWithTheirConstraints,
   serialize,
   types,
   type ExpressionContext,
@@ -239,16 +240,21 @@ export const handlers = {
   '@runtime': (expression, context): KeywordElaborationResult => {
     const runtimeFunction =
       expression.children.function ?? expression.children['1']
-    if (runtimeFunction === undefined || !isFunctionNode(runtimeFunction)) {
+    if (runtimeFunction === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message:
           'a function must be provided via a property named `function` or the first positional argument',
       })
+    } else if (!isFunctionNode(runtimeFunction)) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message: `a function must be provided via a property named \`function\` or the first positional argument`,
+      })
     } else {
       return option.match(applyKeyPath(context.program, context.location), {
         none: () =>
-          // this should not be possible
+          // This should be impossible.
           either.makeLeft({
             kind: 'bug',
             message: 'failed to locate self in `@runtime` handler',
@@ -256,7 +262,9 @@ export const handlers = {
         some: valueFromProgram =>
           !isAssignable({
             source: types.runtimeContext,
-            target: runtimeFunction.signature.signature.parameter,
+            target: replaceAllTypeParametersWithTheirConstraints(
+              runtimeFunction.signature.signature.parameter,
+            ),
           })
             ? either.makeLeft({
                 kind: 'typeMismatch',

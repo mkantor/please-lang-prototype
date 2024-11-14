@@ -165,6 +165,22 @@ const findKeyPathsToTypeParameterImplementation = (
   }
 }
 
+export const replaceAllTypeParametersWithTheirConstraints = (
+  type: Type,
+): Type =>
+  // TODO: this implementation can probably be specialized to only traverse `type` once
+  [...containedTypeParameters(type).values()]
+    .flatMap(({ typeParameters }) => [...typeParameters.members])
+    .reduce(
+      (partiallyAppliedType, typeParameter) =>
+        supplyTypeArgument(
+          partiallyAppliedType,
+          typeParameter,
+          typeParameter.constraint.assignableTo,
+        ),
+      type,
+    )
+
 /**
  * Substitute the given `typeParameter` with the given `typeArgument` within `type`, recursively
  * visiting object properties, union members, etc.

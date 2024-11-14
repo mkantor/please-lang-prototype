@@ -28,4 +28,11 @@ export {
   type Output,
   type SemanticGraph,
 } from './semantics/semantic-graph.js'
-export { isAssignable, types } from './semantics/type-system.js'
+export {
+  containedTypeParameters,
+  isAssignable,
+  replaceAllTypeParametersWithTheirConstraints,
+  supplyTypeArgument,
+  types,
+  type Type,
+} from './semantics/type-system.js'
