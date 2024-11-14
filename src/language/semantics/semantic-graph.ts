@@ -1,8 +1,8 @@
-import { either, option, type Either, type Option } from '../adts.js'
+import { either, option, type Either, type Option } from '../../adts.js'
+import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
+import type { Writable } from '../../utility-types.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
-import type { Writable } from '../utility-types.js'
 import {
   isAtomNode,
   makeAtomNode,

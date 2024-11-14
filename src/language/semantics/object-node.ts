@@ -1,7 +1,7 @@
-import { either, type Either } from '../adts.js'
+import { either, type Either } from '../../adts.js'
+import type { Writable } from '../../utility-types.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import type { Writable } from '../utility-types.js'
 import { nodeTag, serialize, type SemanticGraph } from './semantic-graph.js'
 
 export type ObjectNode = {

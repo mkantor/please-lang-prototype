@@ -1,4 +1,4 @@
-import { either, option, type Either } from '../../adts.js'
+import { either, option, type Either } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
 import {
   applyKeyPath,

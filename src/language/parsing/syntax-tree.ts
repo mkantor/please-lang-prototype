@@ -1,10 +1,10 @@
-import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
+import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type {
   JSONArray,
   JSONRecord,
   JSONValue,
   Writable,
-} from '../utility-types.js'
+} from '../../utility-types.js'
 import type { Atom } from './atom.js'
 import type { Molecule } from './molecule.js'
 

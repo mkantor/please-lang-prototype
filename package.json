@@ -1,12 +1,11 @@
 {
   "name": "",
   "version": "0.0.0",
-  "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "0": "node ./dist/cli/0.js",
-    "1": "node ./dist/cli/1.js",
-    "2": "node ./dist/cli/2.js",
+    "0": "node ./dist/language/cli/0.js",
+    "1": "node ./dist/language/cli/1.js",
+    "2": "node ./dist/language/cli/2.js",
     "build": "tsc --build tsconfig.app.json",
     "build:tests": "tsc --project tsconfig.app.json --outDir dist-test --declarationDir dist --tsBuildInfoFile tsconfig.app-for-tests.tsbuildinfo && tsc --build tsconfig.test.json",
     "clean": "rm -rf dist* *.tsbuildinfo",

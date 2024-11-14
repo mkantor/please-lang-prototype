@@ -1,4 +1,4 @@
-import type { Writable } from '../../utility-types.js'
+import type { Writable } from '../../../utility-types.js'
 import {
   functionParameter,
   functionReturn,

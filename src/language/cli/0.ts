@@ -1,12 +1,12 @@
-import { either } from '../adts.js'
-import { compile } from '../compiling/compiler.js'
-import { readJSON } from './input.js'
+import { either } from '../../adts.js'
+import { parse } from '../parsing/parser.js'
+import { readString } from './input.js'
 import { writeJSON } from './output.js'
 
 const main = async (process: NodeJS.Process): Promise<undefined> => {
-  const jsonResult = await readJSON(process.stdin)
-  const compilationResult = either.flatMap(jsonResult, compile)
-  either.match(compilationResult, {
+  const sourceCode = await readString(process.stdin)
+  const parseResult = parse(sourceCode)
+  either.match(parseResult, {
     left: error => {
       throw new Error(error.message) // TODO: improve error reporting
     },

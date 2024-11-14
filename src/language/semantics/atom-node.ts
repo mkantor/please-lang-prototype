@@ -1,4 +1,4 @@
-import { either, type Either } from '../adts.js'
+import { either, type Either } from '../../adts.js'
 import type { Atom } from '../parsing.js'
 import { nodeTag, type SemanticGraph } from './semantic-graph.js'
 

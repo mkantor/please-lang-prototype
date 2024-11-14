@@ -1,7 +1,8 @@
-import { either, option, type Either } from '../adts.js'
+import { either, option, type Either } from '../../adts.js'
+import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
+import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
-import { withPhantomData, type WithPhantomData } from '../phantom-data.js'
 import {
   isAtomNode,
   literalValueToSemanticGraph,
@@ -12,7 +13,6 @@ import {
   type ObjectNode,
   type SemanticGraph,
 } from '../semantics.js'
-import type { Writable } from '../utility-types.js'
 
 declare const _elaborated: unique symbol
 type Elaborated = { readonly [_elaborated]: true }

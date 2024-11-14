@@ -1,4 +1,4 @@
-import { testCases } from '../test-utilities.test.js'
+import { testCases } from '../../test-utilities.test.js'
 import {
   boolean,
   functionType,

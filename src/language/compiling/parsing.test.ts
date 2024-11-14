@@ -1,6 +1,6 @@
+import { withPhantomData } from '../../phantom-data.js'
+import { testCases } from '../../test-utilities.test.js'
 import { canonicalize, type Atom, type Molecule } from '../parsing.js'
-import { withPhantomData } from '../phantom-data.js'
-import { testCases } from '../test-utilities.test.js'
 
 const output = withPhantomData<never>()<Atom | Molecule>
 

@@ -1,4 +1,4 @@
-import { either, type Either } from '../adts.js'
+import { either, type Either } from '../../adts.js'
 import { type JSONValueForbiddingSymbolicKeys } from '../parsing.js'
 
 export const readJSON = async (

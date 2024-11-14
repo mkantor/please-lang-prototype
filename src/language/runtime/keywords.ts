@@ -1,4 +1,4 @@
-import { either } from '../adts.js'
+import { either } from '../../adts.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
 import {
   isAtomNode,

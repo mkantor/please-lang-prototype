@@ -1,4 +1,4 @@
-import { either, type Either } from '../adts.js'
+import { either, type Either } from '../../adts.js'
 import type { Panic, UnserializableValueError } from '../errors.js'
 import { nodeTag, type SemanticGraph } from './semantic-graph.js'
 import { type FunctionType } from './type-system/type-formats.js'

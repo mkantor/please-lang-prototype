@@ -1,5 +1,5 @@
 import { coloredJSONStringify } from 'colored-json-stringify'
-import type { JSONValue } from '../utility-types.js'
+import type { JSONValue } from '../../utility-types.js'
 
 export const writeJSON = (
   writeStream: NodeJS.WriteStream,
