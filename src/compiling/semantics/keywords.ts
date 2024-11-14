@@ -134,14 +134,12 @@ export const handlers = {
     if (functionToApply === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message:
-          'function must be provided via a property named `function` or the first positional argument',
+        message: 'function must be provided via the property `function` or `0`',
       })
     } else if (argument === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message:
-          'argument must be provided via a property named `argument` or the second positional argument',
+        message: 'argument must be provided via the property `argument` or `1`',
       })
     } else if (!isFunctionNode(functionToApply)) {
       return either.makeLeft({
@@ -162,14 +160,12 @@ export const handlers = {
     if (value === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message:
-          'value must be provided via a property named `value` or the first positional argument',
+        message: 'value must be provided via the property `value` or `0`',
       })
     } else if (type === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message:
-          'type must be provided via a property named `type` or the second positional argument',
+        message: 'type must be provided via the property `type` or `1`',
       })
     } else {
       return check({ value, type })
@@ -184,8 +180,7 @@ export const handlers = {
     if (query === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message:
-          'selector must be provided via a property named `query` or the first positional argument',
+        message: 'selector must be provided via the property `query` or `0`',
       })
     } else if (!isObjectNode(query)) {
       return either.makeLeft({
@@ -244,12 +239,13 @@ export const handlers = {
       return either.makeLeft({
         kind: 'invalidExpression',
         message:
-          'a function must be provided via a property named `function` or the first positional argument',
+          'a function must be provided via the property `function` or `0`',
       })
     } else if (!isFunctionNode(runtimeFunction)) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: `a function must be provided via a property named \`function\` or the first positional argument`,
+        message:
+          'a function must be provided via the property `function` or `0`',
       })
     } else {
       return option.match(applyKeyPath(context.program, context.location), {
@@ -277,7 +273,7 @@ export const handlers = {
   },
 
   /**
-   * Ignores all arguments and evaluates to an empty object.
+   * Ignores operand and evaluates to an empty object.
    */
   '@todo': todo,
 } satisfies KeywordModule<`@${string}`>['handlers']

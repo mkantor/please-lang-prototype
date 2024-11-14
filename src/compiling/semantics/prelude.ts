@@ -31,21 +31,21 @@ export const prelude: ObjectNode = makeObjectNode({
         return: B,
       }),
     },
-    a =>
+    argument =>
       either.makeRight(
         makeFunctionNode(
           {
             parameter: types.functionType,
             return: types.something,
           },
-          f => {
-            if (!isFunctionNode(f)) {
+          functionToApply => {
+            if (!isFunctionNode(functionToApply)) {
               return either.makeLeft({
                 kind: 'panic',
                 message: 'expected a function',
               })
             } else {
-              return f.function(a)
+              return functionToApply.function(argument)
             }
           },
         ),
@@ -70,15 +70,15 @@ export const prelude: ObjectNode = makeObjectNode({
         return: C,
       }),
     },
-    value => {
-      if (!isObjectNode(value)) {
+    argument => {
+      if (!isObjectNode(argument)) {
         return either.makeLeft({
           kind: 'panic',
           message: '`flow` must be given an object',
         })
       } else if (
-        value.children['0'] === undefined ||
-        value.children['1'] === undefined
+        argument.children['0'] === undefined ||
+        argument.children['1'] === undefined
       ) {
         return either.makeLeft({
           kind: 'panic',
@@ -86,24 +86,24 @@ export const prelude: ObjectNode = makeObjectNode({
             "`flow`'s argument must contain properties named '0' and '1'",
         })
       } else if (
-        !isFunctionNode(value.children['0']) ||
-        !isFunctionNode(value.children['1'])
+        !isFunctionNode(argument.children['0']) ||
+        !isFunctionNode(argument.children['1'])
       ) {
         return either.makeLeft({
           kind: 'panic',
           message: "`flow`'s argument must contain functions",
         })
       } else {
-        const function0 = value.children['0']
-        const function1 = value.children['1']
+        const function0 = argument.children['0']
+        const function1 = argument.children['1']
         return either.makeRight(
           makeFunctionNode(
             {
               parameter: function0.signature.signature.parameter,
               return: function1.signature.signature.parameter,
             },
-            value =>
-              either.flatMap(function0.function(value), function1.function),
+            argument =>
+              either.flatMap(function0.function(argument), function1.function),
           ),
         )
       }
@@ -120,9 +120,11 @@ export const prelude: ObjectNode = makeObjectNode({
         parameter: types.something,
         return: types.boolean,
       },
-      value =>
+      argument =>
         either.makeRight(
-          nodeIsBoolean(value) ? makeAtomNode('true') : makeAtomNode('false'),
+          nodeIsBoolean(argument)
+            ? makeAtomNode('true')
+            : makeAtomNode('false'),
         ),
     ),
     not: makeFunctionNode(
@@ -130,15 +132,15 @@ export const prelude: ObjectNode = makeObjectNode({
         parameter: types.boolean,
         return: types.boolean,
       },
-      value => {
-        if (!nodeIsBoolean(value)) {
+      argument => {
+        if (!nodeIsBoolean(argument)) {
           return either.makeLeft({
             kind: 'panic',
-            message: 'value was not a boolean',
+            message: 'argument was not a boolean',
           })
         } else {
           return either.makeRight(
-            value.atom === 'true'
+            argument.atom === 'true'
               ? makeAtomNode('false')
               : makeAtomNode('true'),
           )
@@ -167,23 +169,23 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.something,
               return: types.something,
             },
-            value => {
-              if (!nodeIsTagged(value)) {
+            argument => {
+              if (!nodeIsTagged(argument)) {
                 return either.makeLeft({
                   kind: 'panic',
-                  message: 'value was not tagged',
+                  message: 'argument was not tagged',
                 })
               } else {
-                const relevantCase = cases.children[value.children.tag.atom]
+                const relevantCase = cases.children[argument.children.tag.atom]
                 if (relevantCase === undefined) {
                   return either.makeLeft({
                     kind: 'panic',
-                    message: `case for tag '${value.children.tag.atom}' was not defined`,
+                    message: `case for tag '${argument.children.tag.atom}' was not defined`,
                   })
                 } else {
                   return !isFunctionNode(relevantCase)
                     ? either.makeRight(relevantCase)
-                    : relevantCase.function(value.children.value)
+                    : relevantCase.function(argument.children.value)
                 }
               }
             },
@@ -214,14 +216,14 @@ export const prelude: ObjectNode = makeObjectNode({
                 parameter: types.something,
                 return: types.something,
               },
-              value => {
-                if (!isObjectNode(value)) {
+              argument => {
+                if (!isObjectNode(argument)) {
                   return either.makeLeft({
                     kind: 'panic',
-                    message: 'value was not an object',
+                    message: 'argument was not an object',
                   })
                 } else {
-                  const propertyValue = value.children[key.atom]
+                  const propertyValue = argument.children[key.atom]
                   if (propertyValue === undefined) {
                     return either.makeRight(
                       makeObjectNode({
