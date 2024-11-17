@@ -1,29 +1,29 @@
 const eitherTag = Symbol('either')
-export type Either<Left, Right> =
-  | {
-      readonly [eitherTag]: 'left'
-      readonly value: Left
-    }
-  | {
-      readonly [eitherTag]: 'right'
-      readonly value: Right
-    }
+export type Either<LeftValue, RightValue> = Right<RightValue> | Left<LeftValue>
 
-export const makeLeft = <const Value>(value: Value) =>
-  ({
-    [eitherTag]: 'left',
-    value,
-  } satisfies Either<Value, never>)
+export type Left<Value> = {
+  readonly [eitherTag]: 'left'
+  readonly value: Value
+}
 
-export const makeRight = <const Value>(value: Value) =>
-  ({
-    [eitherTag]: 'right',
-    value,
-  } satisfies Either<never, Value>)
+export type Right<Value> = {
+  readonly [eitherTag]: 'right'
+  readonly value: Value
+}
 
-export const tryCatch = <Right>(
-  operation: () => Right,
-): Either<unknown, Right> => {
+export const makeLeft = <const Value>(value: Value): Left<Value> => ({
+  [eitherTag]: 'left',
+  value,
+})
+
+export const makeRight = <const Value>(value: Value): Right<Value> => ({
+  [eitherTag]: 'right',
+  value,
+})
+
+export const tryCatch = <RightValue>(
+  operation: () => RightValue,
+): Either<unknown, RightValue> => {
   try {
     return makeRight(operation())
   } catch (error) {
@@ -31,28 +31,28 @@ export const tryCatch = <Right>(
   }
 }
 
-export const flatMap = <Left, Right, NewLeft, NewRight>(
-  either: Either<Left, Right>,
-  f: (value: Right) => Either<NewLeft, NewRight>,
-): Either<Left | NewLeft, NewRight> =>
+export const flatMap = <LeftValue, RightValue, NewLeftValue, NewRightValue>(
+  either: Either<LeftValue, RightValue>,
+  f: (value: RightValue) => Either<NewLeftValue, NewRightValue>,
+): Either<LeftValue | NewLeftValue, NewRightValue> =>
   match(either, {
     left: makeLeft,
     right: f,
   })
 
-export const map = <Left, Right, NewRight>(
-  either: Either<Left, Right>,
-  f: (value: Right) => NewRight,
-): Either<Left, NewRight> =>
+export const map = <LeftValue, RightValue, NewRightValue>(
+  either: Either<LeftValue, RightValue>,
+  f: (value: RightValue) => NewRightValue,
+): Either<LeftValue, NewRightValue> =>
   match(either, {
     left: makeLeft,
     right: value => makeRight(f(value)),
   })
 
-export const mapLeft = <Left, Right, NewLeft>(
-  either: Either<Left, Right>,
-  f: (value: Left) => NewLeft,
-): Either<NewLeft, Right> =>
+export const mapLeft = <LeftValue, RightValue, NewLeftValue>(
+  either: Either<LeftValue, RightValue>,
+  f: (value: LeftValue) => NewLeftValue,
+): Either<NewLeftValue, RightValue> =>
   match(either, {
     left: value => makeLeft(f(value)),
     right: makeRight,
@@ -60,14 +60,13 @@ export const mapLeft = <Left, Right, NewLeft>(
 
 export const isLeft = (
   either: Either<unknown, unknown>,
-): either is Extract<Either<unknown, unknown>, { [eitherTag]: 'left' }> =>
-  either[eitherTag] === 'left'
+): either is Left<unknown> => either[eitherTag] === 'left'
 
-export const match = <Left, Right, LeftResult, RightResult>(
-  adt: Either<Left, Right>,
+export const match = <LeftValue, RightValue, LeftResult, RightResult>(
+  adt: Either<LeftValue, RightValue>,
   cases: {
-    left: (value: Left) => LeftResult
-    right: (value: Right) => RightResult
+    left: (value: LeftValue) => LeftResult
+    right: (value: RightValue) => RightResult
   },
 ): LeftResult | RightResult => {
   switch (adt[eitherTag]) {

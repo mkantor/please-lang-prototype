@@ -1,20 +1,21 @@
 const optionTag = Symbol('option')
-export type Option<Value> =
-  | {
-      readonly [optionTag]: 'none'
-    }
-  | {
-      readonly [optionTag]: 'some'
-      readonly value: Value
-    }
+export type Option<Value> = None | Some<Value>
 
-export const none = { [optionTag]: 'none' } satisfies Option<never>
+export type None = {
+  readonly [optionTag]: 'none'
+}
 
-export const makeSome = <const Value>(value: Value) =>
-  ({
-    [optionTag]: 'some',
-    value,
-  } satisfies Option<Value>)
+export type Some<Value> = {
+  readonly [optionTag]: 'some'
+  readonly value: Value
+}
+
+export const none: None = { [optionTag]: 'none' }
+
+export const makeSome = <const Value>(value: Value): Some<Value> => ({
+  [optionTag]: 'some',
+  value,
+})
 
 export const isNone = (option: Option<unknown>): option is typeof none =>
   option[optionTag] === 'none'
