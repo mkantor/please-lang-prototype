@@ -1,3 +1,4 @@
+import { parser, type Parser } from '../../parsing.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type {
   JSONArray,
@@ -5,8 +6,8 @@ import type {
   JSONValue,
   Writable,
 } from '../../utility-types.js'
-import type { Atom } from './atom.js'
-import type { Molecule } from './molecule.js'
+import { atomParser, type Atom } from './atom.js'
+import { moleculeParser, type Molecule } from './molecule.js'
 
 declare const _canonicalized: unique symbol
 type Canonicalized = { readonly [_canonicalized]: true }
@@ -50,3 +51,8 @@ type JSONRecordForbiddingSymbolicKeys = {
 } & Partial<{
   readonly [key: symbol]: undefined
 }>
+
+export const syntaxTreeParser: Parser<SyntaxTree> = parser.map(
+  parser.oneOf([atomParser, moleculeParser]),
+  canonicalize,
+)
