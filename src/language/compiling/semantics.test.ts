@@ -168,6 +168,13 @@ elaborationSuite('@lookup', [
   ],
   [
     {
+      foo: 'bar',
+      bar: { 0: '@lookup', 1: 'foo' },
+    },
+    success({ foo: 'bar', bar: 'bar' }),
+  ],
+  [
+    {
       a: 'A',
       b: {
         a: 'different A',

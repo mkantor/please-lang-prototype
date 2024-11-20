@@ -180,20 +180,23 @@ export const handlers = {
     if (query === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'selector must be provided via the property `query` or `0`',
+        message: 'query must be provided via the property `query` or `0`',
       })
-    } else if (!isObjectNode(query)) {
+    } else if (!isObjectNode(query) && !isAtomNode(query)) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'selector must be an object',
+        message: 'query must be an object',
       })
     } else {
+      const canonicalizedQuery = isAtomNode(query)
+        ? makeObjectNode({ 0: query })
+        : query
       const relativePathResult: Either<ElaborationError, readonly string[]> =
         (() => {
           const relativePath: string[] = []
           let queryIndex = 0
           // Consume numeric indexes ("0", "1", …) until exhausted, validating that each is an atom.
-          let node = query.children[queryIndex]
+          let node = canonicalizedQuery.children[queryIndex]
           while (node !== undefined) {
             if (!isAtomNode(node)) {
               return either.makeLeft({
@@ -205,7 +208,7 @@ export const handlers = {
               relativePath.push(node.atom)
             }
             queryIndex++
-            node = query.children[queryIndex]
+            node = canonicalizedQuery.children[queryIndex]
           }
           return either.makeRight(relativePath)
         })()

@@ -106,15 +106,15 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [
-    `{@runtime {@apply :{flow} {
+    `{@runtime {@apply :flow {
       {@apply :{object lookup} environment}
-      {@apply :{match} {
+      {@apply :match {
         none: "environment does not exist"
-        some: {@apply :{flow} {
+        some: {@apply :flow {
           {@apply :{object lookup} lookup}
-          {@apply :{match} {
+          {@apply :match {
             none: "environment.lookup does not exist"
-            some: {@apply :{apply} PATH}
+            some: {@apply :apply PATH}
           }}
         }}
       }}
