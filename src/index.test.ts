@@ -11,7 +11,7 @@ import './language/runtime/evaluator.test.js'
 import './language/semantics/type-system.test.js'
 import { testCases } from './test-utilities.test.js'
 
-type SimpleResult = Either<unknown, Atom | Molecule>
+type SimpleResult = Either<{ readonly message: string }, Atom | Molecule>
 
 const endToEnd = (input: string) => {
   const syntaxTree: SimpleResult = parse(input)
@@ -33,6 +33,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{overwritten,0:a,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{@check type:true value:true}', either.makeRight('true')],
   ['{a:A b:{@lookup {a}}}', either.makeRight({ a: 'A', b: 'A' })],
+  ['{a:A b: :{a}}', either.makeRight({ a: 'A', b: 'A' })],
+  ['{a:A {@lookup {a}}}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{a:A :{a}}', either.makeRight({ a: 'A', 0: 'A' })],
   [
     `{
         "static data":"blah blah blah"
@@ -98,6 +101,29 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }`,
     output => {
       assert(!either.isLeft(output) && typeof output.value === 'object')
+      assert.deepEqual(output.value.tag, 'some')
+      assert.deepEqual(typeof output.value.value, 'string')
+    },
+  ],
+  [
+    `{@runtime {@apply :{flow} {
+      {@apply :{object lookup} environment}
+      {@apply :{match} {
+        none: "environment does not exist"
+        some: {@apply :{flow} {
+          {@apply :{object lookup} lookup}
+          {@apply :{match} {
+            none: "environment.lookup does not exist"
+            some: {@apply :{apply} PATH}
+          }}
+        }}
+      }}
+    }}}`,
+    output => {
+      if (either.isLeft(output)) {
+        assert.fail(output.value.message)
+      }
+      assert(typeof output.value === 'object')
       assert.deepEqual(output.value.tag, 'some')
       assert.deepEqual(typeof output.value.value, 'string')
     },

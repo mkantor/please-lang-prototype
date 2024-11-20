@@ -43,10 +43,19 @@ const makeIncrementingIndexer = (): Indexer => {
 const propertyDelimiter = parser.regularExpression(/[\s,]+/)
 const whitespace = parser.regularExpression(/\s+/)
 
+const sugaredLookup = parser.map(
+  parser.sequence([
+    parser.literal(':'),
+    parser.oneOf([atomParser, moleculeParser]),
+  ]),
+  ([_colon, query]) => ({ 0: '@lookup', 1: query }),
+)
+
 const propertyKey = atomParser
 const propertyValue = parser.oneOf([
   atomParser,
   parser.lazy(() => moleculeParser),
+  sugaredLookup,
 ])
 
 const namedProperty = flat(
