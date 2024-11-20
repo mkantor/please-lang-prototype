@@ -1,13 +1,19 @@
 import { either, type Either } from '../../adts.js'
 import { type JSONValueForbiddingSymbolicKeys } from '../parsing.js'
 
+export type InvalidJsonError = {
+  readonly kind: 'invalidJSON'
+  readonly message: string
+}
+
 export const readJSON = async (
   stream: AsyncIterable<string>,
-): Promise<
-  Either<{ readonly message: string }, JSONValueForbiddingSymbolicKeys>
-> => parseJSON(await readString(stream))
+): Promise<Either<InvalidJsonError, JSONValueForbiddingSymbolicKeys>> =>
+  parseJSON(await readString(stream))
 
-export const readString = async (stream: AsyncIterable<string>) => {
+export const readString = async (
+  stream: AsyncIterable<string>,
+): Promise<string> => {
   let input: string = ''
   for await (const chunk of stream) {
     input += chunk
@@ -15,7 +21,9 @@ export const readString = async (stream: AsyncIterable<string>) => {
   return input
 }
 
-const parseJSON = (source: string) =>
+const parseJSON = (
+  source: string,
+): Either<InvalidJsonError, JSONValueForbiddingSymbolicKeys> =>
   either.mapLeft(
     either.tryCatch((): JSONValueForbiddingSymbolicKeys => JSON.parse(source)),
     jsonParseError => ({

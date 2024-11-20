@@ -2,7 +2,7 @@ import { coloredJSONStringify } from 'colored-json-stringify'
 import type { JSONValue } from '../../utility-types.js'
 
 export const writeJSON = (
-  writeStream: NodeJS.WriteStream,
+  writeStream: NodeJS.WritableStream,
   output: JSONValue,
 ): void => {
   writeStream.write(coloredJSONStringify(output))
