@@ -59,7 +59,7 @@ export const handlers = {
       return either.makeLeft({
         kind: 'invalidExpression',
         message:
-          'a function must be provided via the property `function` or `0`',
+          'a function must be provided via the property `function` or `1`',
       })
     } else {
       return runtimeFunction.function(runtimeContext)

@@ -134,12 +134,12 @@ export const handlers = {
     if (functionToApply === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'function must be provided via the property `function` or `0`',
+        message: 'function must be provided via the property `function` or `1`',
       })
     } else if (argument === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'argument must be provided via the property `argument` or `1`',
+        message: 'argument must be provided via the property `argument` or `2`',
       })
     } else if (!isFunctionNode(functionToApply)) {
       return either.makeLeft({
@@ -160,12 +160,12 @@ export const handlers = {
     if (value === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'value must be provided via the property `value` or `0`',
+        message: 'value must be provided via the property `value` or `1`',
       })
     } else if (type === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'type must be provided via the property `type` or `1`',
+        message: 'type must be provided via the property `type` or `2`',
       })
     } else {
       return check({ value, type })
@@ -180,7 +180,7 @@ export const handlers = {
     if (query === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'query must be provided via the property `query` or `0`',
+        message: 'query must be provided via the property `query` or `1`',
       })
     } else if (!isObjectNode(query) && !isAtomNode(query)) {
       return either.makeLeft({
@@ -238,17 +238,11 @@ export const handlers = {
   '@runtime': (expression, context): KeywordElaborationResult => {
     const runtimeFunction =
       expression.children.function ?? expression.children['1']
-    if (runtimeFunction === undefined) {
+    if (runtimeFunction === undefined || !isFunctionNode(runtimeFunction)) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message:
-          'a function must be provided via the property `function` or `0`',
-      })
-    } else if (!isFunctionNode(runtimeFunction)) {
-      return either.makeLeft({
-        kind: 'invalidExpression',
-        message:
-          'a function must be provided via the property `function` or `0`',
+          'a function must be provided via the property `function` or `1`',
       })
     } else {
       return option.match(applyKeyPath(context.program, context.location), {
