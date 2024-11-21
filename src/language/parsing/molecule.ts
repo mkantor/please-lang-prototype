@@ -43,7 +43,7 @@ const makeIncrementingIndexer = (): Indexer => {
 const propertyDelimiter = parser.regularExpression(/[\s,]+/)
 const whitespace = parser.regularExpression(/\s+/)
 
-const sugaredLookup = parser.map(
+const sugaredLookup: Parser<PartialMolecule> = parser.map(
   parser.sequence([
     parser.literal(':'),
     parser.oneOf([atomParser, moleculeParser]),
@@ -51,8 +51,23 @@ const sugaredLookup = parser.map(
   ([_colon, query]) => ({ 0: '@lookup', 1: query }),
 )
 
+const sugaredApply: Parser<PartialMolecule> = parser.map(
+  parser.sequence([
+    sugaredLookup,
+    parser.literal('('),
+    parser.lazy(() => propertyValue),
+    parser.literal(')'),
+  ]),
+  ([f, _, argument]) => ({
+    0: '@apply',
+    1: f,
+    2: argument,
+  }),
+)
+
 const propertyKey = atomParser
 const propertyValue = parser.oneOf([
+  sugaredApply, // this must come first to avoid ambiguity
   atomParser,
   parser.lazy(() => moleculeParser),
   sugaredLookup,
@@ -93,3 +108,9 @@ const moleculeAsEntries = (index: Indexer) =>
       ]),
     ),
   )
+
+// This is a lazy workaround for `parser.sequence` returning an array rather than a tuple with
+// definitely-present elements.
+type PartialMolecule = {
+  readonly [key: Atom]: PartialMolecule | Atom | undefined
+}

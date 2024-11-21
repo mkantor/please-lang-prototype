@@ -55,10 +55,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{@runtime
-      {@apply
-        {@lookup {object lookup}}
-        "key which does not exist in runtime context"
-      }
+      :{object lookup}("key which does not exist in runtime context")
     }`,
     either.makeRight({ tag: 'none', value: {} }),
   ],
@@ -119,6 +116,29 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         }}
       }}
     }}}`,
+    output => {
+      if (either.isLeft(output)) {
+        assert.fail(output.value.message)
+      }
+      assert(typeof output.value === 'object')
+      assert.deepEqual(output.value.tag, 'some')
+      assert.deepEqual(typeof output.value.value, 'string')
+    },
+  ],
+  [
+    `{@runtime :flow({
+      :{object lookup}(environment)
+      :match({
+        none: "environment does not exist"
+        some: :flow({
+          :{object lookup}(lookup)
+          :match({
+            none: "environment.lookup does not exist"
+            some: :apply(PATH)
+          })
+        })
+      })
+    })}`,
     output => {
       if (either.isLeft(output)) {
         assert.fail(output.value.message)
