@@ -1,4 +1,4 @@
-import { either, option, type Either } from '../../../adts.js'
+import { either, option, type Either, type Option } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
 import {
   applyKeyPath,
@@ -102,21 +102,70 @@ const lookup = ({
 }: {
   readonly context: ExpressionContext
   readonly relativePath: KeyPath
-}): Either<ElaborationError, SemanticGraph> => {
-  const pathToLocalScope = context.location.slice(0, -1)
-  const absolutePath = [...pathToLocalScope, ...relativePath]
-  return option.match(applyKeyPath(context.program, absolutePath), {
-    none: () =>
-      option.match(applyKeyPath(prelude, relativePath), {
+}): Either<ElaborationError, Option<SemanticGraph>> => {
+  const [firstPathComponent, ...propertyPath] = relativePath
+  if (firstPathComponent === undefined) {
+    // TODO Consider allowing empty paths, emitting a "hole" of type `nothing` (like `???` in
+    // Scala, `todo!()` in Rust, `?foo` in Idris, etc).
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'key paths cannot be empty',
+    })
+  }
+  if (context.location.length === 0) {
+    // Check the prelude.
+    return option.match(applyKeyPath(prelude, relativePath), {
+      none: () =>
+        either.makeLeft({
+          kind: 'invalidExpression',
+          message: `property \`${stringifyKeyPathForEndUser(
+            relativePath,
+          )}\` not found`,
+        }),
+      some: valueFromPrelude =>
+        either.makeRight(option.makeSome(valueFromPrelude)),
+    })
+  } else {
+    const pathToCurrentScope = context.location.slice(0, -1)
+
+    const resultForCurrentScope: Either<
+      ElaborationError,
+      Option<SemanticGraph>
+    > = option.match(applyKeyPath(context.program, pathToCurrentScope), {
+      none: () => either.makeRight(option.none),
+      some: scope =>
+        option.match(applyKeyPath(scope, [firstPathComponent]), {
+          none: () => either.makeRight(option.none),
+          some: property =>
+            option.match(applyKeyPath(property, propertyPath), {
+              none: () =>
+                either.makeLeft({
+                  kind: 'invalidExpression',
+                  message: `\`${stringifyKeyPathForEndUser(
+                    propertyPath,
+                  )}\` is not a property of \`${stringifyKeyPathForEndUser([
+                    ...pathToCurrentScope,
+                    firstPathComponent,
+                  ])}\``,
+                }),
+              some: lookedUpValue =>
+                either.makeRight(option.makeSome(lookedUpValue)),
+            }),
+        }),
+    })
+
+    return either.flatMap(resultForCurrentScope, possibleLookedUpValue =>
+      option.match(possibleLookedUpValue, {
         none: () =>
-          either.makeLeft({
-            kind: 'invalidExpression',
-            message: 'property not found',
+          // Try the parent scope.
+          lookup({
+            relativePath,
+            context: { program: context.program, location: pathToCurrentScope },
           }),
-        some: valueFromPrelude => either.makeRight(valueFromPrelude),
+        some: lookedUpValue => either.makeRight(option.makeSome(lookedUpValue)),
       }),
-    some: valueFromProgram => either.makeRight(valueFromProgram),
-  })
+    )
+  }
 }
 
 const todo = (): Either<ElaborationError, SemanticGraph> =>
@@ -223,10 +272,23 @@ export const handlers = {
               'the program is not an object, so there are no properties to look up',
           })
         } else {
-          return lookup({
-            context,
-            relativePath: relativePathResult.value,
-          })
+          return either.flatMap(
+            lookup({
+              context,
+              relativePath: relativePathResult.value,
+            }),
+            possibleValue =>
+              option.match(possibleValue, {
+                none: () =>
+                  either.makeLeft({
+                    kind: 'invalidExpression',
+                    message: `property \`${stringifyKeyPathForEndUser(
+                      relativePathResult.value,
+                    )}\` not found`,
+                  }),
+                some: either.makeRight,
+              }),
+          )
         }
       }
     }
@@ -284,3 +346,6 @@ export const isKeyword = (input: string): input is Keyword =>
 
 const stringifyGraphForEndUser = (graph: SemanticGraph): string =>
   JSON.stringify(serialize(graph))
+
+const stringifyKeyPathForEndUser = (keyPath: KeyPath): string =>
+  JSON.stringify(keyPath)

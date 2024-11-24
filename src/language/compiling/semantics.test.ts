@@ -217,6 +217,32 @@ elaborationSuite('@lookup', [
     { a: { 0: '@lookup', query: { 0: 'thisPropertyDoesNotExist' } } },
     output => assert(either.isLeft(output)),
   ],
+
+  // lexical scoping
+  [
+    {
+      a: { b: 'C' },
+      b: {
+        c: { 0: '@lookup', query: { 0: 'a', 1: 'b' } },
+      },
+    },
+    success({
+      a: { b: 'C' },
+      b: {
+        c: 'C',
+      },
+    }),
+  ],
+  [
+    {
+      a: { b: 'C' },
+      b: {
+        a: {}, // this `a` should be referenced
+        c: { 0: '@lookup', query: { 0: 'a', 1: 'b' } },
+      },
+    },
+    output => assert(either.isLeft(output)),
+  ],
 ])
 
 elaborationSuite('@apply', [
