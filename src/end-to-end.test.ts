@@ -1,14 +1,9 @@
 import assert from 'node:assert'
 import { either, type Either } from './adts.js'
 import { compile } from './language/compiling.js'
-import './language/compiling/compiler.test.js'
-import './language/compiling/parsing.test.js'
-import './language/compiling/semantics.test.js'
 import type { Atom, Molecule } from './language/parsing.js'
 import { parse } from './language/parsing/parser.js'
 import { evaluate } from './language/runtime.js'
-import './language/runtime/evaluator.test.js'
-import './language/semantics/type-system.test.js'
 import { testCases } from './test-utilities.test.js'
 
 type SimpleResult = Either<{ readonly message: string }, Atom | Molecule>

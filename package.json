@@ -9,7 +9,7 @@
     "build": "tsc --build tsconfig.app.json",
     "build:tests": "tsc --project tsconfig.app.json --outDir dist-test --declarationDir dist --tsBuildInfoFile tsconfig.app-for-tests.tsbuildinfo && tsc --build tsconfig.test.json",
     "clean": "rm -rf dist* *.tsbuildinfo",
-    "test": "npm run clean && npm run build:tests && node ./dist-test/index.test.js"
+    "test": "npm run clean && npm run build:tests && node --test"
   },
   "devDependencies": {
     "@types/node": "^22.5.5",
