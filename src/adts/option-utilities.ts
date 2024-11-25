@@ -1,5 +1,11 @@
 import { makeSome, match, none, type None, type Option } from './option.js'
 
+export const filter = <Value, NarrowedValue extends Value>(
+  option: Option<Value>,
+  predicate: (value: Value) => value is NarrowedValue,
+): Option<NarrowedValue> =>
+  flatMap(option, value => fromPredicate(value, predicate))
+
 export const fromPredicate = <InputValue, Value extends InputValue>(
   value: InputValue,
   predicate: (value: InputValue) => value is Value,
