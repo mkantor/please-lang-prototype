@@ -9,7 +9,9 @@ export type AtomNode = {
 
 export const isAtomNode = (node: SemanticGraph) => node[nodeTag] === 'atom'
 
-export const makeAtomNode = (atom: Atom): AtomNode => ({
+export const makeAtomNode = <SpecificAtom extends Atom>(
+  atom: SpecificAtom,
+): AtomNode & { readonly atom: SpecificAtom } => ({
   [nodeTag]: 'atom',
   atom,
 })
