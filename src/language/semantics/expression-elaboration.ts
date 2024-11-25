@@ -39,13 +39,20 @@ export const elaborate = (
   program: SyntaxTree,
   keywordModule: KeywordModule<`@${string}`>,
 ): Either<ElaborationError, ElaboratedValue> =>
+  elaborateWithContext(program, keywordModule, {
+    location: [],
+    program: literalValueToSemanticGraph(program),
+  })
+
+export const elaborateWithContext = (
+  program: SyntaxTree,
+  keywordModule: KeywordModule<`@${string}`>,
+  context: ExpressionContext,
+): Either<ElaborationError, ElaboratedValue> =>
   either.map(
     typeof program === 'string'
       ? handleAtomWhichMayNotBeAKeyword(program)
-      : elaborateWithinMolecule(program, keywordModule, {
-          location: [],
-          program: literalValueToSemanticGraph(program),
-        }),
+      : elaborateWithinMolecule(program, keywordModule, context),
     withPhantomData<Elaborated>(),
   )
 
