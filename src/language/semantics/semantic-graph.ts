@@ -68,6 +68,24 @@ export const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
   return { [nodeTag]: 'object', children }
 }
 
+export const matchSemanticGraph = <Result>(
+  semanticGraph: SemanticGraph,
+  cases: {
+    atom: (type: AtomNode) => Result
+    function: (type: FunctionNode) => Result
+    object: (type: ObjectNode) => Result
+  },
+): Result => {
+  switch (semanticGraph[nodeTag]) {
+    case 'atom':
+      return cases[semanticGraph[nodeTag]](semanticGraph)
+    case 'function':
+      return cases[semanticGraph[nodeTag]](semanticGraph)
+    case 'object':
+      return cases[semanticGraph[nodeTag]](semanticGraph)
+  }
+}
+
 declare const _serialized: unique symbol
 type Serialized = { readonly [_serialized]: true }
 export type Output = WithPhantomData<Atom | Molecule, Serialized>
