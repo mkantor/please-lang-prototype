@@ -18,6 +18,11 @@ const runtimeContext = makeObjectNode({
         parameter: types.string,
         return: types.option(types.string),
       },
+      () =>
+        either.makeLeft({
+          kind: 'unserializableValue',
+          message: 'this function cannot be serialized',
+        }),
       key => {
         if (!isAtomNode(key)) {
           return either.makeLeft({

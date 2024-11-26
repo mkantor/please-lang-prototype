@@ -1,20 +1,29 @@
-import { either, type Either } from '../../adts.js'
+import { type Either } from '../../adts.js'
 import type { Panic, UnserializableValueError } from '../errors.js'
-import { nodeTag, type SemanticGraph } from './semantic-graph.js'
+import type { Molecule } from '../parsing.js'
+import {
+  nodeTag,
+  type FullyElaboratedSemanticGraph,
+  type PartiallyElaboratedSemanticGraph,
+} from './semantic-graph.js'
 import { type FunctionType } from './type-system/type-formats.js'
 
 export type FunctionNode = {
   readonly [nodeTag]: 'function'
-  readonly function: (value: SemanticGraph) => Either<Panic, SemanticGraph>
+  readonly function: (
+    value: FullyElaboratedSemanticGraph,
+  ) => Either<Panic, FullyElaboratedSemanticGraph>
   readonly signature: FunctionType
+  readonly serialize: () => Either<UnserializableValueError, Molecule>
 }
 
-export const isFunctionNode = (node: SemanticGraph) =>
+export const isFunctionNode = (node: PartiallyElaboratedSemanticGraph) =>
   node[nodeTag] === 'function'
 
 export const makeFunctionNode = (
   signature: FunctionType['signature'],
-  f: (value: SemanticGraph) => Either<Panic, SemanticGraph>,
+  serialize: FunctionNode['serialize'],
+  f: FunctionNode['function'],
 ): FunctionNode => ({
   [nodeTag]: 'function',
   function: f,
@@ -23,12 +32,9 @@ export const makeFunctionNode = (
     name: '',
     signature,
   },
+  serialize,
 })
 
 export const serializeFunctionNode = (
-  _node: FunctionNode,
-): Either<UnserializableValueError, never> =>
-  either.makeLeft({
-    kind: 'unserializableValue',
-    message: 'functions cannot be serialized',
-  })
+  node: FunctionNode,
+): Either<UnserializableValueError, Molecule> => node.serialize()

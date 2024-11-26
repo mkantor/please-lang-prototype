@@ -2,11 +2,19 @@ import assert from 'node:assert'
 import { either, type Either } from '../../adts.js'
 import { withPhantomData } from '../../phantom-data.js'
 import { testCases } from '../../test-utilities.test.js'
+import type { Writable } from '../../utility-types.js'
 import type { ElaborationError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import { elaborate, type ElaboratedValue } from '../semantics.js'
-import { literalValueToSemanticGraph } from '../semantics/semantic-graph.js'
+import {
+  elaborate,
+  makeAtomNode,
+  makeObjectNode,
+  makePartiallyElaboratedObjectNode,
+  type ElaboratedValue,
+  type ObjectNode,
+} from '../semantics.js'
 import * as keywordModule from './semantics/keywords.js'
+import { prelude } from './semantics/prelude.js'
 
 const elaborationSuite = testCases(
   (input: Atom | Molecule) =>
@@ -14,12 +22,25 @@ const elaborationSuite = testCases(
   input => `elaborating expressions in \`${JSON.stringify(input)}\``,
 )
 
+const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
+  const children: Writable<ObjectNode['children']> = {}
+  for (const [key, propertyValue] of Object.entries(molecule)) {
+    children[key] =
+      typeof propertyValue === 'string'
+        ? makeAtomNode(propertyValue)
+        : literalMoleculeToObjectNode(propertyValue)
+  }
+  return makeObjectNode(children)
+}
+
 const success = (
   expectedOutput: Atom | Molecule,
 ): Either<ElaborationError, ElaboratedValue> =>
   either.makeRight(
     withPhantomData<never>()(
-      literalValueToSemanticGraph(withPhantomData<never>()(expectedOutput)),
+      typeof expectedOutput === 'string'
+        ? makeAtomNode(expectedOutput)
+        : literalMoleculeToObjectNode(expectedOutput),
     ),
   )
 
@@ -206,6 +227,14 @@ elaborationSuite('@lookup', [
     }),
   ],
   [
+    {
+      foo: 'bar',
+      bar: { 0: '@lookup', 1: { 0: 'foo' } },
+      baz: { 0: '@lookup', 1: { 0: 'bar' } },
+    },
+    success({ foo: 'bar', bar: 'bar', baz: 'bar' }),
+  ],
+  [
     { a: { 0: '@lookup', _: 'missing query' } },
     output => assert(either.isLeft(output)),
   ],
@@ -275,7 +304,18 @@ elaborationSuite('@apply', [
 elaborationSuite('@runtime', [
   [
     { 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } },
-    success({ 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } }),
+    elaboratedValue => {
+      if (prelude.children.identity === undefined) {
+        throw new Error('Prelude does not contain `identity`. This is a bug!')
+      }
+      const expectedValue = either.makeRight(
+        makePartiallyElaboratedObjectNode({
+          0: '@runtime',
+          1: prelude.children.identity,
+        }),
+      )
+      assert.deepEqual(elaboratedValue, expectedValue)
+    },
   ],
   [
     { 0: '@runtime', 1: 'not a function' },

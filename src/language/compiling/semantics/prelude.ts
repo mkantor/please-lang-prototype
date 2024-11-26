@@ -1,28 +1,55 @@
-import { either } from '../../../adts.js'
+import { either, type Either } from '../../../adts.js'
+import type { Panic } from '../../errors.js'
 import {
   isAtomNode,
   isFunctionNode,
   isObjectNode,
+  isPartiallyElaboratedObjectNode,
   makeAtomNode,
   makeFunctionNode,
   makeObjectNode,
   types,
   type AtomNode,
+  type FullyElaboratedSemanticGraph,
   type ObjectNode,
-  type SemanticGraph,
 } from '../../semantics.js'
+import { serializeObjectNode } from '../../semantics/object-node.js'
+import {
+  isPartiallyElaboratedSemanticGraph,
+  serialize,
+  type PartiallyElaboratedSemanticGraph,
+} from '../../semantics/semantic-graph.js'
 import {
   makeFunctionType,
   makeObjectType,
   makeTypeParameter,
+  type FunctionType,
 } from '../../semantics/type-system/type-formats.js'
+
+const preludeFunction = (
+  keyPath: readonly string[],
+  signature: FunctionType['signature'],
+  f: (
+    value: FullyElaboratedSemanticGraph,
+  ) => Either<Panic, FullyElaboratedSemanticGraph>,
+) =>
+  makeFunctionNode(
+    signature,
+    () =>
+      either.makeRight({
+        0: '@lookup',
+        1: Object.fromEntries(keyPath.map((key, index) => [index, key])),
+      }),
+    f,
+  )
 
 const A = makeTypeParameter('a', { assignableTo: types.something })
 const B = makeTypeParameter('b', { assignableTo: types.something })
 const C = makeTypeParameter('c', { assignableTo: types.something })
 
 export const prelude: ObjectNode = makeObjectNode({
-  apply: makeFunctionNode(
+  apply: preludeFunction(
+    ['apply'],
     {
       // a => ((a => b) => b)
       parameter: A,
@@ -38,6 +65,12 @@ export const prelude: ObjectNode = makeObjectNode({
             parameter: types.functionType,
             return: types.something,
           },
+          () =>
+            either.map(serialize(argument), serializedArgument => ({
+              0: '@apply',
+              1: { 0: '@lookup', 1: { 0: 'apply' } },
+              2: serializedArgument,
+            })),
           functionToApply => {
             if (!isFunctionNode(functionToApply)) {
               return either.makeLeft({
@@ -53,7 +86,8 @@ export const prelude: ObjectNode = makeObjectNode({
   ),
 
   // { 0: a => b, 1: b => c } => (a => c)
-  flow: makeFunctionNode(
+  flow: preludeFunction(
+    ['flow'],
     {
       parameter: makeObjectType('', {
         0: makeFunctionType('', {
@@ -102,6 +136,17 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: function0.signature.signature.parameter,
               return: function1.signature.signature.parameter,
             },
+            () =>
+              either.flatMap(function0.serialize(), serializedFunction0 =>
+                either.map(function1.serialize(), serializedFunction1 => ({
+                  0: '@apply',
+                  1: { 0: '@lookup', 1: { 0: 'flow' } },
+                  2: {
+                    0: serializedFunction0,
+                    1: serializedFunction1,
+                  },
+                })),
+              ),
             argument =>
               either.flatMap(function0.function(argument), function1.function),
           ),
@@ -110,12 +155,17 @@ export const prelude: ObjectNode = makeObjectNode({
     },
   ),
 
-  identity: makeFunctionNode({ parameter: A, return: A }, either.makeRight),
+  identity: preludeFunction(
+    ['identity'],
+    { parameter: A, return: A },
+    either.makeRight,
+  ),
 
   boolean: makeObjectNode({
     true: makeAtomNode('true'),
     false: makeAtomNode('false'),
-    is: makeFunctionNode(
+    is: preludeFunction(
+      ['boolean', 'is'],
       {
         parameter: types.something,
         return: types.boolean,
@@ -127,7 +177,8 @@ export const prelude: ObjectNode = makeObjectNode({
             : makeAtomNode('false'),
         ),
     ),
-    not: makeFunctionNode(
+    not: preludeFunction(
+      ['boolean', 'not'],
       {
         parameter: types.boolean,
         return: types.boolean,
@@ -149,7 +200,8 @@ export const prelude: ObjectNode = makeObjectNode({
     ),
   }),
 
-  match: makeFunctionNode(
+  match: preludeFunction(
+    ['match'],
     {
       // TODO
       parameter: types.something,
@@ -169,6 +221,12 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.something,
               return: types.something,
             },
+            () =>
+              either.map(serializeObjectNode(cases), serializedCases => ({
+                0: '@apply',
+                1: { 0: '@lookup', 1: { 0: 'match' } },
+                2: serializedCases,
+              })),
             argument => {
               if (!nodeIsTagged(argument)) {
                 return either.makeLeft({
@@ -196,7 +254,8 @@ export const prelude: ObjectNode = makeObjectNode({
   ),
 
   object: makeObjectNode({
-    lookup: makeFunctionNode(
+    lookup: preludeFunction(
+      ['object', 'lookup'],
       {
         // TODO
         parameter: types.string,
@@ -216,6 +275,12 @@ export const prelude: ObjectNode = makeObjectNode({
                 parameter: types.something,
                 return: types.something,
               },
+              () =>
+                either.makeRight({
+                  0: '@apply',
+                  1: { 0: '@lookup', 1: { 0: 'object', 1: 'lookup' } },
+                  2: key.atom,
+                }),
               argument => {
                 if (!isObjectNode(argument)) {
                   return either.makeLeft({
@@ -250,17 +315,23 @@ export const prelude: ObjectNode = makeObjectNode({
 })
 
 type BooleanNode = AtomNode & { readonly atom: 'true' | 'false' }
-const nodeIsBoolean = (node: SemanticGraph): node is BooleanNode =>
+const nodeIsBoolean = (
+  node: PartiallyElaboratedSemanticGraph,
+): node is BooleanNode =>
   isAtomNode(node) && (node.atom === 'true' || node.atom === 'false')
 
 type TaggedNode = ObjectNode & {
   readonly children: {
     readonly tag: AtomNode
-    readonly value: SemanticGraph
+    readonly value: FullyElaboratedSemanticGraph
   }
 }
-const nodeIsTagged = (node: SemanticGraph): node is TaggedNode =>
-  isObjectNode(node) &&
+const nodeIsTagged = (
+  node: PartiallyElaboratedSemanticGraph,
+): node is TaggedNode =>
+  isPartiallyElaboratedObjectNode(node) &&
   node.children.tag !== undefined &&
-  isAtomNode(node.children.tag) &&
+  (typeof node.children.tag === 'string' ||
+    (isPartiallyElaboratedSemanticGraph(node.children.tag) &&
+      isAtomNode(node.children.tag))) &&
   node.children.value !== undefined

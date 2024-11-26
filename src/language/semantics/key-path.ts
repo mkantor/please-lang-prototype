@@ -11,3 +11,6 @@ export type KeyPath = readonly (
   | typeof functionReturn
   | typeof typeParameterAssignableToConstraint
 )[]
+
+export const stringifyKeyPathForEndUser = (keyPath: KeyPath): string =>
+  JSON.stringify(keyPath)

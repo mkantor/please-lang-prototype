@@ -1,13 +1,17 @@
 import { either, type Either } from '../../adts.js'
 import type { Atom } from '../parsing.js'
-import { nodeTag, type SemanticGraph } from './semantic-graph.js'
+import {
+  nodeTag,
+  type PartiallyElaboratedSemanticGraph,
+} from './semantic-graph.js'
 
 export type AtomNode = {
   readonly [nodeTag]: 'atom'
   readonly atom: Atom
 }
 
-export const isAtomNode = (node: SemanticGraph) => node[nodeTag] === 'atom'
+export const isAtomNode = (node: PartiallyElaboratedSemanticGraph) =>
+  node[nodeTag] === 'atom'
 
 export const makeAtomNode = <SpecificAtom extends Atom>(
   atom: SpecificAtom,
