@@ -92,7 +92,10 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       }
     }`,
     output => {
-      assert(!either.isLeft(output) && typeof output.value === 'object')
+      if (either.isLeft(output)) {
+        assert.fail(output.value.message)
+      }
+      assert(typeof output.value === 'object')
       assert.deepEqual(output.value.tag, 'some')
       assert.deepEqual(typeof output.value.value, 'string')
     },
