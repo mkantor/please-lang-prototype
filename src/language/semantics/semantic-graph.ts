@@ -5,12 +5,6 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import {
-  isAtomNode,
-  makeAtomNode,
-  serializeAtomNode,
-  type AtomNode,
-} from './atom-node.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import { type ObjectNode } from './object-node.js'
@@ -23,11 +17,11 @@ import {
 export const nodeTag = Symbol('nodeTag')
 
 export type PartiallyElaboratedSemanticGraph =
-  | AtomNode
+  | Atom
   | FunctionNode
   | PartiallyElaboratedObjectNode
 
-export type FullyElaboratedSemanticGraph = AtomNode | FunctionNode | ObjectNode
+export type FullyElaboratedSemanticGraph = Atom | FunctionNode | ObjectNode
 
 export const applyKeyPathToPartiallyElaboratedSemanticGraph = (
   node: PartiallyElaboratedSemanticGraph,
@@ -66,8 +60,6 @@ export const extractStringValueIfPossible = (
 ) => {
   if (typeof node === 'string') {
     return option.makeSome(node)
-  } else if (isPartiallyElaboratedSemanticGraph(node) && isAtomNode(node)) {
-    return option.makeSome(node.atom)
   } else {
     return option.none
   }
@@ -127,18 +119,20 @@ export const updateValueAtKeyPathInPartiallyElaboratedSemanticGraph = (
 export const matchPartiallyElaboratedSemanticGraph = <Result>(
   semanticGraph: PartiallyElaboratedSemanticGraph,
   cases: {
-    atom: (node: AtomNode) => Result
+    atom: (node: Atom) => Result
     function: (node: FunctionNode) => Result
     object: (node: PartiallyElaboratedObjectNode) => Result
   },
 ): Result => {
-  switch (semanticGraph[nodeTag]) {
-    case 'atom':
-      return cases[semanticGraph[nodeTag]](semanticGraph)
-    case 'function':
-      return cases[semanticGraph[nodeTag]](semanticGraph)
-    case 'object':
-      return cases[semanticGraph[nodeTag]](semanticGraph)
+  if (typeof semanticGraph === 'string') {
+    return cases.atom(semanticGraph)
+  } else {
+    switch (semanticGraph[nodeTag]) {
+      case 'function':
+        return cases[semanticGraph[nodeTag]](semanticGraph)
+      case 'object':
+        return cases[semanticGraph[nodeTag]](semanticGraph)
+    }
   }
 }
 
@@ -152,7 +146,7 @@ export const serialize = (
   either.map(
     matchPartiallyElaboratedSemanticGraph(node, {
       atom: (node): Either<UnserializableValueError, Atom | Molecule> =>
-        serializeAtomNode(node),
+        either.makeRight(node),
       function: node => serializeFunctionNode(node),
       object: node => serializePartiallyElaboratedObjectNode(node),
     }),
@@ -164,16 +158,20 @@ export const isPartiallyElaboratedSemanticGraph = (
     | Atom
     | Molecule
     | {
-        readonly [nodeTag]?: PartiallyElaboratedSemanticGraph[typeof nodeTag]
+        readonly [nodeTag]?: Exclude<
+          PartiallyElaboratedSemanticGraph,
+          Atom
+        >[typeof nodeTag]
       },
 ): value is PartiallyElaboratedSemanticGraph =>
-  typeof value === 'object' &&
-  nodeTag in value &&
-  typeof value[nodeTag] === 'string'
+  typeof value === 'string' ||
+  (typeof value === 'object' &&
+    nodeTag in value &&
+    typeof value[nodeTag] === 'string')
 
 const syntaxTreeToPartiallyElaboratedSemanticGraph = (
   syntaxTree: Atom | Molecule,
-): PartiallyElaboratedObjectNode | AtomNode =>
+): PartiallyElaboratedObjectNode | Atom =>
   typeof syntaxTree === 'string'
-    ? makeAtomNode(syntaxTree)
+    ? syntaxTree
     : makePartiallyElaboratedObjectNode(syntaxTree)

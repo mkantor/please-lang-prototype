@@ -2,9 +2,7 @@ import { either, option, type Either, type Option } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
 import {
   isAssignable,
-  isAtomNode,
   isFunctionNode,
-  isObjectNode,
   isPartiallyElaboratedObjectNode,
   makeObjectNode,
   replaceAllTypeParametersWithTheirConstraints,
@@ -33,8 +31,10 @@ const check = ({
   readonly value: FullyElaboratedSemanticGraph
   readonly type: PartiallyElaboratedSemanticGraph
 }): Either<ElaborationError, PartiallyElaboratedSemanticGraph> => {
-  if (isAtomNode(type)) {
-    return isAtomNode(value) && isAtomNode(type) && value.atom === type.atom
+  if (typeof type === 'string') {
+    return typeof value === 'string' &&
+      typeof type === 'string' &&
+      value === type
       ? either.makeRight(value)
       : either.makeLeft({
           kind: 'typeMismatch',
@@ -56,7 +56,7 @@ const check = ({
       // The compile-time-evaluated function panicked.
       return result
     }
-    if (!isAtomNode(result.value) || result.value.atom !== 'true') {
+    if (typeof result.value !== 'string' || result.value !== 'true') {
       return either.makeLeft({
         kind: 'typeMismatch',
         message: `the value \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
@@ -67,7 +67,7 @@ const check = ({
       // The value was valid according to the type guard.
       return either.makeRight(value)
     }
-  } else if (isAtomNode(value)) {
+  } else if (typeof value === 'string') {
     // The only remaining case is when the type is an object, so we must have a type error.
     return either.makeLeft({
       kind: 'typeMismatch',
@@ -268,15 +268,14 @@ export const handlers = {
         kind: 'invalidExpression',
         message: 'query must be provided via the property `query` or `1`',
       })
-    } else if (!isObjectNode(query) && !isAtomNode(query)) {
+    } else if (isFunctionNode(query)) {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'query must be an object',
+        message: 'query cannot be a function',
       })
     } else {
-      const canonicalizedQuery = isAtomNode(query)
-        ? makeObjectNode({ 0: query })
-        : query
+      const canonicalizedQuery =
+        typeof query === 'string' ? makeObjectNode({ 0: query }) : query
       const relativePathResult: Either<ElaborationError, readonly string[]> =
         (() => {
           const relativePath: string[] = []
@@ -284,14 +283,14 @@ export const handlers = {
           // Consume numeric indexes ("0", "1", …) until exhausted, validating that each is an atom.
           let node = canonicalizedQuery.children[queryIndex]
           while (node !== undefined) {
-            if (!isAtomNode(node)) {
+            if (typeof node !== 'string') {
               return either.makeLeft({
                 kind: 'invalidExpression',
                 message:
                   'query must be a key path composed of sequential atoms',
               })
             } else {
-              relativePath.push(node.atom)
+              relativePath.push(node)
             }
             queryIndex++
             node = canonicalizedQuery.children[queryIndex]

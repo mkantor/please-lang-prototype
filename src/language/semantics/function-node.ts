@@ -18,7 +18,7 @@ export type FunctionNode = {
 }
 
 export const isFunctionNode = (node: PartiallyElaboratedSemanticGraph) =>
-  node[nodeTag] === 'function'
+  typeof node === 'object' && node[nodeTag] === 'function'
 
 export const makeFunctionNode = (
   signature: FunctionType['signature'],

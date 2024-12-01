@@ -7,7 +7,6 @@ import type { ElaborationError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import {
   elaborate,
-  makeAtomNode,
   makeObjectNode,
   makePartiallyElaboratedObjectNode,
   type ElaboratedValue,
@@ -27,7 +26,7 @@ const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
   for (const [key, propertyValue] of Object.entries(molecule)) {
     children[key] =
       typeof propertyValue === 'string'
-        ? makeAtomNode(propertyValue)
+        ? propertyValue
         : literalMoleculeToObjectNode(propertyValue)
   }
   return makeObjectNode(children)
@@ -39,7 +38,7 @@ const success = (
   either.makeRight(
     withPhantomData<never>()(
       typeof expectedOutput === 'string'
-        ? makeAtomNode(expectedOutput)
+        ? expectedOutput
         : literalMoleculeToObjectNode(expectedOutput),
     ),
   )

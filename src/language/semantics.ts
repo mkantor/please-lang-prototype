@@ -1,9 +1,4 @@
 export {
-  isAtomNode,
-  makeAtomNode,
-  type AtomNode,
-} from './semantics/atom-node.js'
-export {
   elaborate,
   type PartiallyElaboratedValue as ElaboratedValue,
   type ExpressionContext,

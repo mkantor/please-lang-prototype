@@ -4,10 +4,8 @@ import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import {
-  makeAtomNode,
   makeObjectNode,
   makePartiallyElaboratedObjectNode,
-  type AtomNode,
   type KeyPath,
   type ObjectNode,
   type PartiallyElaboratedObjectNode,
@@ -53,7 +51,7 @@ export const elaborate = (
     location: [],
     program:
       typeof program === 'string'
-        ? makeAtomNode(program)
+        ? program
         : makePartiallyElaboratedObjectNode(program),
   })
 
@@ -87,8 +85,7 @@ const elaborateWithinMolecule = (
     } else {
       const updatedKey = keyUpdateResult.value
       if (typeof value === 'string') {
-        possibleExpressionAsObjectNode.children[updatedKey.atom] =
-          makeAtomNode(value)
+        possibleExpressionAsObjectNode.children[updatedKey] = value
       } else {
         const elaborationResult = elaborateWithinMolecule(
           value,
@@ -114,7 +111,7 @@ const elaborateWithinMolecule = (
           return elaborationResult
         }
         updatedProgram = programUpdateResult.value
-        possibleExpressionAsObjectNode.children[updatedKey.atom] =
+        possibleExpressionAsObjectNode.children[updatedKey] =
           elaborationResult.value
       }
     }
@@ -159,7 +156,7 @@ const elaborateWithinMolecule = (
             ...possibleExpressionAsObjectNode,
             children: {
               ...possibleExpressionAsObjectNode.children,
-              0: makeAtomNode(possibleKeywordAsString),
+              0: possibleKeywordAsString,
             },
           },
           keywordModule,
@@ -173,14 +170,11 @@ const elaborateWithinMolecule = (
 }
 
 const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
-  node: ObjectNode & { readonly children: { readonly 0: AtomNode } },
+  node: ObjectNode & { readonly children: { readonly 0: Atom } },
   keywordModule: KeywordModule<Keyword>,
   context: ExpressionContext,
 ): Either<ElaborationError, PartiallyElaboratedSemanticGraph> => {
-  const {
-    0: { atom: possibleKeyword },
-    ...possibleArguments
-  } = node.children
+  const { 0: possibleKeyword, ...possibleArguments } = node.children
   return option.match(
     option.fromPredicate(possibleKeyword, keywordModule.isKeyword),
     {
@@ -194,7 +188,7 @@ const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
               ...node,
               children: {
                 ...node.children,
-                0: makeAtomNode(unescapeKeywordSigil(possibleKeyword)),
+                0: unescapeKeywordSigil(possibleKeyword),
               },
             }),
       some: keyword =>
@@ -208,14 +202,14 @@ const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
 
 const handleAtomWhichMayNotBeAKeyword = (
   atom: Atom,
-): Either<InvalidSyntaxTreeError, AtomNode> => {
+): Either<InvalidSyntaxTreeError, Atom> => {
   if (/^@[^@]/.test(atom)) {
     return either.makeLeft({
       kind: 'invalidSyntaxTree',
       message: `keywords cannot be used here: ${atom}`,
     })
   } else {
-    return either.makeRight(makeAtomNode(unescapeKeywordSigil(atom)))
+    return either.makeRight(unescapeKeywordSigil(atom))
   }
 }
 

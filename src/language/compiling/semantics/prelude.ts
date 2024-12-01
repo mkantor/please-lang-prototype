@@ -1,15 +1,13 @@
 import { either, type Either } from '../../../adts.js'
 import type { Panic } from '../../errors.js'
+import type { Atom } from '../../parsing.js'
 import {
-  isAtomNode,
   isFunctionNode,
   isObjectNode,
   isPartiallyElaboratedObjectNode,
-  makeAtomNode,
   makeFunctionNode,
   makeObjectNode,
   types,
-  type AtomNode,
   type FullyElaboratedSemanticGraph,
   type ObjectNode,
 } from '../../semantics.js'
@@ -162,20 +160,15 @@ export const prelude: ObjectNode = makeObjectNode({
   ),
 
   boolean: makeObjectNode({
-    true: makeAtomNode('true'),
-    false: makeAtomNode('false'),
+    true: 'true',
+    false: 'false',
     is: preludeFunction(
       ['boolean', 'is'],
       {
         parameter: types.something,
         return: types.boolean,
       },
-      argument =>
-        either.makeRight(
-          nodeIsBoolean(argument)
-            ? makeAtomNode('true')
-            : makeAtomNode('false'),
-        ),
+      argument => either.makeRight(nodeIsBoolean(argument) ? 'true' : 'false'),
     ),
     not: preludeFunction(
       ['boolean', 'not'],
@@ -190,11 +183,7 @@ export const prelude: ObjectNode = makeObjectNode({
             message: 'argument was not a boolean',
           })
         } else {
-          return either.makeRight(
-            argument.atom === 'true'
-              ? makeAtomNode('false')
-              : makeAtomNode('true'),
-          )
+          return either.makeRight(argument === 'true' ? 'false' : 'true')
         }
       },
     ),
@@ -234,11 +223,11 @@ export const prelude: ObjectNode = makeObjectNode({
                   message: 'argument was not tagged',
                 })
               } else {
-                const relevantCase = cases.children[argument.children.tag.atom]
+                const relevantCase = cases.children[argument.children.tag]
                 if (relevantCase === undefined) {
                   return either.makeLeft({
                     kind: 'panic',
-                    message: `case for tag '${argument.children.tag.atom}' was not defined`,
+                    message: `case for tag '${argument.children.tag}' was not defined`,
                   })
                 } else {
                   return !isFunctionNode(relevantCase)
@@ -262,7 +251,7 @@ export const prelude: ObjectNode = makeObjectNode({
         return: types.something,
       },
       key => {
-        if (!isAtomNode(key)) {
+        if (typeof key !== 'string') {
           return either.makeLeft({
             kind: 'panic',
             message: 'key was not an atom',
@@ -279,7 +268,7 @@ export const prelude: ObjectNode = makeObjectNode({
                 either.makeRight({
                   0: '@apply',
                   1: { 0: '@lookup', 1: { 0: 'object', 1: 'lookup' } },
-                  2: key.atom,
+                  2: key,
                 }),
               argument => {
                 if (!isObjectNode(argument)) {
@@ -288,18 +277,18 @@ export const prelude: ObjectNode = makeObjectNode({
                     message: 'argument was not an object',
                   })
                 } else {
-                  const propertyValue = argument.children[key.atom]
+                  const propertyValue = argument.children[key]
                   if (propertyValue === undefined) {
                     return either.makeRight(
                       makeObjectNode({
-                        tag: makeAtomNode('none'),
+                        tag: 'none',
                         value: makeObjectNode({}),
                       }),
                     )
                   } else {
                     return either.makeRight(
                       makeObjectNode({
-                        tag: makeAtomNode('some'),
+                        tag: 'some',
                         value: propertyValue,
                       }),
                     )
@@ -314,15 +303,14 @@ export const prelude: ObjectNode = makeObjectNode({
   }),
 })
 
-type BooleanNode = AtomNode & { readonly atom: 'true' | 'false' }
+type BooleanNode = 'true' | 'false'
 const nodeIsBoolean = (
   node: PartiallyElaboratedSemanticGraph,
-): node is BooleanNode =>
-  isAtomNode(node) && (node.atom === 'true' || node.atom === 'false')
+): node is BooleanNode => node === 'true' || node === 'false'
 
 type TaggedNode = ObjectNode & {
   readonly children: {
-    readonly tag: AtomNode
+    readonly tag: Atom
     readonly value: FullyElaboratedSemanticGraph
   }
 }
@@ -333,5 +321,5 @@ const nodeIsTagged = (
   node.children.tag !== undefined &&
   (typeof node.children.tag === 'string' ||
     (isPartiallyElaboratedSemanticGraph(node.children.tag) &&
-      isAtomNode(node.children.tag))) &&
+      typeof node.children.tag === 'string')) &&
   node.children.value !== undefined

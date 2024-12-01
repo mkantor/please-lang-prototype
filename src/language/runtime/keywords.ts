@@ -1,9 +1,7 @@
 import { either } from '../../adts.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
 import {
-  isAtomNode,
   isFunctionNode,
-  makeAtomNode,
   makeFunctionNode,
   makeObjectNode,
   types,
@@ -24,25 +22,25 @@ const runtimeContext = makeObjectNode({
           message: 'this function cannot be serialized',
         }),
       key => {
-        if (!isAtomNode(key)) {
+        if (typeof key !== 'string') {
           return either.makeLeft({
             kind: 'panic',
             message: 'key was not an atom',
           })
         } else {
-          const environmentVariable = process.env[key.atom]
+          const environmentVariable = process.env[key]
           if (environmentVariable === undefined) {
             return either.makeRight(
               makeObjectNode({
-                tag: makeAtomNode('none'),
+                tag: 'none',
                 value: makeObjectNode({}),
               }),
             )
           } else {
             return either.makeRight(
               makeObjectNode({
-                tag: makeAtomNode('some'),
-                value: makeAtomNode(environmentVariable),
+                tag: 'some',
+                value: environmentVariable,
               }),
             )
           }

@@ -18,7 +18,7 @@ export type PartiallyElaboratedObjectNode = {
 
 export const isPartiallyElaboratedObjectNode = (
   node: PartiallyElaboratedSemanticGraph,
-) => node[nodeTag] === 'object'
+) => typeof node === 'object' && node[nodeTag] === 'object'
 
 export const makePartiallyElaboratedObjectNode = (
   children: Readonly<

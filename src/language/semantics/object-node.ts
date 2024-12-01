@@ -14,7 +14,7 @@ export type ObjectNode = {
 }
 
 export const isObjectNode = (node: FullyElaboratedSemanticGraph) =>
-  node[nodeTag] === 'object'
+  typeof node === 'object' && node[nodeTag] === 'object'
 
 export const makeObjectNode = (
   children: Readonly<Record<Atom, FullyElaboratedSemanticGraph>>,
