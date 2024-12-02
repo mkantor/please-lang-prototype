@@ -8,11 +8,10 @@ import type { Atom, Molecule } from '../parsing.js'
 import {
   elaborate,
   makeObjectNode,
-  makePartiallyElaboratedObjectNode,
-  type ElaboratedValue,
+  type ElaboratedSemanticGraph,
   type ObjectNode,
 } from '../semantics.js'
-import type { PartiallyElaboratedSemanticGraph } from '../semantics/semantic-graph.js'
+import type { SemanticGraph } from '../semantics/semantic-graph.js'
 import * as keywordModule from './semantics/keywords.js'
 import { prelude } from './semantics/prelude.js'
 
@@ -23,8 +22,7 @@ const elaborationSuite = testCases(
 )
 
 const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
-  const properties: Writable<Record<string, PartiallyElaboratedSemanticGraph>> =
-    {}
+  const properties: Writable<Record<string, SemanticGraph>> = {}
   for (const [key, propertyValue] of Object.entries(molecule)) {
     properties[key] =
       typeof propertyValue === 'string'
@@ -36,7 +34,7 @@ const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
 
 const success = (
   expectedOutput: Atom | Molecule,
-): Either<ElaborationError, ElaboratedValue> =>
+): Either<ElaborationError, ElaboratedSemanticGraph> =>
   either.makeRight(
     withPhantomData<never>()(
       typeof expectedOutput === 'string'
@@ -310,7 +308,7 @@ elaborationSuite('@runtime', [
         throw new Error('Prelude does not contain `identity`. This is a bug!')
       }
       const expectedValue = either.makeRight(
-        makePartiallyElaboratedObjectNode({
+        makeObjectNode({
           0: '@runtime',
           1: prelude.identity,
         }),

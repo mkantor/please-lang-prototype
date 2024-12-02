@@ -7,31 +7,25 @@ import type {
 import type { Atom, Molecule } from '../parsing.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
-import { type ObjectNode } from './object-node.js'
 import {
-  makePartiallyElaboratedObjectNode,
-  serializePartiallyElaboratedObjectNode,
-  type PartiallyElaboratedObjectNode,
-} from './partially-elaborated-object-node.js'
+  makeObjectNode,
+  serializeObjectNode,
+  type ObjectNode,
+} from './object-node.js'
 
 export const nodeTag = Symbol('nodeTag')
 
-export type PartiallyElaboratedSemanticGraph =
-  | Atom
-  | FunctionNode
-  | PartiallyElaboratedObjectNode
+export type SemanticGraph = Atom | FunctionNode | ObjectNode
 
-export type FullyElaboratedSemanticGraph = Atom | FunctionNode | ObjectNode
-
-export const applyKeyPathToPartiallyElaboratedSemanticGraph = (
-  node: PartiallyElaboratedSemanticGraph,
+export const applyKeyPathToSemanticGraph = (
+  node: SemanticGraph,
   keyPath: KeyPath,
-): Option<PartiallyElaboratedSemanticGraph> => {
+): Option<SemanticGraph> => {
   const [firstKey, ...remainingKeyPath] = keyPath
   if (firstKey === undefined) {
     return option.makeSome(node)
   } else {
-    return matchPartiallyElaboratedSemanticGraph(node, {
+    return matchSemanticGraph(node, {
       atom: _ => option.none,
       function: _ => option.none,
       object: graph => {
@@ -42,10 +36,8 @@ export const applyKeyPathToPartiallyElaboratedSemanticGraph = (
           if (next === undefined) {
             return option.none
           } else {
-            return applyKeyPathToPartiallyElaboratedSemanticGraph(
-              isPartiallyElaboratedSemanticGraph(next)
-                ? next
-                : syntaxTreeToPartiallyElaboratedSemanticGraph(next),
+            return applyKeyPathToSemanticGraph(
+              isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
               remainingKeyPath,
             )
           }
@@ -56,7 +48,7 @@ export const applyKeyPathToPartiallyElaboratedSemanticGraph = (
 }
 
 export const extractStringValueIfPossible = (
-  node: Atom | Molecule | PartiallyElaboratedSemanticGraph,
+  node: SemanticGraph | Molecule,
 ) => {
   if (typeof node === 'string') {
     return option.makeSome(node)
@@ -72,19 +64,17 @@ const makePropertyNotFoundError = (
   message: `property \`${stringifyKeyPathForEndUser(keyPath)}\` not found`,
 })
 
-export const updateValueAtKeyPathInPartiallyElaboratedSemanticGraph = (
-  node: PartiallyElaboratedSemanticGraph,
+export const updateValueAtKeyPathInSemanticGraph = (
+  node: SemanticGraph,
   keyPath: KeyPath,
-  operation: (
-    valueAtKeyPath: PartiallyElaboratedSemanticGraph,
-  ) => PartiallyElaboratedSemanticGraph, // TODO should this be fallible? see above
-): Either<InvalidExpressionError, PartiallyElaboratedSemanticGraph> => {
+  operation: (valueAtKeyPath: SemanticGraph) => SemanticGraph,
+): Either<InvalidExpressionError, SemanticGraph> => {
   const [firstKey, ...remainingKeyPath] = keyPath
   if (firstKey === undefined) {
     // If the key path is empty, this is the value to operate on.
     return either.makeRight(operation(node))
   } else {
-    return matchPartiallyElaboratedSemanticGraph(node, {
+    return matchSemanticGraph(node, {
       atom: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
       function: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
       object: node => {
@@ -96,15 +86,13 @@ export const updateValueAtKeyPathInPartiallyElaboratedSemanticGraph = (
             return either.makeLeft(makePropertyNotFoundError(keyPath))
           } else {
             return either.map(
-              updateValueAtKeyPathInPartiallyElaboratedSemanticGraph(
-                isPartiallyElaboratedSemanticGraph(next)
-                  ? next
-                  : syntaxTreeToPartiallyElaboratedSemanticGraph(next),
+              updateValueAtKeyPathInSemanticGraph(
+                isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
                 remainingKeyPath,
                 operation,
               ),
               updatedNode =>
-                makePartiallyElaboratedObjectNode({
+                makeObjectNode({
                   ...node,
                   [firstKey]: updatedNode,
                 }),
@@ -116,12 +104,12 @@ export const updateValueAtKeyPathInPartiallyElaboratedSemanticGraph = (
   }
 }
 
-export const matchPartiallyElaboratedSemanticGraph = <Result>(
-  semanticGraph: PartiallyElaboratedSemanticGraph,
+export const matchSemanticGraph = <Result>(
+  semanticGraph: SemanticGraph,
   cases: {
     atom: (node: Atom) => Result
     function: (node: FunctionNode) => Result
-    object: (node: PartiallyElaboratedObjectNode) => Result
+    object: (node: ObjectNode) => Result
   },
 ): Result => {
   if (typeof semanticGraph === 'string') {
@@ -141,37 +129,32 @@ type Serialized = { readonly [_serialized]: true }
 export type Output = WithPhantomData<Atom | Molecule, Serialized>
 
 export const serialize = (
-  node: PartiallyElaboratedSemanticGraph,
+  node: SemanticGraph,
 ): Either<UnserializableValueError, Output> =>
   either.map(
-    matchPartiallyElaboratedSemanticGraph(node, {
+    matchSemanticGraph(node, {
       atom: (node): Either<UnserializableValueError, Atom | Molecule> =>
         either.makeRight(node),
       function: node => serializeFunctionNode(node),
-      object: node => serializePartiallyElaboratedObjectNode(node),
+      object: node => serializeObjectNode(node),
     }),
     withPhantomData<Serialized>(),
   )
 
-export const isPartiallyElaboratedSemanticGraph = (
+export const isSemanticGraph = (
   value:
     | Atom
     | Molecule
     | {
-        readonly [nodeTag]?: Exclude<
-          PartiallyElaboratedSemanticGraph,
-          Atom
-        >[typeof nodeTag]
+        readonly [nodeTag]?: Exclude<SemanticGraph, Atom>[typeof nodeTag]
       },
-): value is PartiallyElaboratedSemanticGraph =>
+): value is SemanticGraph =>
   typeof value === 'string' ||
   ((typeof value === 'object' || typeof value === 'function') &&
     nodeTag in value &&
     typeof value[nodeTag] === 'string')
 
-const syntaxTreeToPartiallyElaboratedSemanticGraph = (
+const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,
-): PartiallyElaboratedObjectNode | Atom =>
-  typeof syntaxTree === 'string'
-    ? syntaxTree
-    : makePartiallyElaboratedObjectNode(syntaxTree)
+): ObjectNode | Atom =>
+  typeof syntaxTree === 'string' ? syntaxTree : makeObjectNode(syntaxTree)

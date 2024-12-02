@@ -1,25 +1,24 @@
 import { either, option, type Either, type Option } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
+import type { Atom, Molecule } from '../../parsing.js'
 import {
   isAssignable,
   isFunctionNode,
-  isPartiallyElaboratedObjectNode,
+  isObjectNode,
   makeObjectNode,
   replaceAllTypeParametersWithTheirConstraints,
   serialize,
   types,
   type ExpressionContext,
-  type FullyElaboratedSemanticGraph,
   type KeyPath,
   type KeywordElaborationResult,
   type KeywordModule,
+  type ObjectNode,
+  type SemanticGraph,
 } from '../../semantics.js'
 import { stringifyKeyPathForEndUser } from '../../semantics/key-path.js'
-import {
-  applyKeyPathToPartiallyElaboratedSemanticGraph,
-  isPartiallyElaboratedSemanticGraph,
-  type PartiallyElaboratedSemanticGraph,
-} from '../../semantics/semantic-graph.js'
+import { lookupPropertyOfObjectNode } from '../../semantics/object-node.js'
+import { applyKeyPathToSemanticGraph } from '../../semantics/semantic-graph.js'
 import { prelude } from './prelude.js'
 
 const check = ({
@@ -28,9 +27,9 @@ const check = ({
   type,
 }: {
   readonly context: ExpressionContext
-  readonly value: FullyElaboratedSemanticGraph
-  readonly type: PartiallyElaboratedSemanticGraph
-}): Either<ElaborationError, PartiallyElaboratedSemanticGraph> => {
+  readonly value: SemanticGraph
+  readonly type: SemanticGraph
+}): Either<ElaborationError, SemanticGraph> => {
   if (typeof type === 'string') {
     return typeof value === 'string' &&
       typeof type === 'string' &&
@@ -38,9 +37,9 @@ const check = ({
       ? either.makeRight(value)
       : either.makeLeft({
           kind: 'typeMismatch',
-          message: `the value \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
+          message: `the value \`${stringifySemanticGraphForEndUser(
             value,
-          )}\` is not assignable to the type \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
+          )}\` is not assignable to the type \`${stringifySemanticGraphForEndUser(
             type,
           )}\``,
         })
@@ -59,7 +58,7 @@ const check = ({
     if (typeof result.value !== 'string' || result.value !== 'true') {
       return either.makeLeft({
         kind: 'typeMismatch',
-        message: `the value \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
+        message: `the value \`${stringifySemanticGraphForEndUser(
           value,
         )}\` did not pass the given type guard`,
       })
@@ -71,9 +70,9 @@ const check = ({
     // The only remaining case is when the type is an object, so we must have a type error.
     return either.makeLeft({
       kind: 'typeMismatch',
-      message: `the value \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
+      message: `the value \`${stringifySemanticGraphForEndUser(
         value,
-      )}\` is not assignable to the type \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
+      )}\` is not assignable to the type \`${stringifySemanticGraphForEndUser(
         type,
       )}\``,
     })
@@ -81,28 +80,22 @@ const check = ({
     // Make sure all properties in the type are present and valid in the value (recursively).
     // Values may legally have additional properties beyond what is required by the type.
     for (const [key, typePropertyValue] of Object.entries(type)) {
-      if (value[key] === undefined) {
+      const valuePropertyValue = lookupPropertyOfObjectNode(key, value)
+      if (option.isNone(valuePropertyValue)) {
         return either.makeLeft({
           kind: 'typeMismatch',
-          message: `the value \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
+          message: `the value \`${stringifySemanticGraphForEndUser(
             value,
-          )}\` is not assignable to the type \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
+          )}\` is not assignable to the type \`${stringifySemanticGraphForEndUser(
             type,
           )}\` because it is missing the property \`${key}\``,
-        })
-      } else if (!isPartiallyElaboratedSemanticGraph(typePropertyValue)) {
-        // TODO: Eliminate this case if `PartiallyElaboratedSemanticGraph` is generalized to be a
-        // subtype of `Molecule | Atom`.
-        return either.makeLeft({
-          kind: 'invalidExpression',
-          message: `the value of the property \`${key}\` was not a semantic graph`,
         })
       } else {
         // Recursively check the property:
         const resultOfCheckingProperty = check({
           context,
-          value: value[key],
-          type: typePropertyValue,
+          value: valuePropertyValue.value,
+          type: asSemanticGraph(typePropertyValue),
         })
         if (either.isLeft(resultOfCheckingProperty)) {
           return resultOfCheckingProperty
@@ -120,7 +113,7 @@ const lookup = ({
 }: {
   readonly context: ExpressionContext
   readonly relativePath: KeyPath
-}): Either<ElaborationError, Option<PartiallyElaboratedSemanticGraph>> => {
+}): Either<ElaborationError, Option<SemanticGraph>> => {
   const [firstPathComponent, ...propertyPath] = relativePath
   if (firstPathComponent === undefined) {
     // TODO Consider allowing empty paths, emitting a "hole" of type `nothing` (like `???` in
@@ -132,46 +125,35 @@ const lookup = ({
   }
   if (context.location.length === 0) {
     // Check the prelude.
-    return option.match(
-      applyKeyPathToPartiallyElaboratedSemanticGraph(prelude, relativePath),
-      {
-        none: () =>
-          either.makeLeft({
-            kind: 'invalidExpression',
-            message: `property \`${stringifyKeyPathForEndUser(
-              relativePath,
-            )}\` not found`,
-          }),
-        some: valueFromPrelude =>
-          either.makeRight(option.makeSome(valueFromPrelude)),
-      },
-    )
+    return option.match(applyKeyPathToSemanticGraph(prelude, relativePath), {
+      none: () =>
+        either.makeLeft({
+          kind: 'invalidExpression',
+          message: `property \`${stringifyKeyPathForEndUser(
+            relativePath,
+          )}\` not found`,
+        }),
+      some: valueFromPrelude =>
+        either.makeRight(option.makeSome(valueFromPrelude)),
+    })
   } else {
     const pathToCurrentScope = context.location.slice(0, -1)
 
     const resultForCurrentScope: Either<
       ElaborationError,
-      Option<PartiallyElaboratedSemanticGraph>
+      Option<SemanticGraph>
     > = option.match(
-      applyKeyPathToPartiallyElaboratedSemanticGraph(
-        context.program,
-        pathToCurrentScope,
-      ),
+      applyKeyPathToSemanticGraph(context.program, pathToCurrentScope),
       {
         none: () => either.makeRight(option.none),
         some: scope =>
           option.match(
-            applyKeyPathToPartiallyElaboratedSemanticGraph(scope, [
-              firstPathComponent,
-            ]),
+            applyKeyPathToSemanticGraph(scope, [firstPathComponent]),
             {
               none: () => either.makeRight(option.none),
               some: property =>
                 option.match(
-                  applyKeyPathToPartiallyElaboratedSemanticGraph(
-                    property,
-                    propertyPath,
-                  ),
+                  applyKeyPathToSemanticGraph(property, propertyPath),
                   {
                     none: () =>
                       either.makeLeft({
@@ -205,7 +187,7 @@ const lookup = ({
   }
 }
 
-const todo = (): Either<ElaborationError, PartiallyElaboratedSemanticGraph> =>
+const todo = (): Either<ElaborationError, SemanticGraph> =>
   either.makeRight(makeObjectNode({}))
 
 export const handlers = {
@@ -213,26 +195,26 @@ export const handlers = {
    * Calls the given `FunctionNode` with a given argument.
    */
   '@apply': (expression, _context): KeywordElaborationResult => {
-    const functionToApply = expression['function'] ?? expression['1']
-    const argument = expression.argument ?? expression['2']
+    const functionToApply = lookupWithinArgument(['function', '1'], expression)
+    const argument = lookupWithinArgument(['argument', '2'], expression)
 
-    if (functionToApply === undefined) {
+    if (option.isNone(functionToApply)) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message: 'function must be provided via the property `function` or `1`',
       })
-    } else if (argument === undefined) {
+    } else if (option.isNone(argument)) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message: 'argument must be provided via the property `argument` or `2`',
       })
-    } else if (!isFunctionNode(functionToApply)) {
+    } else if (isFunctionNode(functionToApply.value)) {
+      return functionToApply.value(argument.value)
+    } else {
       return either.makeLeft({
         kind: 'invalidExpression',
         message: 'only functions can be applied',
       })
-    } else {
-      return functionToApply(argument)
     }
   },
 
@@ -240,20 +222,24 @@ export const handlers = {
    * Checks whether a given value is assignable to a given type.
    */
   '@check': (expression, context): KeywordElaborationResult => {
-    const value = expression.value ?? expression['1']
-    const type = expression.type ?? expression['2']
-    if (value === undefined) {
+    const value = lookupWithinArgument(['value', '1'], expression)
+    const type = lookupWithinArgument(['type', '2'], expression)
+    if (option.isNone(value)) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message: 'value must be provided via the property `value` or `1`',
       })
-    } else if (type === undefined) {
+    } else if (option.isNone(type)) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message: 'type must be provided via the property `type` or `2`',
       })
     } else {
-      return check({ value, type, context })
+      return check({
+        value: value.value,
+        type: type.value,
+        context,
+      })
     }
   },
 
@@ -261,20 +247,22 @@ export const handlers = {
    * Given a query, resolves the value of a property within the program.
    */
   '@lookup': (expression, context): KeywordElaborationResult => {
-    const query = expression.query ?? expression['1']
-    if (query === undefined) {
+    const query = lookupWithinArgument(['query', '1'], expression)
+    if (option.isNone(query)) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message: 'query must be provided via the property `query` or `1`',
       })
-    } else if (isFunctionNode(query)) {
+    } else if (isFunctionNode(query.value)) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message: 'query cannot be a function',
       })
     } else {
       const canonicalizedQuery =
-        typeof query === 'string' ? makeObjectNode({ 0: query }) : query
+        typeof query.value === 'string'
+          ? makeObjectNode({ 0: query.value })
+          : query.value
       const relativePathResult: Either<ElaborationError, readonly string[]> =
         (() => {
           const relativePath: string[] = []
@@ -300,7 +288,7 @@ export const handlers = {
       if (either.isLeft(relativePathResult)) {
         return relativePathResult
       } else {
-        if (isPartiallyElaboratedObjectNode(context.program)) {
+        if (isObjectNode(context.program)) {
           return either.flatMap(
             lookup({
               context,
@@ -332,20 +320,25 @@ export const handlers = {
   /**
    * Preserves a raw function node for emission into the runtime code.
    */
+  // TODO could rename `@runtime` to `@effect`?
   '@runtime': (expression, context): KeywordElaborationResult => {
-    const runtimeFunction = expression.function ?? expression['1']
-    if (runtimeFunction === undefined || !isFunctionNode(runtimeFunction)) {
+    const runtimeFunction = lookupWithinArgument(['function', '1'], expression)
+    if (
+      option.isNone(runtimeFunction) ||
+      !isFunctionNode(runtimeFunction.value)
+    ) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message:
           'a function must be provided via the property `function` or `1`',
       })
     } else {
+      const runtimeFunctionSignature = runtimeFunction.value.signature
       return either.flatMap(locateSelf(context), valueFromProgram =>
         !isAssignable({
           source: types.runtimeContext,
           target: replaceAllTypeParametersWithTheirConstraints(
-            runtimeFunction.signature.parameter,
+            runtimeFunctionSignature.parameter,
           ),
         })
           ? either.makeLeft({
@@ -372,23 +365,36 @@ export const isKeyword = (input: string): input is Keyword =>
   allKeywords.has(input)
 
 const locateSelf = (context: ExpressionContext) =>
-  option.match(
-    applyKeyPathToPartiallyElaboratedSemanticGraph(
-      context.program,
-      context.location,
-    ),
-    {
-      none: () =>
-        either.makeLeft({
-          kind: 'bug',
-          message: `failed to locate self at \`${stringifyKeyPathForEndUser(
-            context.location,
-          )}\` in program`,
-        }),
-      some: either.makeRight,
-    },
-  )
+  option.match(applyKeyPathToSemanticGraph(context.program, context.location), {
+    none: () =>
+      either.makeLeft({
+        kind: 'bug',
+        message: `failed to locate self at \`${stringifyKeyPathForEndUser(
+          context.location,
+        )}\` in program`,
+      }),
+    some: either.makeRight,
+  })
 
-const stringifyPartiallyElaboratedSemanticGraphForEndUser = (
-  graph: PartiallyElaboratedSemanticGraph,
-): string => JSON.stringify(serialize(graph))
+const stringifySemanticGraphForEndUser = (graph: SemanticGraph): string =>
+  JSON.stringify(serialize(graph))
+
+const lookupWithinArgument = (
+  keyAliases: [Atom, ...(readonly Atom[])],
+  argument: ObjectNode,
+): Option<SemanticGraph> => {
+  for (const key of keyAliases) {
+    const result = lookupPropertyOfObjectNode(key, argument)
+    if (!option.isNone(result)) {
+      return result
+    }
+  }
+  return option.none
+}
+
+const asSemanticGraph = (
+  possiblyUnelaboratedValue: SemanticGraph | Molecule,
+): SemanticGraph =>
+  typeof possiblyUnelaboratedValue === 'object'
+    ? makeObjectNode(possiblyUnelaboratedValue)
+    : possiblyUnelaboratedValue

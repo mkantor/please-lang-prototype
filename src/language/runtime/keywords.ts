@@ -1,5 +1,6 @@
-import { either } from '../../adts.js'
+import { either, option, type Option } from '../../adts.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
+import type { Atom } from '../parsing.js'
 import {
   isFunctionNode,
   makeFunctionNode,
@@ -7,7 +8,10 @@ import {
   types,
   type KeywordElaborationResult,
   type KeywordModule,
+  type ObjectNode,
+  type SemanticGraph,
 } from '../semantics.js'
+import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
 
 const runtimeContext = makeObjectNode({
   environment: makeObjectNode({
@@ -56,15 +60,18 @@ export const handlers = {
    * Evaluates the given function, passing runtime context captured in `world`.
    */
   '@runtime': (expression): KeywordElaborationResult => {
-    const runtimeFunction = expression.function ?? expression['1']
-    if (runtimeFunction === undefined || !isFunctionNode(runtimeFunction)) {
+    const runtimeFunction = lookupWithinArgument(['function', '1'], expression)
+    if (
+      option.isNone(runtimeFunction) ||
+      !isFunctionNode(runtimeFunction.value)
+    ) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message:
           'a function must be provided via the property `function` or `1`',
       })
     } else {
-      return runtimeFunction(runtimeContext)
+      return runtimeFunction.value(runtimeContext)
     }
   },
 } satisfies KeywordModule<`@${string}`>['handlers']
@@ -75,3 +82,16 @@ export type Keyword = keyof typeof handlers
 const allKeywords = new Set(Object.keys(handlers))
 export const isKeyword = (input: string): input is Keyword =>
   allKeywords.has(input)
+
+const lookupWithinArgument = (
+  keyAliases: [Atom, ...(readonly Atom[])],
+  argument: ObjectNode,
+): Option<SemanticGraph> => {
+  for (const key of keyAliases) {
+    const result = lookupPropertyOfObjectNode(key, argument)
+    if (!option.isNone(result)) {
+      return result
+    }
+  }
+  return option.none
+}

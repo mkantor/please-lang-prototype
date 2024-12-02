@@ -1,21 +1,22 @@
-import { either, type Either } from '../../../adts.js'
+import { either, option, type Either } from '../../../adts.js'
 import type { Panic } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import {
   isFunctionNode,
   isObjectNode,
-  isPartiallyElaboratedObjectNode,
   makeFunctionNode,
   makeObjectNode,
   types,
-  type FullyElaboratedSemanticGraph,
   type ObjectNode,
 } from '../../semantics.js'
-import { serializeObjectNode } from '../../semantics/object-node.js'
 import {
-  isPartiallyElaboratedSemanticGraph,
+  lookupPropertyOfObjectNode,
+  serializeObjectNode,
+} from '../../semantics/object-node.js'
+import {
+  isSemanticGraph,
   serialize,
-  type PartiallyElaboratedSemanticGraph,
+  type SemanticGraph,
 } from '../../semantics/semantic-graph.js'
 import {
   makeFunctionType,
@@ -27,9 +28,7 @@ import {
 const preludeFunction = (
   keyPath: readonly string[],
   signature: FunctionType['signature'],
-  f: (
-    value: FullyElaboratedSemanticGraph,
-  ) => Either<Panic, FullyElaboratedSemanticGraph>,
+  f: (value: SemanticGraph) => Either<Panic, SemanticGraph>,
 ) =>
   makeFunctionNode(
     signature,
@@ -108,43 +107,47 @@ export const prelude: ObjectNode = makeObjectNode({
           kind: 'panic',
           message: '`flow` must be given an object',
         })
-      } else if (argument['0'] === undefined || argument['1'] === undefined) {
-        return either.makeLeft({
-          kind: 'panic',
-          message:
-            "`flow`'s argument must contain properties named '0' and '1'",
-        })
-      } else if (
-        !isFunctionNode(argument['0']) ||
-        !isFunctionNode(argument['1'])
-      ) {
-        return either.makeLeft({
-          kind: 'panic',
-          message: "`flow`'s argument must contain functions",
-        })
       } else {
-        const function0 = argument['0']
-        const function1 = argument['1']
-        return either.makeRight(
-          makeFunctionNode(
-            {
-              parameter: function0.signature.parameter,
-              return: function1.signature.parameter,
-            },
-            () =>
-              either.flatMap(function0.serialize(), serializedFunction0 =>
-                either.map(function1.serialize(), serializedFunction1 => ({
-                  0: '@apply',
-                  1: { 0: '@lookup', 1: { 0: 'flow' } },
-                  2: {
-                    0: serializedFunction0,
-                    1: serializedFunction1,
-                  },
-                })),
-              ),
-            argument => either.flatMap(function0(argument), function1),
-          ),
-        )
+        const argument0 = lookupPropertyOfObjectNode('0', argument)
+        const argument1 = lookupPropertyOfObjectNode('1', argument)
+        if (option.isNone(argument0) || option.isNone(argument1)) {
+          return either.makeLeft({
+            kind: 'panic',
+            message:
+              "`flow`'s argument must contain properties named '0' and '1'",
+          })
+        } else if (
+          !isFunctionNode(argument0.value) ||
+          !isFunctionNode(argument1.value)
+        ) {
+          return either.makeLeft({
+            kind: 'panic',
+            message: "`flow`'s argument must contain functions",
+          })
+        } else {
+          const function0 = argument0.value
+          const function1 = argument1.value
+          return either.makeRight(
+            makeFunctionNode(
+              {
+                parameter: function0.signature.parameter,
+                return: function1.signature.parameter,
+              },
+              () =>
+                either.flatMap(function0.serialize(), serializedFunction0 =>
+                  either.map(function1.serialize(), serializedFunction1 => ({
+                    0: '@apply',
+                    1: { 0: '@lookup', 1: { 0: 'flow' } },
+                    2: {
+                      0: serializedFunction0,
+                      1: serializedFunction1,
+                    },
+                  })),
+                ),
+              argument => either.flatMap(function0(argument), function1),
+            ),
+          )
+        }
       }
     },
   ),
@@ -219,16 +222,19 @@ export const prelude: ObjectNode = makeObjectNode({
                   message: 'argument was not tagged',
                 })
               } else {
-                const relevantCase = cases[argument.tag]
-                if (relevantCase === undefined) {
+                const relevantCase = lookupPropertyOfObjectNode(
+                  argument.tag,
+                  cases,
+                )
+                if (option.isNone(relevantCase)) {
                   return either.makeLeft({
                     kind: 'panic',
                     message: `case for tag '${argument.tag}' was not defined`,
                   })
                 } else {
-                  return !isFunctionNode(relevantCase)
-                    ? either.makeRight(relevantCase)
-                    : relevantCase(argument.value)
+                  return !isFunctionNode(relevantCase.value)
+                    ? either.makeRight(relevantCase.value)
+                    : relevantCase.value(argument.value)
                 }
               }
             },
@@ -300,20 +306,16 @@ export const prelude: ObjectNode = makeObjectNode({
 })
 
 type BooleanNode = 'true' | 'false'
-const nodeIsBoolean = (
-  node: PartiallyElaboratedSemanticGraph,
-): node is BooleanNode => node === 'true' || node === 'false'
+const nodeIsBoolean = (node: SemanticGraph): node is BooleanNode =>
+  node === 'true' || node === 'false'
 
 type TaggedNode = ObjectNode & {
   readonly tag: Atom
-  readonly value: FullyElaboratedSemanticGraph
+  readonly value: SemanticGraph
 }
-const nodeIsTagged = (
-  node: PartiallyElaboratedSemanticGraph,
-): node is TaggedNode =>
-  isPartiallyElaboratedObjectNode(node) &&
+const nodeIsTagged = (node: SemanticGraph): node is TaggedNode =>
+  isObjectNode(node) &&
   node.tag !== undefined &&
   (typeof node.tag === 'string' ||
-    (isPartiallyElaboratedSemanticGraph(node.tag) &&
-      typeof node.tag === 'string')) &&
+    (isSemanticGraph(node.tag) && typeof node.tag === 'string')) &&
   node.value !== undefined

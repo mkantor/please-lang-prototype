@@ -3,35 +3,23 @@ import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
-import {
-  makeObjectNode,
-  makePartiallyElaboratedObjectNode,
-  type KeyPath,
-  type ObjectNode,
-  type PartiallyElaboratedObjectNode,
-} from '../semantics.js'
+import { makeObjectNode, type KeyPath, type ObjectNode } from '../semantics.js'
 import {
   extractStringValueIfPossible,
-  updateValueAtKeyPathInPartiallyElaboratedSemanticGraph,
-  type PartiallyElaboratedSemanticGraph,
+  updateValueAtKeyPathInSemanticGraph,
+  type SemanticGraph,
 } from './semantic-graph.js'
 
-declare const _partiallyElaborated: unique symbol
-type PartiallyElaborated = { readonly [_partiallyElaborated]: true }
-export type PartiallyElaboratedValue = WithPhantomData<
-  PartiallyElaboratedSemanticGraph,
-  PartiallyElaborated
->
+declare const _elaborated: unique symbol
+type Elaborated = { readonly [_elaborated]: true }
+export type ElaboratedSemanticGraph = WithPhantomData<SemanticGraph, Elaborated>
 
 export type ExpressionContext = {
-  readonly program: PartiallyElaboratedSemanticGraph
+  readonly program: SemanticGraph
   readonly location: KeyPath
 }
 
-export type KeywordElaborationResult = Either<
-  ElaborationError,
-  PartiallyElaboratedSemanticGraph
->
+export type KeywordElaborationResult = Either<ElaborationError, SemanticGraph>
 
 export type KeywordHandler = (
   expression: ObjectNode,
@@ -46,34 +34,32 @@ export type KeywordModule<Keyword extends `@${string}`> = {
 export const elaborate = (
   program: SyntaxTree,
   keywordModule: KeywordModule<`@${string}`>,
-): Either<ElaborationError, PartiallyElaboratedValue> =>
+): Either<ElaborationError, ElaboratedSemanticGraph> =>
   elaborateWithContext(program, keywordModule, {
     location: [],
-    program:
-      typeof program === 'string'
-        ? program
-        : makePartiallyElaboratedObjectNode(program),
+    program: typeof program === 'string' ? program : makeObjectNode(program),
   })
 
 export const elaborateWithContext = (
   program: SyntaxTree,
   keywordModule: KeywordModule<`@${string}`>,
   context: ExpressionContext,
-): Either<ElaborationError, PartiallyElaboratedValue> =>
+): Either<ElaborationError, ElaboratedSemanticGraph> =>
   either.map(
     typeof program === 'string'
       ? handleAtomWhichMayNotBeAKeyword(program)
       : elaborateWithinMolecule(program, keywordModule, context),
-    withPhantomData<PartiallyElaborated>(),
+    withPhantomData<Elaborated>(),
   )
 
 const elaborateWithinMolecule = (
   molecule: Molecule,
   keywordModule: KeywordModule<`@${string}`>,
   context: ExpressionContext,
-): Either<ElaborationError, PartiallyElaboratedSemanticGraph> => {
-  const possibleExpressionAsObjectNode: Writable<PartiallyElaboratedObjectNode> =
-    makeObjectNode({})
+): Either<ElaborationError, SemanticGraph> => {
+  const possibleExpressionAsObjectNode: Writable<ObjectNode> = makeObjectNode(
+    {},
+  )
   let updatedProgram = context.program
 
   for (let [key, value] of Object.entries(molecule)) {
@@ -99,12 +85,11 @@ const elaborateWithinMolecule = (
           return elaborationResult
         }
 
-        const programUpdateResult =
-          updateValueAtKeyPathInPartiallyElaboratedSemanticGraph(
-            updatedProgram,
-            [...context.location, key],
-            _ => elaborationResult.value,
-          )
+        const programUpdateResult = updateValueAtKeyPathInSemanticGraph(
+          updatedProgram,
+          [...context.location, key],
+          _ => elaborationResult.value,
+        )
         if (either.isLeft(programUpdateResult)) {
           // Immediately bail on error.
           return elaborationResult
@@ -168,7 +153,7 @@ const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
   node: ObjectNode & { readonly 0: Atom },
   keywordModule: KeywordModule<Keyword>,
   context: ExpressionContext,
-): Either<ElaborationError, PartiallyElaboratedSemanticGraph> => {
+): Either<ElaborationError, SemanticGraph> => {
   const { 0: possibleKeyword, ...possibleArguments } = node
   return option.match(
     option.fromPredicate(possibleKeyword, keywordModule.isKeyword),

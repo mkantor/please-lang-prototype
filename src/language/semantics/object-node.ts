@@ -1,26 +1,32 @@
-import { either, type Either } from '../../adts.js'
+import { either, option, type Either, type Option } from '../../adts.js'
 import type { Writable } from '../../utility-types.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import {
-  nodeTag,
-  serialize,
-  type FullyElaboratedSemanticGraph,
-} from './semantic-graph.js'
+import { nodeTag, serialize, type SemanticGraph } from './semantic-graph.js'
 
 export type ObjectNode = {
   readonly [nodeTag]: 'object'
-  readonly [key: Atom]: FullyElaboratedSemanticGraph
+  readonly [key: Atom]: SemanticGraph | Molecule
 }
 
-export const isObjectNode = (node: FullyElaboratedSemanticGraph) =>
+export const isObjectNode = (node: SemanticGraph) =>
   typeof node === 'object' && node[nodeTag] === 'object'
 
+export const lookupPropertyOfObjectNode = (
+  key: Atom,
+  node: ObjectNode,
+): Option<SemanticGraph> =>
+  key in node && node[key] !== undefined
+    ? option.makeSome(
+        typeof node[key] === 'object' ? makeObjectNode(node[key]) : node[key],
+      )
+    : option.none
+
 export const makeObjectNode = (
-  properties: Readonly<Record<Atom, FullyElaboratedSemanticGraph>>,
+  properties: Readonly<Record<Atom, SemanticGraph | Molecule>>,
 ): ObjectNode => ({
-  [nodeTag]: 'object',
   ...properties,
+  [nodeTag]: 'object',
 })
 
 export const serializeObjectNode = (
@@ -28,7 +34,11 @@ export const serializeObjectNode = (
 ): Either<UnserializableValueError, Molecule> => {
   const molecule: Writable<Molecule> = {}
   for (const [key, propertyValue] of Object.entries(node)) {
-    const serializedPropertyValueResult = serialize(propertyValue)
+    const serializedPropertyValueResult = serialize(
+      typeof propertyValue === 'object'
+        ? makeObjectNode(propertyValue)
+        : propertyValue,
+    )
     if (either.isLeft(serializedPropertyValueResult)) {
       return serializedPropertyValueResult
     } else {

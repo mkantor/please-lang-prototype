@@ -1,6 +1,6 @@
 export {
   elaborate,
-  type PartiallyElaboratedValue as ElaboratedValue,
+  type ElaboratedSemanticGraph,
   type ExpressionContext,
   type KeywordElaborationResult,
   type KeywordModule,
@@ -17,14 +17,9 @@ export {
   type ObjectNode,
 } from './semantics/object-node.js'
 export {
-  isPartiallyElaboratedObjectNode,
-  makePartiallyElaboratedObjectNode,
-  type PartiallyElaboratedObjectNode,
-} from './semantics/partially-elaborated-object-node.js'
-export {
   serialize,
-  type FullyElaboratedSemanticGraph,
   type Output,
+  type SemanticGraph,
 } from './semantics/semantic-graph.js'
 export {
   containedTypeParameters,
