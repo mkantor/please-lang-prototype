@@ -65,7 +65,7 @@ export const handlers = {
           'a function must be provided via the property `function` or `1`',
       })
     } else {
-      return runtimeFunction.function(runtimeContext)
+      return runtimeFunction(runtimeContext)
     }
   },
 } satisfies KeywordModule<`@${string}`>['handlers']

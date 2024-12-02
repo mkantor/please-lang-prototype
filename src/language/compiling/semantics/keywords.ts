@@ -51,7 +51,7 @@ const check = ({
       message: 'functions cannot be type checked',
     })
   } else if (isFunctionNode(type)) {
-    const result = type.function(value)
+    const result = type(value)
     if (either.isLeft(result)) {
       // The compile-time-evaluated function panicked.
       return result
@@ -233,7 +233,7 @@ export const handlers = {
         message: 'only functions can be applied',
       })
     } else {
-      return functionToApply.function(argument)
+      return functionToApply(argument)
     }
   },
 
@@ -347,7 +347,7 @@ export const handlers = {
         !isAssignable({
           source: types.runtimeContext,
           target: replaceAllTypeParametersWithTheirConstraints(
-            runtimeFunction.signature.signature.parameter,
+            runtimeFunction.signature.parameter,
           ),
         })
           ? either.makeLeft({

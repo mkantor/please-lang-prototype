@@ -76,7 +76,7 @@ export const prelude: ObjectNode = makeObjectNode({
                 message: 'expected a function',
               })
             } else {
-              return functionToApply.function(argument)
+              return functionToApply(argument)
             }
           },
         ),
@@ -131,8 +131,8 @@ export const prelude: ObjectNode = makeObjectNode({
         return either.makeRight(
           makeFunctionNode(
             {
-              parameter: function0.signature.signature.parameter,
-              return: function1.signature.signature.parameter,
+              parameter: function0.signature.parameter,
+              return: function1.signature.parameter,
             },
             () =>
               either.flatMap(function0.serialize(), serializedFunction0 =>
@@ -145,8 +145,7 @@ export const prelude: ObjectNode = makeObjectNode({
                   },
                 })),
               ),
-            argument =>
-              either.flatMap(function0.function(argument), function1.function),
+            argument => either.flatMap(function0(argument), function1),
           ),
         )
       }
@@ -232,7 +231,7 @@ export const prelude: ObjectNode = makeObjectNode({
                 } else {
                   return !isFunctionNode(relevantCase)
                     ? either.makeRight(relevantCase)
-                    : relevantCase.function(argument.children.value)
+                    : relevantCase(argument.children.value)
                 }
               }
             },

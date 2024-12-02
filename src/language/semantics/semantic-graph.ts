@@ -165,7 +165,7 @@ export const isPartiallyElaboratedSemanticGraph = (
       },
 ): value is PartiallyElaboratedSemanticGraph =>
   typeof value === 'string' ||
-  (typeof value === 'object' &&
+  ((typeof value === 'object' || typeof value === 'function') &&
     nodeTag in value &&
     typeof value[nodeTag] === 'string')
 
