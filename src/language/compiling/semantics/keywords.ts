@@ -80,8 +80,8 @@ const check = ({
   } else {
     // Make sure all properties in the type are present and valid in the value (recursively).
     // Values may legally have additional properties beyond what is required by the type.
-    for (const [key, typePropertyValue] of Object.entries(type.children)) {
-      if (value.children[key] === undefined) {
+    for (const [key, typePropertyValue] of Object.entries(type)) {
+      if (value[key] === undefined) {
         return either.makeLeft({
           kind: 'typeMismatch',
           message: `the value \`${stringifyPartiallyElaboratedSemanticGraphForEndUser(
@@ -101,7 +101,7 @@ const check = ({
         // Recursively check the property:
         const resultOfCheckingProperty = check({
           context,
-          value: value.children[key],
+          value: value[key],
           type: typePropertyValue,
         })
         if (either.isLeft(resultOfCheckingProperty)) {
@@ -213,9 +213,8 @@ export const handlers = {
    * Calls the given `FunctionNode` with a given argument.
    */
   '@apply': (expression, _context): KeywordElaborationResult => {
-    const functionToApply =
-      expression.children['function'] ?? expression.children['1']
-    const argument = expression.children.argument ?? expression.children['2']
+    const functionToApply = expression['function'] ?? expression['1']
+    const argument = expression.argument ?? expression['2']
 
     if (functionToApply === undefined) {
       return either.makeLeft({
@@ -241,8 +240,8 @@ export const handlers = {
    * Checks whether a given value is assignable to a given type.
    */
   '@check': (expression, context): KeywordElaborationResult => {
-    const value = expression.children.value ?? expression.children['1']
-    const type = expression.children.type ?? expression.children['2']
+    const value = expression.value ?? expression['1']
+    const type = expression.type ?? expression['2']
     if (value === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
@@ -262,7 +261,7 @@ export const handlers = {
    * Given a query, resolves the value of a property within the program.
    */
   '@lookup': (expression, context): KeywordElaborationResult => {
-    const query = expression.children.query ?? expression.children['1']
+    const query = expression.query ?? expression['1']
     if (query === undefined) {
       return either.makeLeft({
         kind: 'invalidExpression',
@@ -281,7 +280,7 @@ export const handlers = {
           const relativePath: string[] = []
           let queryIndex = 0
           // Consume numeric indexes ("0", "1", …) until exhausted, validating that each is an atom.
-          let node = canonicalizedQuery.children[queryIndex]
+          let node = canonicalizedQuery[queryIndex]
           while (node !== undefined) {
             if (typeof node !== 'string') {
               return either.makeLeft({
@@ -293,7 +292,7 @@ export const handlers = {
               relativePath.push(node)
             }
             queryIndex++
-            node = canonicalizedQuery.children[queryIndex]
+            node = canonicalizedQuery[queryIndex]
           }
           return either.makeRight(relativePath)
         })()
@@ -334,8 +333,7 @@ export const handlers = {
    * Preserves a raw function node for emission into the runtime code.
    */
   '@runtime': (expression, context): KeywordElaborationResult => {
-    const runtimeFunction =
-      expression.children.function ?? expression.children['1']
+    const runtimeFunction = expression.function ?? expression['1']
     if (runtimeFunction === undefined || !isFunctionNode(runtimeFunction)) {
       return either.makeLeft({
         kind: 'invalidExpression',

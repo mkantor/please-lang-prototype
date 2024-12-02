@@ -12,6 +12,7 @@ import {
   type ElaboratedValue,
   type ObjectNode,
 } from '../semantics.js'
+import type { PartiallyElaboratedSemanticGraph } from '../semantics/semantic-graph.js'
 import * as keywordModule from './semantics/keywords.js'
 import { prelude } from './semantics/prelude.js'
 
@@ -22,14 +23,15 @@ const elaborationSuite = testCases(
 )
 
 const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
-  const children: Writable<ObjectNode['children']> = {}
+  const properties: Writable<Record<string, PartiallyElaboratedSemanticGraph>> =
+    {}
   for (const [key, propertyValue] of Object.entries(molecule)) {
-    children[key] =
+    properties[key] =
       typeof propertyValue === 'string'
         ? propertyValue
         : literalMoleculeToObjectNode(propertyValue)
   }
-  return makeObjectNode(children)
+  return makeObjectNode(properties)
 }
 
 const success = (
@@ -304,13 +306,13 @@ elaborationSuite('@runtime', [
   [
     { 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } },
     elaboratedValue => {
-      if (prelude.children.identity === undefined) {
+      if (prelude.identity === undefined) {
         throw new Error('Prelude does not contain `identity`. This is a bug!')
       }
       const expectedValue = either.makeRight(
         makePartiallyElaboratedObjectNode({
           0: '@runtime',
-          1: prelude.children.identity,
+          1: prelude.identity,
         }),
       )
       assert.deepEqual(elaboratedValue, expectedValue)

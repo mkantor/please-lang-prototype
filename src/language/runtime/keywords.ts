@@ -56,8 +56,7 @@ export const handlers = {
    * Evaluates the given function, passing runtime context captured in `world`.
    */
   '@runtime': (expression): KeywordElaborationResult => {
-    const runtimeFunction =
-      expression.children.function ?? expression.children['1']
+    const runtimeFunction = expression.function ?? expression['1']
     if (runtimeFunction === undefined || !isFunctionNode(runtimeFunction)) {
       return either.makeLeft({
         kind: 'invalidExpression',

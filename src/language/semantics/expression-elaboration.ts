@@ -72,9 +72,8 @@ const elaborateWithinMolecule = (
   keywordModule: KeywordModule<`@${string}`>,
   context: ExpressionContext,
 ): Either<ElaborationError, PartiallyElaboratedSemanticGraph> => {
-  let possibleExpressionAsObjectNode: PartiallyElaboratedObjectNode & {
-    readonly children: Writable<PartiallyElaboratedObjectNode['children']>
-  } = makeObjectNode({})
+  const possibleExpressionAsObjectNode: Writable<PartiallyElaboratedObjectNode> =
+    makeObjectNode({})
   let updatedProgram = context.program
 
   for (let [key, value] of Object.entries(molecule)) {
@@ -85,7 +84,7 @@ const elaborateWithinMolecule = (
     } else {
       const updatedKey = keyUpdateResult.value
       if (typeof value === 'string') {
-        possibleExpressionAsObjectNode.children[updatedKey] = value
+        possibleExpressionAsObjectNode[updatedKey] = value
       } else {
         const elaborationResult = elaborateWithinMolecule(
           value,
@@ -111,14 +110,13 @@ const elaborateWithinMolecule = (
           return elaborationResult
         }
         updatedProgram = programUpdateResult.value
-        possibleExpressionAsObjectNode.children[updatedKey] =
-          elaborationResult.value
+        possibleExpressionAsObjectNode[updatedKey] = elaborationResult.value
       }
     }
   }
 
   const { 0: possibleKeywordAsNode, ...propertiesInNeedOfFinalizationAsNodes } =
-    possibleExpressionAsObjectNode.children
+    possibleExpressionAsObjectNode
 
   // At this point `possibleExpressionAsObjectNode` may still have raw escape sequences at the top
   // level (whether it is an expression or not).
@@ -135,12 +133,12 @@ const elaborateWithinMolecule = (
         return valueUpdateResult
       } else {
         const updatedValue = valueUpdateResult.value
-        possibleExpressionAsObjectNode.children[key] = updatedValue
+        possibleExpressionAsObjectNode[key] = updatedValue
       }
     }
   }
 
-  const possibleKeyword = possibleExpressionAsObjectNode.children['0']
+  const possibleKeyword = possibleExpressionAsObjectNode['0']
   if (possibleKeyword === undefined) {
     // The input didn't have a `0` property, so it's not an expression.
     return either.makeRight(possibleExpressionAsObjectNode)
@@ -154,10 +152,7 @@ const elaborateWithinMolecule = (
         handleObjectNodeWhichMayBeAExpression(
           {
             ...possibleExpressionAsObjectNode,
-            children: {
-              ...possibleExpressionAsObjectNode.children,
-              0: possibleKeywordAsString,
-            },
+            0: possibleKeywordAsString,
           },
           keywordModule,
           {
@@ -170,11 +165,11 @@ const elaborateWithinMolecule = (
 }
 
 const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
-  node: ObjectNode & { readonly children: { readonly 0: Atom } },
+  node: ObjectNode & { readonly 0: Atom },
   keywordModule: KeywordModule<Keyword>,
   context: ExpressionContext,
 ): Either<ElaborationError, PartiallyElaboratedSemanticGraph> => {
-  const { 0: possibleKeyword, ...possibleArguments } = node.children
+  const { 0: possibleKeyword, ...possibleArguments } = node
   return option.match(
     option.fromPredicate(possibleKeyword, keywordModule.isKeyword),
     {
@@ -186,10 +181,7 @@ const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
             })
           : either.makeRight({
               ...node,
-              children: {
-                ...node.children,
-                0: unescapeKeywordSigil(possibleKeyword),
-              },
+              0: unescapeKeywordSigil(possibleKeyword),
             }),
       some: keyword =>
         keywordModule.handlers[keyword](

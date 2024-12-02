@@ -10,21 +10,24 @@ import {
 
 export type ObjectNode = {
   readonly [nodeTag]: 'object'
-  readonly children: Readonly<Record<Atom, FullyElaboratedSemanticGraph>>
+  readonly [key: Atom]: FullyElaboratedSemanticGraph
 }
 
 export const isObjectNode = (node: FullyElaboratedSemanticGraph) =>
   typeof node === 'object' && node[nodeTag] === 'object'
 
 export const makeObjectNode = (
-  children: Readonly<Record<Atom, FullyElaboratedSemanticGraph>>,
-): ObjectNode => ({ [nodeTag]: 'object', children })
+  properties: Readonly<Record<Atom, FullyElaboratedSemanticGraph>>,
+): ObjectNode => ({
+  [nodeTag]: 'object',
+  ...properties,
+})
 
 export const serializeObjectNode = (
   node: ObjectNode,
 ): Either<UnserializableValueError, Molecule> => {
   const molecule: Writable<Molecule> = {}
-  for (const [key, propertyValue] of Object.entries(node.children)) {
+  for (const [key, propertyValue] of Object.entries(node)) {
     const serializedPropertyValueResult = serialize(propertyValue)
     if (either.isLeft(serializedPropertyValueResult)) {
       return serializedPropertyValueResult

@@ -11,9 +11,7 @@ import {
 
 export type PartiallyElaboratedObjectNode = {
   readonly [nodeTag]: 'object'
-  readonly children: Readonly<
-    Record<Atom, PartiallyElaboratedSemanticGraph | Atom | Molecule>
-  >
+  readonly [key: Atom]: PartiallyElaboratedSemanticGraph
 }
 
 export const isPartiallyElaboratedObjectNode = (
@@ -21,19 +19,19 @@ export const isPartiallyElaboratedObjectNode = (
 ) => typeof node === 'object' && node[nodeTag] === 'object'
 
 export const makePartiallyElaboratedObjectNode = (
-  children: Readonly<
+  properties: Readonly<
     Record<Atom, PartiallyElaboratedSemanticGraph | Atom | Molecule>
   >,
 ): PartiallyElaboratedObjectNode => ({
   [nodeTag]: 'object',
-  children,
+  ...properties,
 })
 
 export const serializePartiallyElaboratedObjectNode = (
   node: PartiallyElaboratedObjectNode,
 ): Either<UnserializableValueError, Molecule> => {
   const molecule: Writable<Molecule> = {}
-  for (const [key, propertyValue] of Object.entries(node.children)) {
+  for (const [key, propertyValue] of Object.entries(node)) {
     const serializedPropertyValueResult = isPartiallyElaboratedSemanticGraph(
       propertyValue,
     )

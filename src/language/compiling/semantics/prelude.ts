@@ -108,26 +108,23 @@ export const prelude: ObjectNode = makeObjectNode({
           kind: 'panic',
           message: '`flow` must be given an object',
         })
-      } else if (
-        argument.children['0'] === undefined ||
-        argument.children['1'] === undefined
-      ) {
+      } else if (argument['0'] === undefined || argument['1'] === undefined) {
         return either.makeLeft({
           kind: 'panic',
           message:
             "`flow`'s argument must contain properties named '0' and '1'",
         })
       } else if (
-        !isFunctionNode(argument.children['0']) ||
-        !isFunctionNode(argument.children['1'])
+        !isFunctionNode(argument['0']) ||
+        !isFunctionNode(argument['1'])
       ) {
         return either.makeLeft({
           kind: 'panic',
           message: "`flow`'s argument must contain functions",
         })
       } else {
-        const function0 = argument.children['0']
-        const function1 = argument.children['1']
+        const function0 = argument['0']
+        const function1 = argument['1']
         return either.makeRight(
           makeFunctionNode(
             {
@@ -222,16 +219,16 @@ export const prelude: ObjectNode = makeObjectNode({
                   message: 'argument was not tagged',
                 })
               } else {
-                const relevantCase = cases.children[argument.children.tag]
+                const relevantCase = cases[argument.tag]
                 if (relevantCase === undefined) {
                   return either.makeLeft({
                     kind: 'panic',
-                    message: `case for tag '${argument.children.tag}' was not defined`,
+                    message: `case for tag '${argument.tag}' was not defined`,
                   })
                 } else {
                   return !isFunctionNode(relevantCase)
                     ? either.makeRight(relevantCase)
-                    : relevantCase(argument.children.value)
+                    : relevantCase(argument.value)
                 }
               }
             },
@@ -276,7 +273,7 @@ export const prelude: ObjectNode = makeObjectNode({
                     message: 'argument was not an object',
                   })
                 } else {
-                  const propertyValue = argument.children[key]
+                  const propertyValue = argument[key]
                   if (propertyValue === undefined) {
                     return either.makeRight(
                       makeObjectNode({
@@ -308,17 +305,15 @@ const nodeIsBoolean = (
 ): node is BooleanNode => node === 'true' || node === 'false'
 
 type TaggedNode = ObjectNode & {
-  readonly children: {
-    readonly tag: Atom
-    readonly value: FullyElaboratedSemanticGraph
-  }
+  readonly tag: Atom
+  readonly value: FullyElaboratedSemanticGraph
 }
 const nodeIsTagged = (
   node: PartiallyElaboratedSemanticGraph,
 ): node is TaggedNode =>
   isPartiallyElaboratedObjectNode(node) &&
-  node.children.tag !== undefined &&
-  (typeof node.children.tag === 'string' ||
-    (isPartiallyElaboratedSemanticGraph(node.children.tag) &&
-      typeof node.children.tag === 'string')) &&
-  node.children.value !== undefined
+  node.tag !== undefined &&
+  (typeof node.tag === 'string' ||
+    (isPartiallyElaboratedSemanticGraph(node.tag) &&
+      typeof node.tag === 'string')) &&
+  node.value !== undefined

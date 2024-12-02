@@ -38,7 +38,7 @@ export const applyKeyPathToPartiallyElaboratedSemanticGraph = (
         if (typeof firstKey === 'symbol') {
           return option.none
         } else {
-          const next = graph.children[firstKey]
+          const next = graph[firstKey]
           if (next === undefined) {
             return option.none
           } else {
@@ -91,7 +91,7 @@ export const updateValueAtKeyPathInPartiallyElaboratedSemanticGraph = (
         if (typeof firstKey === 'symbol') {
           return either.makeLeft(makePropertyNotFoundError(keyPath))
         } else {
-          const next = node.children[firstKey]
+          const next = node[firstKey]
           if (next === undefined) {
             return either.makeLeft(makePropertyNotFoundError(keyPath))
           } else {
@@ -105,7 +105,7 @@ export const updateValueAtKeyPathInPartiallyElaboratedSemanticGraph = (
               ),
               updatedNode =>
                 makePartiallyElaboratedObjectNode({
-                  ...node.children,
+                  ...node,
                   [firstKey]: updatedNode,
                 }),
             )
