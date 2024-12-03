@@ -5,10 +5,10 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import type { Canonicalized } from '../parsing/syntax-tree.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
+  lookupPropertyOfObjectNode,
   makeObjectNode,
   serializeObjectNode,
   type ObjectNode,
@@ -44,6 +44,41 @@ export const applyKeyPathToSemanticGraph = (
               remainingKeyPath,
             )
           }
+        }
+      },
+    })
+  }
+}
+
+export const updateValueAtKeyPathInSemanticGraphIfValid = (
+  value: SemanticGraph,
+  keyPath: KeyPath,
+  operation: (valueAtKeyPath: SemanticGraph) => SemanticGraph,
+): SemanticGraph => {
+  const [firstKey, ...remainingKeyPath] = keyPath
+  if (firstKey === undefined) {
+    // If the key path is empty, this is the value to operate on.
+    return operation(value)
+  } else {
+    return matchSemanticGraph(value, {
+      atom: (node): SemanticGraph => node,
+      function: node => node,
+      object: node => {
+        if (typeof firstKey === 'string') {
+          return option.match(lookupPropertyOfObjectNode(firstKey, node), {
+            none: () => node,
+            some: propertyValue =>
+              makeObjectNode({
+                ...node,
+                [firstKey]: updateValueAtKeyPathInSemanticGraphIfValid(
+                  propertyValue,
+                  remainingKeyPath,
+                  operation,
+                ),
+              }),
+          })
+        } else {
+          return node
         }
       },
     })
