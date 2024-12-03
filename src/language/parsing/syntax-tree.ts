@@ -12,7 +12,7 @@ import { atomParser, type Atom } from './atom.js'
 import { moleculeParser, type Molecule } from './molecule.js'
 
 declare const _canonicalized: unique symbol
-type Canonicalized = { readonly [_canonicalized]: true }
+export type Canonicalized = { readonly [_canonicalized]: true }
 export type SyntaxTree = WithPhantomData<Atom | Molecule, Canonicalized>
 
 export const applyKeyPathToSyntaxTree = (

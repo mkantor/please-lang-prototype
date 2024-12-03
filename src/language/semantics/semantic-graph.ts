@@ -5,6 +5,7 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
+import type { Canonicalized } from '../parsing/syntax-tree.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
@@ -185,20 +186,24 @@ export const matchSemanticGraph = <Result>(
 
 declare const _serialized: unique symbol
 type Serialized = { readonly [_serialized]: true }
-export type Output = WithPhantomData<Atom | Molecule, Serialized>
+export type Output = WithPhantomData<
+  Atom | Molecule,
+  Serialized & Canonicalized
+>
 
 export const serialize = (
   node: SemanticGraph,
-): Either<UnserializableValueError, Output> =>
-  either.map(
+): Either<UnserializableValueError, Output> => {
+  return either.map(
     matchSemanticGraph(node, {
       atom: (node): Either<UnserializableValueError, Atom | Molecule> =>
         either.makeRight(node),
       function: node => serializeFunctionNode(node),
       object: node => serializeObjectNode(node),
     }),
-    withPhantomData<Serialized>(),
+    withPhantomData<Serialized & Canonicalized>(),
   )
+}
 
 export const isSemanticGraph = (
   value:
