@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { either, type Either } from '../../adts.js'
+import { either, option, type Either } from '../../adts.js'
 import { withPhantomData } from '../../phantom-data.js'
 import { testCases } from '../../test-utilities.test.js'
 import type { Writable } from '../../utility-types.js'
@@ -7,6 +7,7 @@ import type { ElaborationError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import {
   elaborate,
+  isFunctionNode,
   makeObjectNode,
   type ElaboratedSemanticGraph,
   type ObjectNode,
@@ -298,23 +299,296 @@ elaborationSuite('@apply', [
     { 0: '@apply', function: 'not a function', argument: 'a' },
     output => assert(either.isLeft(output)),
   ],
+  [
+    {
+      0: '@apply',
+      function: { 0: '@function', 1: 'x', 2: { 0: '@lookup', 1: 'x' } },
+      argument: 'identity is identical',
+    },
+    success('identity is identical'),
+  ],
+  [
+    {
+      0: '@apply',
+      function: {
+        0: '@function',
+        parameter: 'a',
+        body: {
+          0: '@apply',
+          function: {
+            0: '@function',
+            parameter: 'b',
+            body: {
+              A: { 0: '@lookup', query: 'a' },
+              B: { 0: '@lookup', query: 'b' },
+            },
+          },
+          argument: 'b',
+        },
+      },
+      argument: 'a',
+    },
+    success({ A: 'a', B: 'b' }),
+  ],
+  [
+    {
+      0: '@apply',
+      function: {
+        0: '@function',
+        1: 'x',
+        2: {
+          0: '@apply',
+          function: { 0: '@lookup', 1: { 0: 'boolean', 1: 'not' } },
+          argument: { 0: '@lookup', 1: 'x' },
+        },
+      },
+      argument: 'false',
+    },
+    success('true'),
+  ],
+  [
+    {
+      0: '@apply',
+      function: {
+        0: '@function',
+        1: 'x',
+        2: { 0: '@lookup', 1: { 0: 'x', 1: 'a' } },
+      },
+      argument: { a: 'it works' },
+    },
+    success('it works'),
+  ],
+  [
+    // {
+    //   a: "a"
+    //   b: (a => {
+    //     a: "b"
+    //     b: (a => :a)("it works")
+    //   })("unused")
+    // }
+    {
+      a: 'a',
+      b: {
+        0: '@apply',
+        function: {
+          0: '@function',
+          parameter: 'a',
+          body: {
+            a: 'b',
+            b: {
+              0: '@apply',
+              function: {
+                0: '@function',
+                parameter: 'a',
+                body: {
+                  0: '@lookup',
+                  query: 'a',
+                },
+              },
+              argument: 'it works',
+            },
+          },
+        },
+        argument: 'unused',
+      },
+    },
+    success({
+      a: 'a',
+      b: {
+        a: 'b',
+        b: 'it works',
+      },
+    }),
+  ],
+  [
+    // {
+    //   a: "a"
+    //   b: (a => {
+    //     a: "it works"
+    //     b: (a => :a)(:a)
+    //   })("unused")
+    // }
+    {
+      a: 'a',
+      b: {
+        0: '@apply',
+        function: {
+          0: '@function',
+          parameter: 'a',
+          body: {
+            a: 'it works',
+            b: {
+              0: '@apply',
+              function: {
+                0: '@function',
+                parameter: 'a',
+                body: { 0: '@lookup', query: 'a' },
+              },
+              argument: { 0: '@lookup', query: 'a' },
+            },
+          },
+        },
+        argument: 'unused',
+      },
+    },
+    success({
+      a: 'a',
+      b: {
+        a: 'it works',
+        b: 'it works',
+      },
+    }),
+  ],
+  [
+    // {
+    //   a:"it works"
+    //   b: (a => {
+    //     b: (a => :a)(:a)
+    //   })(:a)
+    // }
+    {
+      a: 'it works',
+      b: {
+        0: '@apply',
+        function: {
+          0: '@function',
+          parameter: 'a',
+          body: {
+            b: {
+              0: '@apply',
+              function: {
+                0: '@function',
+                parameter: 'a',
+                body: { 0: '@lookup', query: 'a' },
+              },
+              argument: { 0: '@lookup', query: 'a' },
+            },
+          },
+        },
+        argument: { 0: '@lookup', query: 'a' },
+      },
+    },
+    success({
+      a: 'it works',
+      b: {
+        b: 'it works',
+      },
+    }),
+  ],
+  [
+    // {
+    //   a: "a"
+    //   b: (a => {
+    //     a: "it works"
+    //     b: (b => :a)("unused")
+    //   })("unused")
+    // }
+    {
+      a: 'a',
+      b: {
+        0: '@apply',
+        function: {
+          0: '@function',
+          parameter: 'a',
+          body: {
+            a: 'it works',
+            b: {
+              0: '@apply',
+              function: {
+                0: '@function',
+                parameter: 'b',
+                body: { 0: '@lookup', query: 'a' },
+              },
+              argument: 'unused',
+            },
+          },
+        },
+        argument: 'unused',
+      },
+    },
+    success({
+      a: 'a',
+      b: {
+        a: 'it works',
+        b: 'it works',
+      },
+    }),
+  ],
+  [
+    // {
+    //   a: "it works"
+    //   b: (b => {
+    //     b: "b"
+    //     c: (b => :a)("unused")
+    //   })("unused")
+    // }
+    {
+      a: 'it works',
+      b: {
+        0: '@apply',
+        function: {
+          0: '@function',
+          parameter: 'b',
+          body: {
+            b: 'b',
+            c: {
+              0: '@apply',
+              function: {
+                0: '@function',
+                parameter: 'b',
+                body: { 0: '@lookup', query: 'a' },
+              },
+              argument: 'unused',
+            },
+          },
+        },
+        argument: 'unused',
+      },
+    },
+    success({
+      a: 'it works',
+      b: {
+        b: 'b',
+        c: 'it works',
+      },
+    }),
+  ],
+])
+
+elaborationSuite('@function', [
+  [
+    { 0: '@function', 1: 'not a function' },
+    output => assert(either.isLeft(output)),
+  ],
+  [
+    { 0: '@function', 1: 'x', 2: { 0: '@lookup', 1: 'x' } },
+    elaboratedFunction => {
+      assert(!either.isLeft(elaboratedFunction))
+      assert(isFunctionNode(elaboratedFunction.value))
+      assert.deepEqual(
+        elaboratedFunction.value.parameterName,
+        option.makeSome('x'),
+      )
+      assert.deepEqual(
+        elaboratedFunction.value.serialize(),
+        either.makeRight({
+          0: '@function',
+          parameter: 'x',
+          body: { 0: '@lookup', 1: { 0: 'x' } },
+        }),
+      )
+    },
+  ],
 ])
 
 elaborationSuite('@runtime', [
   [
     { 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } },
-    elaboratedValue => {
-      if (prelude.identity === undefined) {
-        throw new Error('Prelude does not contain `identity`. This is a bug!')
-      }
-      const expectedValue = either.makeRight(
-        makeObjectNode({
-          0: '@runtime',
-          1: prelude.identity,
-        }),
-      )
-      assert.deepEqual(elaboratedValue, expectedValue)
-    },
+    either.makeRight(
+      withPhantomData<never>()(
+        makeObjectNode({ 0: '@runtime', 1: prelude.identity! }),
+      ),
+    ),
   ],
   [
     { 0: '@runtime', 1: 'not a function' },

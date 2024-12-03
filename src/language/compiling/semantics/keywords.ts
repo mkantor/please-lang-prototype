@@ -5,17 +5,20 @@ import {
   isAssignable,
   isFunctionNode,
   isObjectNode,
+  makeFunctionNode,
   makeObjectNode,
   replaceAllTypeParametersWithTheirConstraints,
   serialize,
   types,
   type ExpressionContext,
+  type FunctionNode,
   type KeyPath,
   type KeywordElaborationResult,
   type KeywordModule,
   type ObjectNode,
   type SemanticGraph,
 } from '../../semantics.js'
+import { elaborateWithContext } from '../../semantics/expression-elaboration.js'
 import { stringifyKeyPathForEndUser } from '../../semantics/key-path.js'
 import {
   lookupPropertyOfObjectNode,
@@ -24,6 +27,7 @@ import {
 import {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
+  updateValueAtKeyPathInSemanticGraphIfValid,
 } from '../../semantics/semantic-graph.js'
 import { prelude } from './prelude.js'
 
@@ -157,29 +161,57 @@ const lookup = ({
       {
         none: () => either.makeRight(option.none),
         some: scope =>
-          option.match(
-            applyKeyPathToSemanticGraph(scope, [firstPathComponent]),
-            {
-              none: () => either.makeRight(option.none),
-              some: property =>
-                option.match(
-                  applyKeyPathToSemanticGraph(property, propertyPath),
-                  {
-                    none: () =>
-                      either.makeLeft({
-                        kind: 'invalidExpression',
-                        message: `\`${stringifyKeyPathForEndUser(
-                          propertyPath,
-                        )}\` is not a property of \`${stringifyKeyPathForEndUser(
-                          [...pathToCurrentScope, firstPathComponent],
-                        )}\``,
+          either.match(validateLambda(scope), {
+            left: _ =>
+              option.match(
+                applyKeyPathToSemanticGraph(scope, [firstPathComponent]),
+                {
+                  none: () => either.makeRight(option.none),
+                  some: property =>
+                    option.match(
+                      applyKeyPathToSemanticGraph(property, propertyPath),
+                      {
+                        none: () =>
+                          either.makeLeft({
+                            kind: 'invalidExpression',
+                            message: `\`${stringifyKeyPathForEndUser(
+                              propertyPath,
+                            )}\` is not a property of \`${stringifyKeyPathForEndUser(
+                              [...pathToCurrentScope, firstPathComponent],
+                            )}\``,
+                          }),
+                        some: lookedUpValue =>
+                          either.makeRight(option.makeSome(lookedUpValue)),
+                      },
+                    ),
+                },
+              ),
+            right: lambdaScope => {
+              if (lambdaScope.parameter === firstPathComponent) {
+                if (!relativePath.every(key => typeof key === 'string')) {
+                  return either.makeLeft({
+                    kind: 'invalidExpression',
+                    message:
+                      'dynamically-resolved lookup query contains symbolic key',
+                  })
+                } else {
+                  // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
+                  return either.makeRight(
+                    option.makeSome(
+                      makeUnelaboratedObjectNode({
+                        0: '@lookup',
+                        1: Object.fromEntries(
+                          relativePath.map((key, index) => [index, key]),
+                        ),
                       }),
-                    some: lookedUpValue =>
-                      either.makeRight(option.makeSome(lookedUpValue)),
-                  },
-                ),
+                    ),
+                  )
+                }
+              } else {
+                return either.makeRight(option.none)
+              }
             },
-          ),
+          }),
       },
     )
 
@@ -288,6 +320,12 @@ export const handlers = {
       })
     }
   },
+
+  /**
+   * Lambdas remain as-is in the syntax tree (for later evaluation).
+   */
+  '@function': (expression, context): KeywordElaborationResult =>
+    compileLambda(expression, context),
 
   /**
    * Given a query, resolves the value of a property within the program.
@@ -414,6 +452,151 @@ export type Keyword = keyof typeof handlers
 const allKeywords = new Set(Object.keys(handlers))
 export const isKeyword = (input: string): input is Keyword =>
   allKeywords.has(input)
+
+export const applyLambda = (
+  lambda: Lambda,
+  argument: SemanticGraph,
+  context: ExpressionContext,
+): ReturnType<FunctionNode> => {
+  const parameter = lambda.parameter
+  const body =
+    typeof lambda.body === 'object' ? makeObjectNode(lambda.body) : lambda.body
+
+  // TODO: Make this foolproof.
+  const returnKey =
+    parameter === 'return'
+      ? 'return with a different key to avoid collision with a stupidly-named parameter'
+      : 'return'
+
+  const result = either.flatMap(serialize(body), serializedBody => {
+    const updatedProgram = updateValueAtKeyPathInSemanticGraphIfValid(
+      context.program,
+      context.location,
+      _ =>
+        makeObjectNode({
+          [lambda.parameter]: argument,
+          [returnKey]: body,
+        }),
+    )
+
+    return elaborateWithContext(
+      serializedBody,
+      { handlers, isKeyword },
+      {
+        location: [...context.location, returnKey],
+        program: updatedProgram,
+      },
+    )
+  })
+  if (either.isLeft(result)) {
+    return either.makeLeft({
+      kind: 'panic',
+      message: result.value.message,
+    })
+  } else {
+    return result
+  }
+}
+
+type Lambda = ObjectNode & {
+  readonly 0: '@function'
+  readonly parameter: Atom
+  readonly body: SemanticGraph | Molecule
+}
+
+const validateLambda = (
+  possibleLambda: SemanticGraph,
+): Either<ElaborationError, Lambda> => {
+  if (typeof possibleLambda !== 'object') {
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'functions must be encoded as objects',
+    })
+  } else {
+    const parameter = lookupWithinArgument(['parameter', '1'], possibleLambda)
+    const body = lookupWithinArgument(['body', '2'], possibleLambda)
+
+    if (option.isNone(parameter)) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message:
+          'parameter name must be provided via the property `parameter` or `1`',
+      })
+    } else if (typeof parameter.value !== 'string') {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message: 'parameter name must be an atom',
+      })
+    } else if (option.isNone(body)) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message:
+          'function body must be provided via the property `body` or `2`',
+      })
+    } else {
+      return either.makeRight(
+        makeObjectNode({
+          0: '@function',
+          parameter: parameter.value,
+          body: body.value,
+        }),
+      )
+    }
+  }
+}
+
+const compileLambda = (
+  possibleLambda: SemanticGraph,
+  context: ExpressionContext,
+): Either<ElaborationError, FunctionNode> => {
+  if (typeof possibleLambda !== 'object') {
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'functions must be encoded as objects',
+    })
+  } else {
+    const parameter = lookupWithinArgument(['parameter', '1'], possibleLambda)
+    const body = lookupWithinArgument(['body', '2'], possibleLambda)
+
+    if (option.isNone(parameter)) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message:
+          'parameter name must be provided via the property `parameter` or `1`',
+      })
+    } else if (typeof parameter.value !== 'string') {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message: 'parameter name must be an atom',
+      })
+    } else if (option.isNone(body)) {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message:
+          'function body must be provided via the property `body` or `2`',
+      })
+    } else {
+      const parameterAsString = parameter.value
+      return either.map(serialize(body.value), body => {
+        const serializedLambda = {
+          0: '@function',
+          parameter: parameterAsString,
+          body,
+        } as const
+        return makeFunctionNode(
+          {
+            parameter: types.something,
+            return: types.something,
+          },
+          () => either.makeRight(serializedLambda),
+          option.makeSome(parameterAsString),
+          argument =>
+            applyLambda(makeObjectNode(serializedLambda), argument, context),
+        )
+      })
+    }
+  }
+}
 
 const asSemanticGraph = (
   possiblyUnelaboratedValue: SemanticGraph | Molecule,

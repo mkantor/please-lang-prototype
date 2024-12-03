@@ -50,6 +50,7 @@ export type ElaborationError =
   | Panic
   | TypeMismatchError
   | UnknownKeywordError
+  | UnserializableValueError
 
 export type ParseError = BadSyntax
 
