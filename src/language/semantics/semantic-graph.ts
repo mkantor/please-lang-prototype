@@ -5,6 +5,7 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
+import type { Canonicalized } from '../parsing/syntax-tree.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
@@ -14,6 +15,8 @@ import {
 } from './object-node.js'
 
 export const nodeTag = Symbol('nodeTag')
+
+export const unelaboratedKey = Symbol('unelaborated')
 
 export type SemanticGraph = Atom | FunctionNode | ObjectNode
 
@@ -44,6 +47,27 @@ export const applyKeyPathToSemanticGraph = (
         }
       },
     })
+  }
+}
+
+export const containsAnyUnelaboratedNodes = (
+  node: SemanticGraph | Molecule,
+): boolean => {
+  if (
+    typeof node !== 'string' &&
+    unelaboratedKey in node &&
+    node[unelaboratedKey] === true
+  ) {
+    return true
+  } else if (typeof node === 'object') {
+    for (const propertyValue of Object.values(node)) {
+      if (containsAnyUnelaboratedNodes(propertyValue) === true) {
+        return true
+      }
+    }
+    return false
+  } else {
+    return false
   }
 }
 

@@ -2,11 +2,17 @@ import { either, option, type Either, type Option } from '../../adts.js'
 import type { Writable } from '../../utility-types.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import { nodeTag, serialize, type SemanticGraph } from './semantic-graph.js'
+import {
+  nodeTag,
+  serialize,
+  unelaboratedKey,
+  type SemanticGraph,
+} from './semantic-graph.js'
 
 export type ObjectNode = {
   readonly [nodeTag]: 'object'
   readonly [key: Atom]: SemanticGraph | Molecule
+  readonly [unelaboratedKey]?: true
 }
 
 export const isObjectNode = (node: SemanticGraph) =>
@@ -29,6 +35,14 @@ export const makeObjectNode = <
 ): ObjectNode & Properties => ({
   ...properties,
   [nodeTag]: 'object',
+})
+
+export const makeUnelaboratedObjectNode = (
+  properties: Readonly<Record<Atom, SemanticGraph | Molecule>>,
+): ObjectNode => ({
+  ...properties,
+  [nodeTag]: 'object',
+  [unelaboratedKey]: true,
 })
 
 export const serializeObjectNode = (
