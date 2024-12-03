@@ -22,9 +22,11 @@ export const lookupPropertyOfObjectNode = (
       )
     : option.none
 
-export const makeObjectNode = (
-  properties: Readonly<Record<Atom, SemanticGraph | Molecule>>,
-): ObjectNode => ({
+export const makeObjectNode = <
+  const Properties extends Readonly<Record<Atom, SemanticGraph | Molecule>>,
+>(
+  properties: Properties,
+): ObjectNode & Properties => ({
   ...properties,
   [nodeTag]: 'object',
 })
