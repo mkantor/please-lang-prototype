@@ -1,5 +1,38 @@
 import { coloredJSONStringify } from 'colored-json-stringify'
+import { parseArgs } from 'util'
+import { either, type Either } from '../../adts.js'
 import type { JSONValue } from '../../utility-types.js'
+
+export const handleOutput = async (
+  process: NodeJS.Process,
+  command: () => Promise<Either<{ readonly message: string }, JSONValue>>,
+): Promise<undefined> => {
+  const args = parseArgs({
+    args: process.argv,
+    strict: false,
+    options: {
+      'output-format': { type: 'string' },
+    },
+  })
+  if (args.values['output-format'] === undefined) {
+    throw new Error('Missing required option: --output-format')
+  } else if (args.values['output-format'] !== 'json') {
+    throw new Error(
+      `Unsupported output format: "${args.values['output-format']}"`,
+    )
+  } else {
+    const result = await command()
+    return either.match(result, {
+      left: error => {
+        throw new Error(error.message) // TODO: Improve error reporting.
+      },
+      right: output => {
+        writeJSON(process.stdout, output)
+        return undefined
+      },
+    })
+  }
+}
 
 export const writeJSON = (
   writeStream: NodeJS.WritableStream,

@@ -1,9 +1,38 @@
+import { parseArgs } from 'util'
 import { either, type Either } from '../../adts.js'
 import { type JSONValueForbiddingSymbolicKeys } from '../parsing.js'
 
 export type InvalidJsonError = {
   readonly kind: 'invalidJSON'
   readonly message: string
+}
+
+export const handleInput = async <Result>(
+  process: NodeJS.Process,
+  command: (input: JSONValueForbiddingSymbolicKeys) => Result,
+): Promise<Result> => {
+  const args = parseArgs({
+    args: process.argv,
+    strict: false,
+    options: {
+      'input-format': { type: 'string' },
+    },
+  })
+  if (args.values['input-format'] === undefined) {
+    throw new Error('Missing required option: --input-format')
+  } else if (args.values['input-format'] !== 'json') {
+    throw new Error(
+      `Unsupported input format: "${args.values['input-format']}"`,
+    )
+  } else {
+    const input = await readJSON(process.stdin)
+    return either.match(input, {
+      left: error => {
+        throw new Error(error.message) // TODO: Improve error reporting.
+      },
+      right: command,
+    })
+  }
 }
 
 export const readJSON = async (
