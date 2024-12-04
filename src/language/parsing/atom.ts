@@ -34,4 +34,6 @@ const quotedAtom = parser.sequence([
   parser.as(parser.literal('"'), ''),
 ])
 
-const unquotedAtom = parser.oneOrMore(parser.regularExpression(/[^\s,:{}()]+/))
+const unquotedAtom = parser.oneOrMore(
+  parser.regularExpression(/[^\s,:{}()=>]+/),
+)

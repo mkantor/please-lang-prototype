@@ -31,6 +31,27 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{a:A b: :{a}}', either.makeRight({ a: 'A', b: 'A' })],
   ['{a:A {@lookup {a}}}', either.makeRight({ a: 'A', 0: 'A' })],
   ['{a:A :{a}}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{ a: (a => :a)(A) }', either.makeRight({ a: 'A' })],
+  ['(a => :a)(A)', either.makeRight('A')],
+  [
+    '{ a: a => :a, b: :a(A) }',
+    result => {
+      if (either.isLeft(result)) {
+        assert.fail(result.value.message)
+      }
+      assert(typeof result.value === 'object')
+      assert.deepEqual(result.value.b, 'A')
+    },
+  ],
+  [
+    // TODO: Should functions be implicitly serialized? Or should this be an error?
+    '(a => :a)',
+    either.makeRight({
+      0: '@function',
+      parameter: 'a',
+      body: { 0: '@lookup', 1: { 0: 'a' } },
+    }),
+  ],
   ['{ a: ({ A }) }', either.makeRight({ a: { 0: 'A' } })],
   ['{ a: (A) }', either.makeRight({ a: 'A' })],
   ['{ a: ("A A A") }', either.makeRight({ a: 'A A A' })],
@@ -146,6 +167,19 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         })
       })
     })}`,
+    output => {
+      if (either.isLeft(output)) {
+        assert.fail(output.value.message)
+      }
+      assert(typeof output.value === 'object')
+      assert.deepEqual(output.value.tag, 'some')
+      assert.deepEqual(typeof output.value.value, 'string')
+    },
+  ],
+  [
+    `{@runtime context =>
+      :{context environment lookup}(PATH)
+    }`,
     output => {
       if (either.isLeft(output)) {
         assert.fail(output.value.message)

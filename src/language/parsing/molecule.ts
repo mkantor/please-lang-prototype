@@ -6,13 +6,16 @@ export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
 export const unit: Molecule = {}
 
-export const moleculeParser: Parser<Molecule> =
+export const moleculeParser: Parser<Molecule> = parser.oneOf([
   optionallySurroundedByParentheses(
     parser.map(
       parser.lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
       Object.fromEntries,
     ),
-  )
+  ),
+  parser.lazy(() => sugaredApply),
+  parser.lazy(() => sugaredFunction),
+])
 
 // During parsing molecules and properties are represented as nested arrays (of key/value pairs).
 // The following utilities make it easier to work with such a structure.
@@ -58,9 +61,32 @@ const sugaredLookup: Parser<PartialMolecule> =
     ),
   )
 
+const sugaredFunction: Parser<PartialMolecule> =
+  optionallySurroundedByParentheses(
+    parser.map(
+      flat(
+        parser.sequence([
+          parser.map(atomParser, output => [output]),
+          omit(whitespace),
+          omit(parser.literal('=>')),
+          omit(whitespace),
+          parser.map(
+            parser.lazy(() => propertyValue),
+            output => [output],
+          ),
+        ]),
+      ),
+      ([parameter, body]) => ({
+        0: '@function',
+        1: parameter,
+        2: body,
+      }),
+    ),
+  )
+
 const sugaredApply: Parser<PartialMolecule> = parser.map(
   parser.sequence([
-    sugaredLookup,
+    parser.oneOf([sugaredLookup, parser.lazy(() => sugaredFunction)]),
     parser.literal('('),
     parser.lazy(() => propertyValue),
     parser.literal(')'),
@@ -74,9 +100,9 @@ const sugaredApply: Parser<PartialMolecule> = parser.map(
 
 const propertyKey = atomParser
 const propertyValue = parser.oneOf([
-  sugaredApply, // this must come first to avoid ambiguity
+  sugaredApply, // must come first to avoid ambiguity
+  parser.lazy(() => moleculeParser), // must come second to avoid ambiguity
   atomParser,
-  parser.lazy(() => moleculeParser),
   sugaredLookup,
 ])
 
