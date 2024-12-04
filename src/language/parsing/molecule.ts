@@ -1,14 +1,18 @@
 import { parser, type Parser } from '../../parsing.js'
 import { atomParser, type Atom } from './atom.js'
+import { optionallySurroundedByParentheses } from './parentheses.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
 export const unit: Molecule = {}
 
-export const moleculeParser: Parser<Molecule> = parser.map(
-  parser.lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
-  Object.fromEntries,
-)
+export const moleculeParser: Parser<Molecule> =
+  optionallySurroundedByParentheses(
+    parser.map(
+      parser.lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
+      Object.fromEntries,
+    ),
+  )
 
 // During parsing molecules and properties are represented as nested arrays (of key/value pairs).
 // The following utilities make it easier to work with such a structure.
@@ -43,13 +47,16 @@ const makeIncrementingIndexer = (): Indexer => {
 const propertyDelimiter = parser.regularExpression(/[\s,]+/)
 const whitespace = parser.regularExpression(/\s+/)
 
-const sugaredLookup: Parser<PartialMolecule> = parser.map(
-  parser.sequence([
-    parser.literal(':'),
-    parser.oneOf([atomParser, moleculeParser]),
-  ]),
-  ([_colon, query]) => ({ 0: '@lookup', 1: query }),
-)
+const sugaredLookup: Parser<PartialMolecule> =
+  optionallySurroundedByParentheses(
+    parser.map(
+      parser.sequence([
+        parser.literal(':'),
+        parser.oneOf([atomParser, moleculeParser]),
+      ]),
+      ([_colon, query]) => ({ 0: '@lookup', 1: query }),
+    ),
+  )
 
 const sugaredApply: Parser<PartialMolecule> = parser.map(
   parser.sequence([
@@ -86,7 +93,9 @@ const numberedProperty = (index: Indexer) =>
   parser.map(propertyValue, value => [index(), value])
 
 const property = (index: Indexer) =>
-  parser.oneOf([namedProperty, numberedProperty(index)])
+  optionallySurroundedByParentheses(
+    parser.oneOf([namedProperty, numberedProperty(index)]),
+  )
 
 const moleculeAsEntries = (index: Indexer) =>
   withoutOmittedOutputs(

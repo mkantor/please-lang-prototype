@@ -1,4 +1,5 @@
 import { parser, type Parser } from '../../parsing.js'
+import { optionallySurroundedByParentheses } from './parentheses.js'
 
 export type Atom = string
 
@@ -7,9 +8,11 @@ export const isAtom = (value: unknown): value is Atom =>
 
 export const unit = '' as const
 
-export const atomParser: Parser<Atom> = parser.map(
-  parser.lazy(() => parser.oneOf([quotedAtom, unquotedAtom])),
-  output => output.join(''),
+export const atomParser: Parser<Atom> = optionallySurroundedByParentheses(
+  parser.map(
+    parser.lazy(() => parser.oneOf([quotedAtom, unquotedAtom])),
+    output => output.join(''),
+  ),
 )
 
 const quotedAtom = parser.sequence([

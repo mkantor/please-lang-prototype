@@ -31,6 +31,15 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{a:A b: :{a}}', either.makeRight({ a: 'A', b: 'A' })],
   ['{a:A {@lookup {a}}}', either.makeRight({ a: 'A', 0: 'A' })],
   ['{a:A :{a}}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{ a: ({ A }) }', either.makeRight({ a: { 0: 'A' } })],
+  ['{ a: (A) }', either.makeRight({ a: 'A' })],
+  ['{ a: ("A A A") }', either.makeRight({ a: 'A A A' })],
+  ['{ ("a"): A }', either.makeRight({ a: 'A' })],
+  ['{ a: :(b), b: B }', either.makeRight({ a: 'B', b: 'B' })],
+  ['{ a: :("b"), b: B }', either.makeRight({ a: 'B', b: 'B' })],
+  ['{ (a: A) (b: B) }', either.makeRight({ a: 'A', b: 'B' })],
+  ['({ ((a): :(b)) ((b): B) })', either.makeRight({ a: 'B', b: 'B' })],
+  ['{ (a: :(")")), (")": (B)) }', either.makeRight({ a: 'B', ')': 'B' })],
   [
     `{
         "static data":"blah blah blah"
