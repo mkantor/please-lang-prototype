@@ -25,6 +25,7 @@ const runtimeContext = makeObjectNode({
           kind: 'unserializableValue',
           message: 'this function cannot be serialized',
         }),
+      option.none,
       key => {
         if (typeof key !== 'string') {
           return either.makeLeft({
@@ -71,7 +72,17 @@ export const handlers = {
           'a function must be provided via the property `function` or `1`',
       })
     } else {
-      return runtimeFunction.value(runtimeContext)
+      const result = runtimeFunction.value(runtimeContext)
+      if (either.isLeft(result)) {
+        // The runtime function panicked or had an unavailable dependency (which results in a panic
+        // anyway in this context).
+        return either.makeLeft({
+          kind: 'panic',
+          message: result.value.message,
+        })
+      } else {
+        return result
+      }
     }
   },
 } satisfies KeywordModule<`@${string}`>['handlers']

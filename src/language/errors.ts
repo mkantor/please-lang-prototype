@@ -8,6 +8,11 @@ export type Bug = {
   readonly message: string
 }
 
+export type DependencyUnavailable = {
+  readonly kind: 'dependencyUnavailable'
+  readonly message: string
+}
+
 export type InvalidExpressionError = {
   readonly kind: 'invalidExpression'
   readonly message: string

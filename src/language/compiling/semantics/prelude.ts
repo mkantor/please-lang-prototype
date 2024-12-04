@@ -1,5 +1,5 @@
 import { either, option, type Either } from '../../../adts.js'
-import type { Panic } from '../../errors.js'
+import type { DependencyUnavailable, Panic } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import {
   isFunctionNode,
@@ -14,6 +14,7 @@ import {
   serializeObjectNode,
 } from '../../semantics/object-node.js'
 import {
+  containsAnyUnelaboratedNodes,
   isSemanticGraph,
   serialize,
   type SemanticGraph,
@@ -25,10 +26,31 @@ import {
   type FunctionType,
 } from '../../semantics/type-system/type-formats.js'
 
+const handleUnavailableDependencies =
+  (
+    f: (
+      argument: SemanticGraph,
+    ) => Either<DependencyUnavailable | Panic, SemanticGraph>,
+  ) =>
+  (
+    argument: SemanticGraph,
+  ): Either<DependencyUnavailable | Panic, SemanticGraph> => {
+    if (containsAnyUnelaboratedNodes(argument)) {
+      return either.makeLeft({
+        kind: 'dependencyUnavailable',
+        message: 'one or more dependencies are unavailable',
+      })
+    } else {
+      return f(argument)
+    }
+  }
+
 const preludeFunction = (
   keyPath: readonly string[],
   signature: FunctionType['signature'],
-  f: (value: SemanticGraph) => Either<Panic, SemanticGraph>,
+  f: (
+    value: SemanticGraph,
+  ) => Either<DependencyUnavailable | Panic, SemanticGraph>,
 ) =>
   makeFunctionNode(
     signature,
@@ -37,7 +59,8 @@ const preludeFunction = (
         0: '@lookup',
         1: Object.fromEntries(keyPath.map((key, index) => [index, key])),
       }),
-    f,
+    option.none,
+    handleUnavailableDependencies(f),
   )
 
 const A = makeTypeParameter('a', { assignableTo: types.something })
@@ -68,6 +91,7 @@ export const prelude: ObjectNode = makeObjectNode({
               1: { 0: '@lookup', 1: { 0: 'apply' } },
               2: serializedArgument,
             })),
+          option.none,
           functionToApply => {
             if (!isFunctionNode(functionToApply)) {
               return either.makeLeft({
@@ -144,6 +168,7 @@ export const prelude: ObjectNode = makeObjectNode({
                     },
                   })),
                 ),
+              option.none,
               argument => either.flatMap(function0(argument), function1),
             ),
           )
@@ -215,6 +240,7 @@ export const prelude: ObjectNode = makeObjectNode({
                 1: { 0: '@lookup', 1: { 0: 'match' } },
                 2: serializedCases,
               })),
+            option.none,
             argument => {
               if (!nodeIsTagged(argument)) {
                 return either.makeLeft({
@@ -272,6 +298,7 @@ export const prelude: ObjectNode = makeObjectNode({
                   1: { 0: '@lookup', 1: { 0: 'object', 1: 'lookup' } },
                   2: key,
                 }),
+              option.none,
               argument => {
                 if (!isObjectNode(argument)) {
                   return either.makeLeft({

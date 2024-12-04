@@ -17,8 +17,14 @@ import {
   type SemanticGraph,
 } from '../../semantics.js'
 import { stringifyKeyPathForEndUser } from '../../semantics/key-path.js'
-import { lookupPropertyOfObjectNode } from '../../semantics/object-node.js'
-import { applyKeyPathToSemanticGraph } from '../../semantics/semantic-graph.js'
+import {
+  lookupPropertyOfObjectNode,
+  makeUnelaboratedObjectNode,
+} from '../../semantics/object-node.js'
+import {
+  applyKeyPathToSemanticGraph,
+  containsAnyUnelaboratedNodes,
+} from '../../semantics/semantic-graph.js'
 import { prelude } from './prelude.js'
 
 const check = ({
@@ -52,8 +58,12 @@ const check = ({
   } else if (isFunctionNode(type)) {
     const result = type(value)
     if (either.isLeft(result)) {
-      // The compile-time-evaluated function panicked.
-      return result
+      // The compile-time-evaluated function panicked or had an unavailable dependency (which
+      // results in a panic anyway in this context).
+      return either.makeLeft({
+        kind: 'panic',
+        message: result.value.message,
+      })
     }
     if (typeof result.value !== 'string' || result.value !== 'true') {
       return either.makeLeft({
@@ -208,13 +218,49 @@ export const handlers = {
         kind: 'invalidExpression',
         message: 'argument must be provided via the property `argument` or `2`',
       })
-    } else if (isFunctionNode(functionToApply.value)) {
-      return functionToApply.value(argument.value)
     } else {
-      return either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'only functions can be applied',
-      })
+      if (containsAnyUnelaboratedNodes(argument.value)) {
+        // The argument isn't ready, so keep this unelaborated.
+        return either.makeRight(
+          makeUnelaboratedObjectNode({
+            0: '@apply',
+            1: functionToApply.value,
+            2: argument.value,
+          }),
+        )
+      } else if (isFunctionNode(functionToApply.value)) {
+        const result = functionToApply.value(argument.value)
+        if (either.isLeft(result)) {
+          if (result.value.kind === 'dependencyUnavailable') {
+            // Keep the @apply unelaborated.
+            return either.makeRight(
+              makeUnelaboratedObjectNode({
+                0: '@apply',
+                1: functionToApply.value,
+                2: argument.value,
+              }),
+            )
+          } else {
+            return either.makeLeft(result.value)
+          }
+        } else {
+          return result
+        }
+      } else if (containsAnyUnelaboratedNodes(functionToApply.value)) {
+        // The function isn't ready, so keep this unelaborated.
+        return either.makeRight(
+          makeUnelaboratedObjectNode({
+            0: '@apply',
+            1: functionToApply.value,
+            2: argument.value,
+          }),
+        )
+      } else {
+        return either.makeLeft({
+          kind: 'invalidExpression',
+          message: 'only functions can be applied',
+        })
+      }
     }
   },
 
@@ -320,19 +366,21 @@ export const handlers = {
   /**
    * Preserves a raw function node for emission into the runtime code.
    */
-  // TODO could rename `@runtime` to `@effect`?
   '@runtime': (expression, context): KeywordElaborationResult => {
     const runtimeFunction = lookupWithinArgument(['function', '1'], expression)
     if (
       option.isNone(runtimeFunction) ||
-      !isFunctionNode(runtimeFunction.value)
+      !(
+        isFunctionNode(runtimeFunction.value) ||
+        containsAnyUnelaboratedNodes(runtimeFunction.value)
+      )
     ) {
       return either.makeLeft({
         kind: 'invalidExpression',
         message:
           'a function must be provided via the property `function` or `1`',
       })
-    } else {
+    } else if (isFunctionNode(runtimeFunction.value)) {
       const runtimeFunctionSignature = runtimeFunction.value.signature
       return either.flatMap(locateSelf(context), valueFromProgram =>
         !isAssignable({
@@ -348,6 +396,9 @@ export const handlers = {
             })
           : either.makeRight(valueFromProgram),
       )
+    } else {
+      // TODO: Type-check unelaborated nodes.
+      return locateSelf(context)
     }
   },
 
@@ -364,6 +415,13 @@ const allKeywords = new Set(Object.keys(handlers))
 export const isKeyword = (input: string): input is Keyword =>
   allKeywords.has(input)
 
+const asSemanticGraph = (
+  possiblyUnelaboratedValue: SemanticGraph | Molecule,
+): SemanticGraph =>
+  typeof possiblyUnelaboratedValue === 'object'
+    ? makeObjectNode(possiblyUnelaboratedValue)
+    : possiblyUnelaboratedValue
+
 const locateSelf = (context: ExpressionContext) =>
   option.match(applyKeyPathToSemanticGraph(context.program, context.location), {
     none: () =>
@@ -375,9 +433,6 @@ const locateSelf = (context: ExpressionContext) =>
       }),
     some: either.makeRight,
   })
-
-const stringifySemanticGraphForEndUser = (graph: SemanticGraph): string =>
-  JSON.stringify(serialize(graph))
 
 const lookupWithinArgument = (
   keyAliases: [Atom, ...(readonly Atom[])],
@@ -392,9 +447,5 @@ const lookupWithinArgument = (
   return option.none
 }
 
-const asSemanticGraph = (
-  possiblyUnelaboratedValue: SemanticGraph | Molecule,
-): SemanticGraph =>
-  typeof possiblyUnelaboratedValue === 'object'
-    ? makeObjectNode(possiblyUnelaboratedValue)
-    : possiblyUnelaboratedValue
+const stringifySemanticGraphForEndUser = (graph: SemanticGraph): string =>
+  JSON.stringify(serialize(graph))
