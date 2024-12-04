@@ -86,7 +86,7 @@ export const oneOrMore = <Output>(
  */
 export const sequence =
   <
-    Parsers extends readonly [
+    const Parsers extends readonly [
       Parser<unknown>,
       Parser<unknown>,
       ...(readonly Parser<unknown>[]),
@@ -95,21 +95,33 @@ export const sequence =
     parsers: Parsers,
   ): Parser<SequenceOutput<Parsers>> =>
   input =>
-    parsers.reduce(
-      (results: ReturnType<Parser<SequenceOutput<Parsers>>>, parser) =>
-        either.match(results, {
-          right: successes =>
-            either.map(parser(successes.remainingInput), newSuccess => ({
-              remainingInput: newSuccess.remainingInput,
-              output: [...successes.output, newSuccess.output],
-            })),
-          left: either.makeLeft,
-        }),
-      either.makeRight({ remainingInput: input, output: [] }), // `parsers` is non-empty so this is never returned
+    either.map(
+      parsers.reduce(
+        (
+          results: ReturnType<
+            Parser<readonly SequenceOutput<Parsers>[number][]>
+          >,
+          parser,
+        ) =>
+          either.match(results, {
+            right: successes =>
+              either.map(parser(successes.remainingInput), newSuccess => ({
+                remainingInput: newSuccess.remainingInput,
+                output: [...successes.output, newSuccess.output],
+              })),
+            left: either.makeLeft,
+          }),
+        either.makeRight({ remainingInput: input, output: [] }), // `parsers` is non-empty so this is never returned
+      ),
+      // The above `reduce` constructs the output to be concordant with this type, but TypeScript
+      // doesn't know that.
+      // TODO: Consider tightening `reduce`'s signature instead.
+      output => output as Success<SequenceOutput<Parsers>>,
     )
-type SequenceOutput<Parsers extends readonly Parser<unknown>[]> = readonly {
+
+type SequenceOutput<Parsers extends readonly Parser<unknown>[]> = {
   [Index in keyof Parsers]: OutputOf<Parsers[Index]>
-}[number][]
+}
 
 export const zeroOrMore =
   <Output>(parser: Parser<Output>): AlwaysSucceedingParser<readonly Output[]> =>
