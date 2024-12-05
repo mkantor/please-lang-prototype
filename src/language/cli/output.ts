@@ -1,11 +1,13 @@
-import { coloredJSONStringify } from 'colored-json-stringify'
+import kleur from 'kleur'
 import { parseArgs } from 'util'
 import { either, type Either } from '../../adts.js'
-import type { JSONValue } from '../../utility-types.js'
+import { withPhantomData } from '../../phantom-data.js'
+import { type Molecule } from '../parsing.js'
+import { type Canonicalized, type SyntaxTree } from '../parsing/syntax-tree.js'
 
 export const handleOutput = async (
   process: NodeJS.Process,
-  command: () => Promise<Either<{ readonly message: string }, JSONValue>>,
+  command: () => Promise<Either<{ readonly message: string }, SyntaxTree>>,
 ): Promise<undefined> => {
   const args = parseArgs({
     args: process.argv,
@@ -36,9 +38,9 @@ export const handleOutput = async (
 
 export const writeJSON = (
   writeStream: NodeJS.WritableStream,
-  output: JSONValue,
+  output: SyntaxTree,
 ): void => {
-  writeStream.write(coloredJSONStringify(output))
+  writeStream.write(stringifyAsPrettyJSON(output))
 
   // Writing a newline ensures that output is flushed before terminating, otherwise nothing may be
   // printed to the console. See:
@@ -52,4 +54,53 @@ export const writeJSON = (
   // called), and explicitly calling `writeStream.end`/`writeStream.uncork` and so far this is the
   // only workaround which reliably results in the desired behavior.
   writeStream.write('\n')
+}
+
+const indent = (spaces: number, textToIndent: string) => {
+  const indentation = ' '.repeat(spaces)
+  return (indentation + textToIndent).replace(/(\r?\n)/g, `$1${indentation}`)
+}
+
+const quote = kleur.dim('"')
+const colon = kleur.dim(':')
+const comma = kleur.dim(',')
+const openBrace = kleur.dim('{')
+const closeBrace = kleur.dim('}')
+
+const escapeStringContents = (value: string) =>
+  value.replace('\\', '\\\\').replace('"', '\\"')
+
+const key = (value: string): string =>
+  quote + kleur.bold(escapeStringContents(value)) + quote
+
+const string = (value: string): string =>
+  quote +
+  escapeStringContents(
+    /^@[^@]/.test(value) ? kleur.bold(kleur.underline(value)) : value,
+  ) +
+  quote
+
+const object = (value: Molecule): string => {
+  const entries = Object.entries(value)
+  if (entries.length === 0) {
+    return openBrace + closeBrace
+  } else {
+    const keyValuePairs: string = Object.entries(value)
+      .map(
+        ([propertyKey, propertyValue]) =>
+          key(propertyKey) +
+          colon +
+          ' ' +
+          stringifyAsPrettyJSON(
+            withPhantomData<Canonicalized>()(propertyValue),
+          ),
+      )
+      .join(comma + '\n')
+
+    return openBrace + '\n' + indent(2, keyValuePairs) + '\n' + closeBrace
+  }
+}
+
+const stringifyAsPrettyJSON = (output: SyntaxTree) => {
+  return typeof output === 'string' ? string(output) : object(output)
 }
