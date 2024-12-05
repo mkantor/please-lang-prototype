@@ -14,6 +14,13 @@ declare const _elaborated: unique symbol
 type Elaborated = { readonly [_elaborated]: true }
 export type ElaboratedSemanticGraph = WithPhantomData<SemanticGraph, Elaborated>
 
+export type Expression = ObjectNode & {
+  readonly 0: `@${string}`
+}
+
+export const isExpression = (node: SemanticGraph): node is Expression =>
+  typeof node === 'object' && typeof node[0] === 'string' && node[0][0] === '@'
+
 export type ExpressionContext = {
   readonly program: SemanticGraph
   readonly location: KeyPath
@@ -22,7 +29,7 @@ export type ExpressionContext = {
 export type KeywordElaborationResult = Either<ElaborationError, SemanticGraph>
 
 export type KeywordHandler = (
-  expression: ObjectNode,
+  expression: Expression,
   context: ExpressionContext,
 ) => KeywordElaborationResult
 
@@ -170,7 +177,7 @@ const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
             }),
       some: keyword =>
         keywordModule.handlers[keyword](
-          makeObjectNode(possibleArguments),
+          makeObjectNode({ ...possibleArguments, 0: keyword }),
           context,
         ),
     },

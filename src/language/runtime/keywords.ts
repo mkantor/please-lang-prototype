@@ -10,9 +10,9 @@ import {
   types,
   type KeywordElaborationResult,
   type KeywordModule,
-  type ObjectNode,
   type SemanticGraph,
 } from '../semantics.js'
+import type { Expression } from '../semantics/expression-elaboration.js'
 import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
 
 const unserializableFunction = () =>
@@ -88,7 +88,10 @@ export const handlers = {
    * Evaluates the given function, passing runtime context captured in `world`.
    */
   '@runtime': (expression): KeywordElaborationResult => {
-    const runtimeFunction = lookupWithinArgument(['function', '1'], expression)
+    const runtimeFunction = lookupWithinExpression(
+      ['function', '1'],
+      expression,
+    )
     if (
       option.isNone(runtimeFunction) ||
       !isFunctionNode(runtimeFunction.value)
@@ -121,12 +124,12 @@ const allKeywords = new Set(Object.keys(handlers))
 export const isKeyword = (input: string): input is Keyword =>
   allKeywords.has(input)
 
-const lookupWithinArgument = (
+const lookupWithinExpression = (
   keyAliases: [Atom, ...(readonly Atom[])],
-  argument: ObjectNode,
+  expression: Expression,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(key, argument)
+    const result = lookupPropertyOfObjectNode(key, expression)
     if (!option.isNone(result)) {
       return result
     }

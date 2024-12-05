@@ -15,10 +15,13 @@ import {
   type KeyPath,
   type KeywordElaborationResult,
   type KeywordModule,
-  type ObjectNode,
   type SemanticGraph,
 } from '../../semantics.js'
-import { elaborateWithContext } from '../../semantics/expression-elaboration.js'
+import {
+  elaborateWithContext,
+  isExpression,
+  type Expression,
+} from '../../semantics/expression-elaboration.js'
 import { stringifyKeyPathForEndUser } from '../../semantics/key-path.js'
 import {
   lookupPropertyOfObjectNode,
@@ -237,8 +240,11 @@ export const handlers = {
    * Calls the given `FunctionNode` with a given argument.
    */
   '@apply': (expression, _context): KeywordElaborationResult => {
-    const functionToApply = lookupWithinArgument(['function', '1'], expression)
-    const argument = lookupWithinArgument(['argument', '2'], expression)
+    const functionToApply = lookupWithinExpression(
+      ['function', '1'],
+      expression,
+    )
+    const argument = lookupWithinExpression(['argument', '2'], expression)
 
     if (option.isNone(functionToApply)) {
       return either.makeLeft({
@@ -300,8 +306,8 @@ export const handlers = {
    * Checks whether a given value is assignable to a given type.
    */
   '@check': (expression, context): KeywordElaborationResult => {
-    const value = lookupWithinArgument(['value', '1'], expression)
-    const type = lookupWithinArgument(['type', '2'], expression)
+    const value = lookupWithinExpression(['value', '1'], expression)
+    const type = lookupWithinExpression(['type', '2'], expression)
     if (option.isNone(value)) {
       return either.makeLeft({
         kind: 'invalidExpression',
@@ -331,7 +337,7 @@ export const handlers = {
    * Given a query, resolves the value of a property within the program.
    */
   '@lookup': (expression, context): KeywordElaborationResult => {
-    const query = lookupWithinArgument(['query', '1'], expression)
+    const query = lookupWithinExpression(['query', '1'], expression)
     if (option.isNone(query)) {
       return either.makeLeft({
         kind: 'invalidExpression',
@@ -405,7 +411,10 @@ export const handlers = {
    * Preserves a raw function node for emission into the runtime code.
    */
   '@runtime': (expression, context): KeywordElaborationResult => {
-    const runtimeFunction = lookupWithinArgument(['function', '1'], expression)
+    const runtimeFunction = lookupWithinExpression(
+      ['function', '1'],
+      expression,
+    )
     if (
       option.isNone(runtimeFunction) ||
       !(
@@ -498,7 +507,7 @@ export const applyLambda = (
   }
 }
 
-type Lambda = ObjectNode & {
+type Lambda = Expression & {
   readonly 0: '@function'
   readonly parameter: Atom
   readonly body: SemanticGraph | Molecule
@@ -507,14 +516,14 @@ type Lambda = ObjectNode & {
 const validateLambda = (
   possibleLambda: SemanticGraph,
 ): Either<ElaborationError, Lambda> => {
-  if (typeof possibleLambda !== 'object') {
+  if (!isExpression(possibleLambda)) {
     return either.makeLeft({
       kind: 'invalidExpression',
-      message: 'functions must be encoded as objects',
+      message: 'functions must be expressions',
     })
   } else {
-    const parameter = lookupWithinArgument(['parameter', '1'], possibleLambda)
-    const body = lookupWithinArgument(['body', '2'], possibleLambda)
+    const parameter = lookupWithinExpression(['parameter', '1'], possibleLambda)
+    const body = lookupWithinExpression(['body', '2'], possibleLambda)
 
     if (option.isNone(parameter)) {
       return either.makeLeft({
@@ -546,7 +555,7 @@ const validateLambda = (
 }
 
 const compileLambda = (
-  possibleLambda: SemanticGraph,
+  possibleLambda: Expression,
   context: ExpressionContext,
 ): Either<ElaborationError, FunctionNode> => {
   if (typeof possibleLambda !== 'object') {
@@ -555,8 +564,8 @@ const compileLambda = (
       message: 'functions must be encoded as objects',
     })
   } else {
-    const parameter = lookupWithinArgument(['parameter', '1'], possibleLambda)
-    const body = lookupWithinArgument(['body', '2'], possibleLambda)
+    const parameter = lookupWithinExpression(['parameter', '1'], possibleLambda)
+    const body = lookupWithinExpression(['body', '2'], possibleLambda)
 
     if (option.isNone(parameter)) {
       return either.makeLeft({
@@ -617,12 +626,12 @@ const locateSelf = (context: ExpressionContext) =>
     some: either.makeRight,
   })
 
-const lookupWithinArgument = (
+export const lookupWithinExpression = (
   keyAliases: [Atom, ...(readonly Atom[])],
-  argument: ObjectNode,
+  expression: Expression,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(key, argument)
+    const result = lookupPropertyOfObjectNode(key, expression)
     if (!option.isNone(result)) {
       return result
     }
