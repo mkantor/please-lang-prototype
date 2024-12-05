@@ -91,4 +91,6 @@ export const runtimeContext = makeObjectType('runtime_context', {
   environment: makeObjectType('', {
     lookup: makeFunctionType('', { parameter: string, return: option(string) }),
   }),
+  log: makeFunctionType('', { parameter: something, return: option(object) }),
+  program: makeObjectType('', { start_time: string }),
 })

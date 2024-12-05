@@ -1,10 +1,12 @@
 import { either, option, type Option } from '../../adts.js'
+import { writeJSON } from '../cli/output.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
 import type { Atom } from '../parsing.js'
 import {
   isFunctionNode,
   makeFunctionNode,
   makeObjectNode,
+  serialize,
   types,
   type KeywordElaborationResult,
   type KeywordModule,
@@ -13,6 +15,12 @@ import {
 } from '../semantics.js'
 import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
 
+const unserializableFunction = () =>
+  either.makeLeft({
+    kind: 'unserializableValue',
+    message: 'this function cannot be serialized',
+  })
+
 const runtimeContext = makeObjectNode({
   environment: makeObjectNode({
     lookup: makeFunctionNode(
@@ -20,11 +28,7 @@ const runtimeContext = makeObjectNode({
         parameter: types.string,
         return: types.option(types.string),
       },
-      () =>
-        either.makeLeft({
-          kind: 'unserializableValue',
-          message: 'this function cannot be serialized',
-        }),
+      unserializableFunction,
       option.none,
       key => {
         if (typeof key !== 'string') {
@@ -52,6 +56,29 @@ const runtimeContext = makeObjectNode({
         }
       },
     ),
+  }),
+  log: makeFunctionNode(
+    {
+      parameter: types.something,
+      return: types.object,
+    },
+    unserializableFunction,
+    option.none,
+    output => {
+      const serializationResult = serialize(output)
+      if (either.isLeft(serializationResult)) {
+        return either.makeLeft({
+          kind: 'panic',
+          message: serializationResult.value.message,
+        })
+      } else {
+        writeJSON(process.stderr, serializationResult.value)
+        return either.makeRight(makeObjectNode({}))
+      }
+    },
+  ),
+  program: makeObjectNode({
+    start_time: new Date().toISOString(),
   }),
 })
 
