@@ -11,6 +11,7 @@ import {
 } from '../../semantics.js'
 import {
   lookupPropertyOfObjectNode,
+  makeUnelaboratedObjectNode,
   serializeObjectNode,
 } from '../../semantics/object-node.js'
 import {
@@ -55,10 +56,12 @@ const preludeFunction = (
   makeFunctionNode(
     signature,
     () =>
-      either.makeRight({
-        0: '@lookup',
-        1: Object.fromEntries(keyPath.map((key, index) => [index, key])),
-      }),
+      either.makeRight(
+        makeUnelaboratedObjectNode({
+          0: '@lookup',
+          1: Object.fromEntries(keyPath.map((key, index) => [index, key])),
+        }),
+      ),
     option.none,
     handleUnavailableDependencies(f),
   )
@@ -86,11 +89,13 @@ export const prelude: ObjectNode = makeObjectNode({
             return: types.something,
           },
           () =>
-            either.map(serialize(argument), serializedArgument => ({
-              0: '@apply',
-              1: { 0: '@lookup', 1: { 0: 'apply' } },
-              2: serializedArgument,
-            })),
+            either.map(serialize(argument), serializedArgument =>
+              makeUnelaboratedObjectNode({
+                0: '@apply',
+                1: { 0: '@lookup', 1: { 0: 'apply' } },
+                2: serializedArgument,
+              }),
+            ),
           option.none,
           functionToApply => {
             if (!isFunctionNode(functionToApply)) {
@@ -159,14 +164,16 @@ export const prelude: ObjectNode = makeObjectNode({
               },
               () =>
                 either.flatMap(function0.serialize(), serializedFunction0 =>
-                  either.map(function1.serialize(), serializedFunction1 => ({
-                    0: '@apply',
-                    1: { 0: '@lookup', 1: { 0: 'flow' } },
-                    2: {
-                      0: serializedFunction0,
-                      1: serializedFunction1,
-                    },
-                  })),
+                  either.map(function1.serialize(), serializedFunction1 =>
+                    makeUnelaboratedObjectNode({
+                      0: '@apply',
+                      1: { 0: '@lookup', 1: { 0: 'flow' } },
+                      2: makeUnelaboratedObjectNode({
+                        0: serializedFunction0,
+                        1: serializedFunction1,
+                      }),
+                    }),
+                  ),
                 ),
               option.none,
               argument => either.flatMap(function0(argument), function1),
@@ -235,11 +242,13 @@ export const prelude: ObjectNode = makeObjectNode({
               return: types.something,
             },
             () =>
-              either.map(serializeObjectNode(cases), serializedCases => ({
-                0: '@apply',
-                1: { 0: '@lookup', 1: { 0: 'match' } },
-                2: serializedCases,
-              })),
+              either.map(serializeObjectNode(cases), serializedCases =>
+                makeUnelaboratedObjectNode({
+                  0: '@apply',
+                  1: { 0: '@lookup', 1: { 0: 'match' } },
+                  2: serializedCases,
+                }),
+              ),
             option.none,
             argument => {
               if (!nodeIsTagged(argument)) {
@@ -293,11 +302,13 @@ export const prelude: ObjectNode = makeObjectNode({
                 return: types.something,
               },
               () =>
-                either.makeRight({
-                  0: '@apply',
-                  1: { 0: '@lookup', 1: { 0: 'object', 1: 'lookup' } },
-                  2: key,
-                }),
+                either.makeRight(
+                  makeUnelaboratedObjectNode({
+                    0: '@apply',
+                    1: { 0: '@lookup', 1: { 0: 'object', 1: 'lookup' } },
+                    2: key,
+                  }),
+                ),
               option.none,
               argument => {
                 if (!isObjectNode(argument)) {

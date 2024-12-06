@@ -57,7 +57,7 @@ const sugaredLookup: Parser<PartialMolecule> =
         parser.literal(':'),
         parser.oneOf([atomParser, moleculeParser]),
       ]),
-      ([_colon, query]) => ({ 0: '@lookup', 1: query }),
+      ([_colon, query]) => ({ 0: '@lookup', query }),
     ),
   )
 
@@ -78,8 +78,8 @@ const sugaredFunction: Parser<PartialMolecule> =
       ),
       ([parameter, body]) => ({
         0: '@function',
-        1: parameter,
-        2: body,
+        parameter,
+        body,
       }),
     ),
   )
@@ -93,8 +93,8 @@ const sugaredApply: Parser<PartialMolecule> = parser.map(
   ]),
   ([f, _, argument]) => ({
     0: '@apply',
-    1: f,
-    2: argument,
+    function: f,
+    argument,
   }),
 )
 

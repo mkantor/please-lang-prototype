@@ -49,7 +49,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({
       0: '@function',
       parameter: 'a',
-      body: { 0: '@lookup', 1: { 0: 'a' } },
+      body: { 0: '@lookup', query: { 0: 'a' } },
     }),
   ],
   ['{ a: ({ A }) }', either.makeRight({ a: { 0: 'A' } })],

@@ -574,7 +574,7 @@ elaborationSuite('@function', [
         either.makeRight({
           0: '@function',
           parameter: 'x',
-          body: { 0: '@lookup', 1: { 0: 'x' } },
+          body: { 0: '@lookup', query: { 0: 'x' } },
         }),
       )
     },

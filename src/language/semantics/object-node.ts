@@ -37,9 +37,11 @@ export const makeObjectNode = <
   [nodeTag]: 'object',
 })
 
-export const makeUnelaboratedObjectNode = (
-  properties: Readonly<Record<Atom, SemanticGraph | Molecule>>,
-): ObjectNode => ({
+export const makeUnelaboratedObjectNode = <
+  const Properties extends Readonly<Record<Atom, SemanticGraph | Molecule>>,
+>(
+  properties: Properties,
+): ObjectNode & Properties & { readonly [unelaboratedKey]: true } => ({
   ...properties,
   [nodeTag]: 'object',
   [unelaboratedKey]: true,
