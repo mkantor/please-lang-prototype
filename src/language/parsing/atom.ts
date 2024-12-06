@@ -35,5 +35,5 @@ const quotedAtom = parser.sequence([
 ])
 
 const unquotedAtom = parser.oneOrMore(
-  parser.regularExpression(/[^\s,:{}()=>]+/),
+  parser.regularExpression(/[^\s{}[\]()<>#&\|\\=:;,]+/),
 )
