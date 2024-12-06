@@ -19,7 +19,7 @@ import {
   makeUnelaboratedObjectNode,
 } from '../../../semantics/object-node.js'
 import {
-  updateValueAtKeyPathInSemanticGraphIfValid,
+  updateValueAtKeyPathInSemanticGraph,
   type SemanticGraph,
   type unelaboratedKey,
 } from '../../../semantics/semantic-graph.js'
@@ -102,27 +102,30 @@ const apply = (
       ? 'return with a different key to avoid collision with a stupidly-named parameter'
       : 'return'
 
-  const result = either.flatMap(serialize(body), serializedBody => {
-    const updatedProgram = updateValueAtKeyPathInSemanticGraphIfValid(
-      context.program,
-      context.location,
-      _ =>
-        makeObjectNode({
-          // Put the argument in scope.
-          [expression.parameter]: argument,
-          [returnKey]: body,
-        }),
-    )
+  const result = either.flatMap(serialize(body), serializedBody =>
+    either.flatMap(
+      updateValueAtKeyPathInSemanticGraph(
+        context.program,
+        context.location,
+        _ =>
+          makeObjectNode({
+            // Put the argument in scope.
+            [expression.parameter]: argument,
+            [returnKey]: body,
+          }),
+      ),
+      updatedProgram =>
+        elaborateWithContext(
+          serializedBody,
+          { handlers, isKeyword },
+          {
+            location: [...context.location, returnKey],
+            program: updatedProgram,
+          },
+        ),
+    ),
+  )
 
-    return elaborateWithContext(
-      serializedBody,
-      { handlers, isKeyword },
-      {
-        location: [...context.location, returnKey],
-        program: updatedProgram,
-      },
-    )
-  })
   if (either.isLeft(result)) {
     return either.makeLeft({
       kind: 'panic',
