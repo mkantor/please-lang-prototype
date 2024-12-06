@@ -4,6 +4,7 @@ import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import { makeObjectNode, type KeyPath, type ObjectNode } from '../semantics.js'
+import { makeUnelaboratedObjectNode } from './object-node.js'
 import {
   extractStringValueIfPossible,
   updateValueAtKeyPathInSemanticGraph,
@@ -44,7 +45,10 @@ export const elaborate = (
 ): Either<ElaborationError, ElaboratedSemanticGraph> =>
   elaborateWithContext(program, keywordModule, {
     location: [],
-    program: typeof program === 'string' ? program : makeObjectNode(program),
+    program:
+      typeof program === 'string'
+        ? program
+        : makeUnelaboratedObjectNode(program),
   })
 
 export const elaborateWithContext = (

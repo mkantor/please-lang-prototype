@@ -11,6 +11,7 @@ import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
   lookupPropertyOfObjectNode,
   makeObjectNode,
+  makeUnelaboratedObjectNode,
   serializeObjectNode,
   type ObjectNode,
 } from './object-node.js'
@@ -69,7 +70,9 @@ export const updateValueAtKeyPathInSemanticGraphIfValid = (
           return option.match(lookupPropertyOfObjectNode(firstKey, node), {
             none: () => node,
             some: propertyValue =>
-              makeObjectNode({
+              (isUnelaborated(node)
+                ? makeUnelaboratedObjectNode
+                : makeObjectNode)({
                 ...node,
                 [firstKey]: updateValueAtKeyPathInSemanticGraphIfValid(
                   propertyValue,
@@ -86,14 +89,15 @@ export const updateValueAtKeyPathInSemanticGraphIfValid = (
   }
 }
 
+export const isUnelaborated = (node: SemanticGraph | Molecule): boolean =>
+  typeof node !== 'string' &&
+  unelaboratedKey in node &&
+  node[unelaboratedKey] === true
+
 export const containsAnyUnelaboratedNodes = (
   node: SemanticGraph | Molecule,
 ): boolean => {
-  if (
-    typeof node !== 'string' &&
-    unelaboratedKey in node &&
-    node[unelaboratedKey] === true
-  ) {
+  if (isUnelaborated(node)) {
     return true
   } else if (typeof node === 'object') {
     for (const propertyValue of Object.values(node)) {
@@ -152,7 +156,9 @@ export const updateValueAtKeyPathInSemanticGraph = (
                 operation,
               ),
               updatedNode =>
-                makeObjectNode({
+                (isUnelaborated(node)
+                  ? makeUnelaboratedObjectNode
+                  : makeObjectNode)({
                   ...node,
                   [firstKey]: updatedNode,
                 }),
@@ -193,8 +199,8 @@ export type Output = WithPhantomData<
 
 export const serialize = (
   node: SemanticGraph,
-): Either<UnserializableValueError, Output> => {
-  return either.map(
+): Either<UnserializableValueError, Output> =>
+  either.map(
     matchSemanticGraph(node, {
       atom: (node): Either<UnserializableValueError, Atom | Molecule> =>
         either.makeRight(node),
@@ -203,7 +209,10 @@ export const serialize = (
     }),
     withPhantomData<Serialized & Canonicalized>(),
   )
-}
+
+export const stringifySemanticGraphForEndUser = (
+  graph: SemanticGraph,
+): string => JSON.stringify(serialize(graph))
 
 export const isSemanticGraph = (
   value:
@@ -221,4 +230,6 @@ export const isSemanticGraph = (
 const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,
 ): ObjectNode | Atom =>
-  typeof syntaxTree === 'string' ? syntaxTree : makeObjectNode(syntaxTree)
+  typeof syntaxTree === 'string'
+    ? syntaxTree
+    : makeUnelaboratedObjectNode(syntaxTree)

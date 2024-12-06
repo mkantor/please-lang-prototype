@@ -1,12 +1,17 @@
-import { type Either, type Option } from '../../adts.js'
+import { either, type Either, type Option } from '../../adts.js'
 import type { Writable } from '../../utility-types.js'
 import type {
   DependencyUnavailable,
   Panic,
   UnserializableValueError,
 } from '../errors.js'
-import type { Atom, Molecule } from '../parsing.js'
-import { nodeTag, type SemanticGraph } from './semantic-graph.js'
+import type { Atom } from '../parsing.js'
+import {
+  nodeTag,
+  serialize,
+  type Output,
+  type SemanticGraph,
+} from './semantic-graph.js'
 import { type FunctionType } from './type-system/type-formats.js'
 
 export type FunctionNode = ((
@@ -15,7 +20,7 @@ export type FunctionNode = ((
   readonly [nodeTag]: 'function'
   readonly parameterName: Option<Atom>
   readonly signature: FunctionType['signature']
-  readonly serialize: () => Either<UnserializableValueError, Molecule>
+  readonly serialize: () => Either<UnserializableValueError, SemanticGraph>
 }
 
 export const isFunctionNode = (node: SemanticGraph) =>
@@ -42,4 +47,5 @@ export const makeFunctionNode = (
 
 export const serializeFunctionNode = (
   node: FunctionNode,
-): Either<UnserializableValueError, Molecule> => node.serialize()
+): Either<UnserializableValueError, Output> =>
+  either.flatMap(node.serialize(), serialize)
