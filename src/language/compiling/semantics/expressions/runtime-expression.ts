@@ -20,7 +20,6 @@ import {
 } from '../../../semantics/semantic-graph.js'
 import {
   asSemanticGraph,
-  locateSelf,
   readArgumentsFromExpression,
 } from './expression-utilities.js'
 
@@ -68,28 +67,25 @@ export const makeRuntimeExpression = (
 
 export const runtimeKeywordHandler: KeywordHandler = (
   expression: Expression,
-  context: ExpressionContext,
+  _context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readRuntimeExpression(expression), ({ function: f }) => {
     const runtimeFunction = asSemanticGraph(f)
     if (isFunctionNode(runtimeFunction)) {
       const runtimeFunctionSignature = runtimeFunction.signature
-      return either.flatMap(locateSelf(context), valueFromProgram =>
-        !isAssignable({
-          source: types.runtimeContext,
-          target: replaceAllTypeParametersWithTheirConstraints(
-            runtimeFunctionSignature.parameter,
-          ),
-        })
-          ? either.makeLeft({
-              kind: 'typeMismatch',
-              message:
-                '@runtime function must accept a runtime context argument',
-            })
-          : either.makeRight(valueFromProgram),
-      )
+      return !isAssignable({
+        source: types.runtimeContext,
+        target: replaceAllTypeParametersWithTheirConstraints(
+          runtimeFunctionSignature.parameter,
+        ),
+      })
+        ? either.makeLeft({
+            kind: 'typeMismatch',
+            message: '@runtime function must accept a runtime context argument',
+          })
+        : either.makeRight(makeRuntimeExpression(f))
     } else {
       // TODO: Type-check unelaborated nodes.
-      return locateSelf(context)
+      return either.makeRight(makeRuntimeExpression(f))
     }
   })

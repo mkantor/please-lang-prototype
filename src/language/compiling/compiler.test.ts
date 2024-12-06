@@ -66,7 +66,10 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
     ],
     [
       ['@runtime', ['@lookup', ['identity']]],
-      success({ 0: '@runtime', 1: { 0: '@lookup', 1: { 0: 'identity' } } }),
+      success({
+        0: '@runtime',
+        function: { 0: '@lookup', query: { 0: 'identity' } },
+      }),
     ],
     [
       [
@@ -75,7 +78,7 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       ],
       success({
         0: '@runtime',
-        1: { 0: '@lookup', 1: { 0: 'identity' } },
+        function: { 0: '@lookup', query: { 0: 'identity' } },
       }),
     ],
     [
@@ -114,12 +117,12 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       ],
       success({
         0: '@runtime',
-        1: {
+        function: {
           0: '@apply',
-          1: { 0: '@lookup', 1: { 0: 'flow' } },
-          2: {
-            0: { 0: '@lookup', 1: { 0: 'identity' } },
-            1: { 0: '@lookup', 1: { 0: 'identity' } },
+          function: { 0: '@lookup', query: { 0: 'flow' } },
+          argument: {
+            0: { 0: '@lookup', query: { 0: 'identity' } },
+            1: { 0: '@lookup', query: { 0: 'identity' } },
           },
         },
       }),
@@ -154,8 +157,8 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         0: '@runtime',
         function: {
           0: '@apply',
-          1: { 0: '@lookup', 1: { 0: 'object', 1: 'lookup' } },
-          2: 'key which does not exist in runtime context',
+          function: { 0: '@lookup', query: { 0: 'object', 1: 'lookup' } },
+          argument: 'key which does not exist in runtime context',
         },
       }),
     ],
