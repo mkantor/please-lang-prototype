@@ -59,7 +59,7 @@ const preludeFunction = (
       either.makeRight(
         makeUnelaboratedObjectNode({
           0: '@lookup',
-          1: Object.fromEntries(keyPath.map((key, index) => [index, key])),
+          query: Object.fromEntries(keyPath.map((key, index) => [index, key])),
         }),
       ),
     option.none,
@@ -92,8 +92,8 @@ export const prelude: ObjectNode = makeObjectNode({
             either.map(serialize(argument), serializedArgument =>
               makeUnelaboratedObjectNode({
                 0: '@apply',
-                1: { 0: '@lookup', 1: { 0: 'apply' } },
-                2: serializedArgument,
+                function: { 0: '@lookup', query: { 0: 'apply' } },
+                argument: serializedArgument,
               }),
             ),
           option.none,
@@ -167,8 +167,8 @@ export const prelude: ObjectNode = makeObjectNode({
                   either.map(function1.serialize(), serializedFunction1 =>
                     makeUnelaboratedObjectNode({
                       0: '@apply',
-                      1: { 0: '@lookup', 1: { 0: 'flow' } },
-                      2: makeUnelaboratedObjectNode({
+                      function: { 0: '@lookup', query: { 0: 'flow' } },
+                      argument: makeUnelaboratedObjectNode({
                         0: serializedFunction0,
                         1: serializedFunction1,
                       }),
@@ -245,8 +245,8 @@ export const prelude: ObjectNode = makeObjectNode({
               either.map(serializeObjectNode(cases), serializedCases =>
                 makeUnelaboratedObjectNode({
                   0: '@apply',
-                  1: { 0: '@lookup', 1: { 0: 'match' } },
-                  2: serializedCases,
+                  function: { 0: '@lookup', query: { 0: 'match' } },
+                  argument: serializedCases,
                 }),
               ),
             option.none,
@@ -305,8 +305,11 @@ export const prelude: ObjectNode = makeObjectNode({
                 either.makeRight(
                   makeUnelaboratedObjectNode({
                     0: '@apply',
-                    1: { 0: '@lookup', 1: { 0: 'object', 1: 'lookup' } },
-                    2: key,
+                    function: {
+                      0: '@lookup',
+                      query: { 0: 'object', 1: 'lookup' },
+                    },
+                    argument: key,
                   }),
                 ),
               option.none,

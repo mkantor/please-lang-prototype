@@ -586,7 +586,7 @@ elaborationSuite('@runtime', [
     { 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } },
     either.makeRight(
       withPhantomData<never>()(
-        makeObjectNode({ 0: '@runtime', 1: prelude.identity! }),
+        makeObjectNode({ 0: '@runtime', function: prelude.identity! }),
       ),
     ),
   ],
