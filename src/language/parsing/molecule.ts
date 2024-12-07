@@ -87,15 +87,23 @@ const sugaredFunction: Parser<PartialMolecule> =
 const sugaredApply: Parser<PartialMolecule> = parser.map(
   parser.sequence([
     parser.oneOf([sugaredLookup, parser.lazy(() => sugaredFunction)]),
-    parser.literal('('),
-    parser.lazy(() => propertyValue),
-    parser.literal(')'),
+    parser.oneOrMore(
+      parser.sequence([
+        parser.literal('('),
+        parser.lazy(() => propertyValue),
+        parser.literal(')'),
+      ]),
+    ),
   ]),
-  ([f, _, argument]) => ({
-    0: '@apply',
-    function: f,
-    argument,
-  }),
+  ([f, multipleArguments]) =>
+    multipleArguments.reduce<PartialMolecule>(
+      (expression, [_1, argument, _2]) => ({
+        0: '@apply',
+        function: expression,
+        argument,
+      }),
+      f,
+    ),
 )
 
 const propertyKey = atomParser
