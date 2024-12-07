@@ -11,6 +11,7 @@ export const handleOutput = async (
 ): Promise<undefined> => {
   const args = parseArgs({
     args: process.argv.slice(2), // remove `execPath` and `filename`
+    strict: false,
     options: {
       'output-format': { type: 'string' },
     },

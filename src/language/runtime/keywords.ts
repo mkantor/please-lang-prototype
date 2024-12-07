@@ -1,3 +1,4 @@
+import { parseArgs } from 'util'
 import { either, option, type Option } from '../../adts.js'
 import { writeJSON } from '../cli/output.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
@@ -22,6 +23,48 @@ const unserializableFunction = () =>
   })
 
 const runtimeContext = makeObjectNode({
+  arguments: makeObjectNode({
+    lookup: makeFunctionNode(
+      {
+        parameter: types.string,
+        return: types.option(types.string),
+      },
+      unserializableFunction,
+      option.none,
+      key => {
+        if (typeof key !== 'string') {
+          return either.makeLeft({
+            kind: 'panic',
+            message: 'key was not an atom',
+          })
+        } else {
+          const { values: argumentValues } = parseArgs({
+            args: process.argv,
+            strict: false,
+            options: {
+              [key]: { type: 'string' },
+            },
+          })
+          const argument = argumentValues[key]
+          if (typeof argument !== 'string') {
+            return either.makeRight(
+              makeObjectNode({
+                tag: 'none',
+                value: makeObjectNode({}),
+              }),
+            )
+          } else {
+            return either.makeRight(
+              makeObjectNode({
+                tag: 'some',
+                value: argument,
+              }),
+            )
+          }
+        }
+      },
+    ),
+  }),
   environment: makeObjectNode({
     lookup: makeFunctionNode(
       {

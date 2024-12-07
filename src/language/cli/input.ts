@@ -13,6 +13,7 @@ export const handleInput = async <Result>(
 ): Promise<Result> => {
   const args = parseArgs({
     args: process.argv.slice(2), // remove `execPath` and `filename`
+    strict: false,
     options: {
       'input-format': { type: 'string' },
     },
