@@ -12,8 +12,7 @@ export const handleInput = async <Result>(
   command: (input: JSONValueForbiddingSymbolicKeys) => Result,
 ): Promise<Result> => {
   const args = parseArgs({
-    args: process.argv,
-    strict: false,
+    args: process.argv.slice(2), // remove `execPath` and `filename`
     options: {
       'input-format': { type: 'string' },
     },
