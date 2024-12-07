@@ -62,6 +62,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['({ ((a): :(b)) ((b): B) })', either.makeRight({ a: 'B', b: 'B' })],
   ['{ (a: :(")")), (")": (B)) }', either.makeRight({ a: 'B', ')': 'B' })],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
+  [':{string concatenate}(a)(b)', either.makeRight('ab')],
   [
     `{
         "static data":"blah blah blah"
