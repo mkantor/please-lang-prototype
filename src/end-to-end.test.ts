@@ -180,7 +180,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{@runtime context =>
-      :{context environment lookup}(PATH)
+      :context.environment.lookup(PATH)
     }`,
     output => {
       if (either.isLeft(output)) {

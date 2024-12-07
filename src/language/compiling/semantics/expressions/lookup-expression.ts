@@ -51,7 +51,13 @@ export const readLookupExpression = (
             })
           } else {
             const canonicalizedQuery =
-              typeof query === 'string' ? makeObjectNode({ 0: query }) : query
+              typeof query === 'string'
+                ? makeObjectNode(
+                    Object.fromEntries(
+                      query.split('.').map((key, index) => [index, key]),
+                    ),
+                  )
+                : query
 
             return either.map(
               keyPathFromObjectNode(canonicalizedQuery),
