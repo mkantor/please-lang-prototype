@@ -10,8 +10,7 @@ export const handleOutput = async (
   command: () => Promise<Either<{ readonly message: string }, SyntaxTree>>,
 ): Promise<undefined> => {
   const args = parseArgs({
-    args: process.argv,
-    strict: false,
+    args: process.argv.slice(2), // remove `execPath` and `filename`
     options: {
       'output-format': { type: 'string' },
     },
