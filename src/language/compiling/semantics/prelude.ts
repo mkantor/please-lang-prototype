@@ -344,6 +344,50 @@ export const prelude: ObjectNode = makeObjectNode({
       },
     ),
   }),
+
+  string: makeObjectNode({
+    concatenate: preludeFunction(
+      ['string', 'concatenate'],
+      {
+        parameter: types.string,
+        return: makeFunctionType('', {
+          parameter: types.string,
+          return: types.string,
+        }),
+      },
+      string1 =>
+        either.makeRight(
+          makeFunctionNode(
+            {
+              parameter: types.string,
+              return: types.string,
+            },
+            () =>
+              either.makeRight(
+                makeUnelaboratedObjectNode({
+                  0: '@apply',
+                  function: {
+                    0: '@lookup',
+                    query: { 0: 'string', 1: 'concatenate' },
+                  },
+                  argument: string1,
+                }),
+              ),
+            option.none,
+            string2 => {
+              if (typeof string1 !== 'string' || typeof string2 !== 'string') {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: 'concatenate received a non-string argument',
+                })
+              } else {
+                return either.makeRight(string1 + string2)
+              }
+            },
+          ),
+        ),
+    ),
+  }),
 })
 
 type BooleanNode = 'true' | 'false'
