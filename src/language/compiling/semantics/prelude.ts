@@ -24,6 +24,7 @@ import {
   makeFunctionType,
   makeObjectType,
   makeTypeParameter,
+  makeUnionType,
   type FunctionType,
 } from '../../semantics/type-system/type-formats.js'
 
@@ -278,6 +279,67 @@ export const prelude: ObjectNode = makeObjectNode({
       }
     },
   ),
+
+  natural_number: makeObjectNode({
+    add: preludeFunction(
+      ['natural_number', 'add'],
+      {
+        parameter: types.naturalNumber,
+        return: makeFunctionType('', {
+          parameter: types.naturalNumber,
+          return: types.naturalNumber,
+        }),
+      },
+      number1 =>
+        either.makeRight(
+          makeFunctionNode(
+            {
+              parameter: types.naturalNumber,
+              return: types.naturalNumber,
+            },
+            () =>
+              either.makeRight(
+                makeUnelaboratedObjectNode({
+                  0: '@apply',
+                  function: {
+                    0: '@lookup',
+                    query: { 0: 'natural_number', 1: 'add' },
+                  },
+                  argument: number1,
+                }),
+              ),
+            option.none,
+            number2 => {
+              if (
+                typeof number1 !== 'string' ||
+                !types.naturalNumber.isAssignableFrom(
+                  makeUnionType('', [number1]),
+                ) ||
+                typeof number2 !== 'string' ||
+                !types.naturalNumber.isAssignableFrom(
+                  makeUnionType('', [number2]),
+                )
+              ) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: 'numbers must be atoms',
+                })
+              } else {
+                return either.makeRight(
+                  // FIXME: It's wasteful to always convert here.
+                  //
+                  // Consider `add(add(1)(1))(1)`—the `2` returned from the inner `add` is
+                  // stringified only to be converted back to a bigint. This is acceptable for the
+                  // prototype, but a real implementation could use a fancier `SemanticGraph` which
+                  // can model atoms as different native data types.
+                  String(BigInt(number1) + BigInt(number2)),
+                )
+              }
+            },
+          ),
+        ),
+    ),
+  }),
 
   object: makeObjectNode({
     lookup: preludeFunction(

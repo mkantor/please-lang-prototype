@@ -191,4 +191,11 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert.deepEqual(typeof output.value.value, 'string')
     },
   ],
+  [`:natural_number.add(1)(1)`, either.makeRight('2')],
+  [
+    `:natural_number.add(one)(juan)`,
+    output => {
+      assert(either.isLeft(output))
+    },
+  ],
 ])
