@@ -1,3 +1,5 @@
+import { option } from '../../../adts.js'
+import type { None, Some } from '../../../adts/option.js'
 import type { Atom } from '../../parsing.js'
 
 export type FunctionType = {
@@ -44,17 +46,83 @@ export type OpaqueType = {
   readonly isAssignableTo: (target: Type) => boolean
 }
 
-export const makeOpaqueType = (
+// TODO: Opaque object/function types?
+export const makeOpaqueStringType = (
   name: string,
-  computations: {
-    readonly isAssignableFrom: (source: Type) => boolean
-    readonly isAssignableTo: (target: Type) => boolean
-  },
-): OpaqueType => ({
-  name,
-  kind: 'opaque',
-  ...computations,
-})
+  subtyping: {
+    readonly isAssignableFromLiteralType: (literalType: string) => boolean
+  } & (
+    | {
+        readonly nearestOpaqueAssignableFrom: () => None
+        readonly nearestOpaqueAssignableTo: () => Some<OpaqueType>
+      }
+    | {
+        readonly nearestOpaqueAssignableFrom: () => Some<OpaqueType>
+        readonly nearestOpaqueAssignableTo: () => None
+      }
+    | {
+        readonly nearestOpaqueAssignableFrom: () => Some<OpaqueType>
+        readonly nearestOpaqueAssignableTo: () => Some<OpaqueType>
+      }
+  ),
+): OpaqueType => {
+  const self: OpaqueType = {
+    name,
+    kind: 'opaque',
+    isAssignableFrom: source =>
+      matchTypeFormat(source, {
+        function: _ => false,
+        object: _ => false,
+        opaque: source =>
+          source === self ||
+          option.match(subtyping.nearestOpaqueAssignableFrom(), {
+            none: () => false,
+            some: nearestOpaqueAssignableFrom =>
+              nearestOpaqueAssignableFrom.isAssignableFrom(source),
+          }),
+        parameter: source =>
+          self.isAssignableFrom(source.constraint.assignableTo),
+        union: source => {
+          for (const sourceMember of source.members) {
+            if (typeof sourceMember === 'string') {
+              if (!subtyping.isAssignableFromLiteralType(sourceMember)) {
+                return false
+              }
+            } else if (!self.isAssignableFrom(sourceMember)) {
+              return false
+            }
+          }
+          return true
+        },
+      }),
+    isAssignableTo: target =>
+      matchTypeFormat(target, {
+        function: _ => false,
+        object: _ => false,
+        opaque: target =>
+          target === self ||
+          option.match(subtyping.nearestOpaqueAssignableTo(), {
+            none: () => false,
+            some: nearestOpaqueAssignableTo =>
+              nearestOpaqueAssignableTo.isAssignableTo(target),
+          }),
+        parameter: _ => false,
+        union: target => {
+          for (const targetMember of target.members) {
+            if (
+              // Opaque types are never assignable to literal types.
+              typeof targetMember !== 'string' &&
+              self.isAssignableTo(targetMember)
+            ) {
+              return true
+            }
+          }
+          return false
+        },
+      }),
+  }
+  return self
+}
 
 export type TypeParameter = {
   readonly name: string
