@@ -16,17 +16,29 @@ export const nullType = makeUnionType('null', ['null'])
 
 export const boolean = makeUnionType('boolean', ['false', 'true'])
 
+// The current type hierarchy for opaque types is:
+//  - string
+//    - integer
+//      - natural_number
+
 export const string = makeOpaqueStringType('string', {
   isAssignableFromLiteralType: (_literalType: string) => true,
-  nearestOpaqueAssignableFrom: () => optionADT.makeSome(naturalNumber),
+  nearestOpaqueAssignableFrom: () => optionADT.makeSome(integer),
   nearestOpaqueAssignableTo: () => optionADT.none,
+})
+
+export const integer = makeOpaqueStringType('natural_number', {
+  isAssignableFromLiteralType: literalType =>
+    /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
+  nearestOpaqueAssignableFrom: () => optionADT.makeSome(naturalNumber),
+  nearestOpaqueAssignableTo: () => optionADT.makeSome(string),
 })
 
 export const naturalNumber = makeOpaqueStringType('natural_number', {
   isAssignableFromLiteralType: literalType =>
-    /(?:0|[1-9](?:[0-9])*)+/.test(literalType),
+    /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
   nearestOpaqueAssignableFrom: () => optionADT.none,
-  nearestOpaqueAssignableTo: () => optionADT.makeSome(string),
+  nearestOpaqueAssignableTo: () => optionADT.makeSome(integer),
 })
 
 export const object = makeObjectType('object', {})
