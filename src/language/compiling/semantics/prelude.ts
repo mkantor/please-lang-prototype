@@ -235,6 +235,55 @@ export const prelude: ObjectNode = makeObjectNode({
           ),
         ),
     ),
+    less_than: preludeFunction(
+      ['integer', 'less_than'],
+      {
+        parameter: types.integer,
+        return: makeFunctionType('', {
+          parameter: types.integer,
+          return: types.integer,
+        }),
+      },
+      number2 =>
+        either.makeRight(
+          makeFunctionNode(
+            {
+              parameter: types.integer,
+              return: types.boolean,
+            },
+            () =>
+              either.makeRight(
+                makeUnelaboratedObjectNode({
+                  0: '@apply',
+                  function: {
+                    0: '@lookup',
+                    query: { 0: 'integer', 1: 'less_than' },
+                  },
+                  argument: number2,
+                }),
+              ),
+            option.none,
+            number1 => {
+              if (
+                typeof number1 !== 'string' ||
+                !types.integer.isAssignableFrom(makeUnionType('', [number1])) ||
+                typeof number2 !== 'string' ||
+                !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+              ) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: 'numbers must be atoms',
+                })
+              } else {
+                return either.makeRight(
+                  // TODO: See comment in `natural_number.add`.
+                  String(BigInt(number1) < BigInt(number2)),
+                )
+              }
+            },
+          ),
+        ),
+    ),
     subtract: preludeFunction(
       ['integer', 'subtract'],
       {
