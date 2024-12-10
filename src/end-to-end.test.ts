@@ -198,4 +198,5 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert(either.isLeft(output))
     },
   ],
+  [`:integer.add(42)(-1)`, either.makeRight('41')],
 ])

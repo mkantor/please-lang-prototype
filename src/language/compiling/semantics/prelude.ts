@@ -185,6 +185,58 @@ export const prelude: ObjectNode = makeObjectNode({
     },
   ),
 
+  integer: makeObjectNode({
+    add: preludeFunction(
+      ['integer', 'add'],
+      {
+        parameter: types.integer,
+        return: makeFunctionType('', {
+          parameter: types.integer,
+          return: types.integer,
+        }),
+      },
+      number2 =>
+        either.makeRight(
+          makeFunctionNode(
+            {
+              parameter: types.integer,
+              return: types.integer,
+            },
+            () =>
+              either.makeRight(
+                makeUnelaboratedObjectNode({
+                  0: '@apply',
+                  function: {
+                    0: '@lookup',
+                    query: { 0: 'integer', 1: 'add' },
+                  },
+                  argument: number2,
+                }),
+              ),
+            option.none,
+            number1 => {
+              if (
+                typeof number1 !== 'string' ||
+                !types.integer.isAssignableFrom(makeUnionType('', [number1])) ||
+                typeof number2 !== 'string' ||
+                !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+              ) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: 'numbers must be atoms',
+                })
+              } else {
+                return either.makeRight(
+                  // TODO: See comment in `natural_number.add`.
+                  String(BigInt(number1) + BigInt(number2)),
+                )
+              }
+            },
+          ),
+        ),
+    ),
+  }),
+
   identity: preludeFunction(
     ['identity'],
     { parameter: A, return: A },
@@ -290,7 +342,7 @@ export const prelude: ObjectNode = makeObjectNode({
           return: types.naturalNumber,
         }),
       },
-      number1 =>
+      number2 =>
         either.makeRight(
           makeFunctionNode(
             {
@@ -305,11 +357,11 @@ export const prelude: ObjectNode = makeObjectNode({
                     0: '@lookup',
                     query: { 0: 'natural_number', 1: 'add' },
                   },
-                  argument: number1,
+                  argument: number2,
                 }),
               ),
             option.none,
-            number2 => {
+            number1 => {
               if (
                 typeof number1 !== 'string' ||
                 !types.naturalNumber.isAssignableFrom(
