@@ -216,4 +216,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       value: 'true',
     }),
   ],
+  [
+    `:integer.add(
+      :integer.subtract(1)(2)
+    )(
+      :integer.subtract(2)(4)
+    )`,
+    either.makeRight('3'),
+  ],
 ])
