@@ -9,6 +9,7 @@ import {
   types,
   type ObjectNode,
 } from '../../semantics.js'
+import { keyPathToMolecule } from '../../semantics/key-path.js'
 import {
   lookupPropertyOfObjectNode,
   makeUnelaboratedObjectNode,
@@ -60,7 +61,7 @@ const preludeFunction = (
       either.makeRight(
         makeUnelaboratedObjectNode({
           0: '@lookup',
-          query: Object.fromEntries(keyPath.map((key, index) => [index, key])),
+          query: keyPathToMolecule(keyPath),
         }),
       ),
     option.none,
