@@ -509,7 +509,7 @@ export const prelude: ObjectNode = makeObjectNode({
           return: types.string,
         }),
       },
-      string1 =>
+      string2 =>
         either.makeRight(
           makeFunctionNode(
             {
@@ -518,11 +518,11 @@ export const prelude: ObjectNode = makeObjectNode({
             },
             serializePartiallyAppliedFunction(
               ['string', 'concatenate'],
-              string1,
+              string2,
             ),
             option.none,
-            string2 => {
-              if (typeof string1 !== 'string' || typeof string2 !== 'string') {
+            string1 => {
+              if (typeof string1 !== 'string' || typeof string1 !== 'string') {
                 return either.makeLeft({
                   kind: 'panic',
                   message: 'concatenate received a non-string argument',
