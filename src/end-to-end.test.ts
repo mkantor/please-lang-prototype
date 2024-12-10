@@ -201,4 +201,15 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`:integer.add(42)(-1)`, either.makeRight('41')],
   [`:integer.subtract(-1)(-1)`, either.makeRight('0')],
   [`:integer.subtract(1)(2)`, either.makeRight('1')],
+  [
+    `:object.lookup(output)({
+      add_one: :integer.add(1)
+      less_than_three: :integer.less_than(3)
+      output: :less_than_three(:add_one(1))
+    })`,
+    either.makeRight({
+      tag: 'some',
+      value: 'true',
+    }),
+  ],
 ])
