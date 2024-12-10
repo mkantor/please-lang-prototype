@@ -199,4 +199,6 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [`:integer.add(42)(-1)`, either.makeRight('41')],
+  [`:integer.subtract(-1)(-1)`, either.makeRight('0')],
+  [`:integer.subtract(1)(2)`, either.makeRight('1')],
 ])
