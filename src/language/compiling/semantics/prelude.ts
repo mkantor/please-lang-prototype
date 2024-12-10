@@ -13,12 +13,10 @@ import { keyPathToMolecule } from '../../semantics/key-path.js'
 import {
   lookupPropertyOfObjectNode,
   makeUnelaboratedObjectNode,
-  serializeObjectNode,
 } from '../../semantics/object-node.js'
 import {
   containsAnyUnelaboratedNodes,
   isSemanticGraph,
-  serialize,
   type SemanticGraph,
 } from '../../semantics/semantic-graph.js'
 import {
@@ -47,6 +45,16 @@ const handleUnavailableDependencies =
       return f(argument)
     }
   }
+
+const serializePartiallyAppliedFunction =
+  (keyPath: readonly string[], argument: SemanticGraph) => () =>
+    either.makeRight(
+      makeUnelaboratedObjectNode({
+        0: '@apply',
+        function: { 0: '@lookup', query: keyPathToMolecule(keyPath) },
+        argument,
+      }),
+    )
 
 const preludeFunction = (
   keyPath: readonly string[],
@@ -90,14 +98,7 @@ export const prelude: ObjectNode = makeObjectNode({
             parameter: types.functionType,
             return: types.something,
           },
-          () =>
-            either.map(serialize(argument), serializedArgument =>
-              makeUnelaboratedObjectNode({
-                0: '@apply',
-                function: { 0: '@lookup', query: { 0: 'apply' } },
-                argument: serializedArgument,
-              }),
-            ),
+          serializePartiallyAppliedFunction(['apply'], argument),
           option.none,
           functionToApply => {
             if (!isFunctionNode(functionToApply)) {
@@ -164,19 +165,10 @@ export const prelude: ObjectNode = makeObjectNode({
                 parameter: function0.signature.parameter,
                 return: function1.signature.parameter,
               },
-              () =>
-                either.flatMap(function0.serialize(), serializedFunction0 =>
-                  either.map(function1.serialize(), serializedFunction1 =>
-                    makeUnelaboratedObjectNode({
-                      0: '@apply',
-                      function: { 0: '@lookup', query: { 0: 'flow' } },
-                      argument: makeUnelaboratedObjectNode({
-                        0: serializedFunction0,
-                        1: serializedFunction1,
-                      }),
-                    }),
-                  ),
-                ),
+              serializePartiallyAppliedFunction(
+                ['flow'],
+                makeObjectNode({ 0: function0, 1: function1 }),
+              ),
               option.none,
               argument => either.flatMap(function0(argument), function1),
             ),
@@ -203,17 +195,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.integer,
               return: types.integer,
             },
-            () =>
-              either.makeRight(
-                makeUnelaboratedObjectNode({
-                  0: '@apply',
-                  function: {
-                    0: '@lookup',
-                    query: { 0: 'integer', 1: 'add' },
-                  },
-                  argument: number2,
-                }),
-              ),
+            serializePartiallyAppliedFunction(['integer', 'add'], number2),
             option.none,
             number1 => {
               if (
@@ -252,17 +234,10 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.integer,
               return: types.boolean,
             },
-            () =>
-              either.makeRight(
-                makeUnelaboratedObjectNode({
-                  0: '@apply',
-                  function: {
-                    0: '@lookup',
-                    query: { 0: 'integer', 1: 'less_than' },
-                  },
-                  argument: number2,
-                }),
-              ),
+            serializePartiallyAppliedFunction(
+              ['integer', 'less_than'],
+              number2,
+            ),
             option.none,
             number1 => {
               if (
@@ -301,17 +276,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.integer,
               return: types.integer,
             },
-            () =>
-              either.makeRight(
-                makeUnelaboratedObjectNode({
-                  0: '@apply',
-                  function: {
-                    0: '@lookup',
-                    query: { 0: 'integer', 1: 'subtract' },
-                  },
-                  argument: number2,
-                }),
-              ),
+            serializePartiallyAppliedFunction(['integer', 'subtract'], number2),
             option.none,
             number1 => {
               if (
@@ -393,14 +358,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.something,
               return: types.something,
             },
-            () =>
-              either.map(serializeObjectNode(cases), serializedCases =>
-                makeUnelaboratedObjectNode({
-                  0: '@apply',
-                  function: { 0: '@lookup', query: { 0: 'match' } },
-                  argument: serializedCases,
-                }),
-              ),
+            serializePartiallyAppliedFunction(['match'], cases),
             option.none,
             argument => {
               if (!nodeIsTagged(argument)) {
@@ -448,17 +406,10 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.naturalNumber,
               return: types.naturalNumber,
             },
-            () =>
-              either.makeRight(
-                makeUnelaboratedObjectNode({
-                  0: '@apply',
-                  function: {
-                    0: '@lookup',
-                    query: { 0: 'natural_number', 1: 'add' },
-                  },
-                  argument: number2,
-                }),
-              ),
+            serializePartiallyAppliedFunction(
+              ['natural_number', 'add'],
+              number2,
+            ),
             option.none,
             number1 => {
               if (
@@ -514,17 +465,7 @@ export const prelude: ObjectNode = makeObjectNode({
                 parameter: types.something,
                 return: types.something,
               },
-              () =>
-                either.makeRight(
-                  makeUnelaboratedObjectNode({
-                    0: '@apply',
-                    function: {
-                      0: '@lookup',
-                      query: { 0: 'object', 1: 'lookup' },
-                    },
-                    argument: key,
-                  }),
-                ),
+              serializePartiallyAppliedFunction(['object', 'lookup'], key),
               option.none,
               argument => {
                 if (!isObjectNode(argument)) {
@@ -575,17 +516,10 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.string,
               return: types.string,
             },
-            () =>
-              either.makeRight(
-                makeUnelaboratedObjectNode({
-                  0: '@apply',
-                  function: {
-                    0: '@lookup',
-                    query: { 0: 'string', 1: 'concatenate' },
-                  },
-                  argument: string1,
-                }),
-              ),
+            serializePartiallyAppliedFunction(
+              ['string', 'concatenate'],
+              string1,
+            ),
             option.none,
             string2 => {
               if (typeof string1 !== 'string' || typeof string2 !== 'string') {
