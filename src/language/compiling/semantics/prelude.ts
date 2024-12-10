@@ -308,8 +308,6 @@ export const prelude: ObjectNode = makeObjectNode({
   ),
 
   boolean: makeObjectNode({
-    true: 'true',
-    false: 'false',
     is: preludeFunction(
       ['boolean', 'is'],
       {
