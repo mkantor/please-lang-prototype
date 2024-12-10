@@ -1,9 +1,9 @@
+import { option as optionADT } from '../../../adts.js'
 import {
   makeFunctionType,
   makeObjectType,
-  makeOpaqueType,
+  makeOpaqueStringType,
   makeUnionType,
-  matchTypeFormat,
   type FunctionType,
   type Type,
   type UnionType,
@@ -16,42 +16,29 @@ export const nullType = makeUnionType('null', ['null'])
 
 export const boolean = makeUnionType('boolean', ['false', 'true'])
 
-export const string = makeOpaqueType('string', {
-  isAssignableFrom: source =>
-    matchTypeFormat(source, {
-      // functions cannot be assigned to `string`
-      function: _ => false,
-      // `string` can't have object types assigned to it
-      object: _source => false,
-      // `string` (currently) has no opaque subtypes (its only subtype is itself)
-      opaque: source => source === string,
-      parameter: source =>
-        string.isAssignableFrom(source.constraint.assignableTo),
-      // `string` can have a union assigned to it if all of its members can be assigned to it
-      union: source => {
-        for (const sourceMember of source.members) {
-          if (
-            typeof sourceMember !== 'string' &&
-            !string.isAssignableFrom(sourceMember)
-          ) {
-            return false
-          }
-        }
-        return true
-      },
-    }),
-  isAssignableTo: target =>
-    matchTypeFormat(target, {
-      // `string` cannot be assigned to a function type
-      function: _ => false,
-      // `string` can't be assigned to object types
-      object: _target => false,
-      // `string` (currently) has no opaque supertypes (its only supertype is itself)
-      opaque: target => target === string,
-      parameter: target => target.constraint.assignableTo === string,
-      // `string` can only be assigned to a union type if `string` is one of its members
-      union: target => target.members.has(string), // FIXME this and other checks will only work if i make sure all references to `string` use exactly this instance! otherwise i need to use TypeIDs
-    }),
+// The current type hierarchy for opaque types is:
+//  - string
+//    - integer
+//      - natural_number
+
+export const string = makeOpaqueStringType('string', {
+  isAssignableFromLiteralType: (_literalType: string) => true,
+  nearestOpaqueAssignableFrom: () => optionADT.makeSome(integer),
+  nearestOpaqueAssignableTo: () => optionADT.none,
+})
+
+export const integer = makeOpaqueStringType('natural_number', {
+  isAssignableFromLiteralType: literalType =>
+    /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
+  nearestOpaqueAssignableFrom: () => optionADT.makeSome(naturalNumber),
+  nearestOpaqueAssignableTo: () => optionADT.makeSome(string),
+})
+
+export const naturalNumber = makeOpaqueStringType('natural_number', {
+  isAssignableFromLiteralType: literalType =>
+    /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
+  nearestOpaqueAssignableFrom: () => optionADT.none,
+  nearestOpaqueAssignableTo: () => optionADT.makeSome(integer),
 })
 
 export const object = makeObjectType('object', {})

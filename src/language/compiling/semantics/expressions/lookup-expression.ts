@@ -10,7 +10,10 @@ import {
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'
-import { stringifyKeyPathForEndUser } from '../../../semantics/key-path.js'
+import {
+  keyPathToMolecule,
+  stringifyKeyPathForEndUser,
+} from '../../../semantics/key-path.js'
 import {
   isObjectNode,
   makeObjectNode,
@@ -52,11 +55,7 @@ export const readLookupExpression = (
           } else {
             const canonicalizedQuery =
               typeof query === 'string'
-                ? makeObjectNode(
-                    Object.fromEntries(
-                      query.split('.').map((key, index) => [index, key]),
-                    ),
-                  )
+                ? makeObjectNode(keyPathToMolecule(query.split('.')))
                 : query
 
             return either.map(
@@ -212,11 +211,7 @@ const lookup = ({
                   return either.makeRight(
                     option.makeSome(
                       makeLookupExpression(
-                        makeObjectNode(
-                          Object.fromEntries(
-                            relativePath.map((key, index) => [index, key]),
-                          ),
-                        ),
+                        makeObjectNode(keyPathToMolecule(relativePath)),
                       ),
                     ),
                   )
