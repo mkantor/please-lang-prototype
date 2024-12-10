@@ -64,6 +64,10 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':{string concatenate}(a)(b)', either.makeRight('ba')],
   [
+    ':flow({ :string.concatenate(a) :string.concatenate(b) })(z)',
+    either.makeRight('zab'),
+  ],
+  [
     `{
         "static data":"blah blah blah"
         "evaluated data": {
