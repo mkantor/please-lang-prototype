@@ -232,12 +232,12 @@ const isNonUnionAssignableToUnion = ({
   if (source.kind === 'opaque') {
     return source.isAssignableTo(target)
   } else {
-    // The strategy for this case is to check whether any of the target's members are
-    // assignable to the source type. However this alone is not sufficient—for example
-    // `{ a: 'a' | 'b' }` should be assignable to `{ a: 'a' } | { a: 'b' }` even though
-    // `{ a: 'a' | 'b' }` is not directly assignable to `{ a: 'a' }` nor `{ a: 'b' }`. To
-    // make things work the target type is first converted into a standard form (e.g.
-    // `{ a: 'a' } | { a: 'b' }` is translated into `{ a: 'a' | 'b' }`.
+    // The strategy for this case is to check whether any of the target's members are assignable to
+    // the source type. However this alone is not sufficient—for example `{ a: 'a' | 'b' }` should
+    // be assignable to `{ a: 'a' } | { a: 'b' }` even though `{ a: 'a' | 'b' }` is not directly
+    // assignable to `{ a: 'a' }` nor `{ a: 'b' }`. To make things work the target type is first
+    // converted into a standard form (e.g. `{ a: 'a' } | { a: 'b' }` is translated into
+    // `{ a: 'a' | 'b' }`.
 
     const preparedTarget = simplifyUnionType(target)
 
@@ -290,7 +290,7 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
   const reducibleSubsets: Map<
     string,
     {
-      readonly keys: string[]
+      readonly keys: readonly string[]
       readonly typesToMerge: Set<ObjectType>
     }
   > = new Map()
@@ -298,12 +298,10 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
     if (typeof type !== 'string' && type.kind === 'object') {
       const keys = Object.keys(type.children)
 
-      // Object types with a single key are always mergeable with other object types
-      // containing the same single key. For example `{ a: 'a' } | { a: 'b' }` can become
-      // `{ a: 'a' | 'b' }`.
-      // TODO: Handle cases where there is more than one key but property types are
-      // compatible. For example `{ a: 'a', b: 'b' } | { a: 'b', b: 'b' }` can become
-      // `{ a: 'a' | 'b', b: 'b' }`.
+      // Object types with a single key are always mergeable with other object types containing the
+      // same single key. For example `{ a: 'a' } | { a: 'b' }` can become `{ a: 'a' | 'b' }`.
+      // TODO: Handle cases where there is more than one key but property types are compatible. For
+      // example `{ a: 'a', b: 'b' } | { a: 'b', b: 'b' }` can become `{ a: 'a' | 'b', b: 'b' }`.
       const fingerprint = keys[0]
       if (keys.length === 1 && fingerprint !== undefined) {
         const objectTypesWithThisFingerprint = reducibleSubsets.get(
@@ -319,6 +317,7 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
 
   const canonicalizedTargetMembers: Set<Atom | Exclude<Type, UnionType>> =
     new Set([...typeToSimplify.members])
+
   // Reduce `reducibleSubsets` by merging all candidate, updating `canonicalizedTargetMembers`.
   // Merge algorithm:
   //  - for each reducible subset of object types:
