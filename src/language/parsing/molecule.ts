@@ -90,14 +90,16 @@ const sugaredApply: Parser<PartialMolecule> = parser.map(
     parser.oneOrMore(
       parser.sequence([
         parser.literal('('),
+        optional(omit(whitespace)),
         parser.lazy(() => propertyValue),
+        optional(omit(whitespace)),
         parser.literal(')'),
       ]),
     ),
   ]),
   ([f, multipleArguments]) =>
     multipleArguments.reduce<PartialMolecule>(
-      (expression, [_1, argument, _2]) => ({
+      (expression, [_1, _2, argument, _3, _4]) => ({
         0: '@apply',
         function: expression,
         argument,
