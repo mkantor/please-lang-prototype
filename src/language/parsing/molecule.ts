@@ -1,6 +1,7 @@
 import { parser, type Parser } from '../../parsing.js'
 import { atomParser, type Atom } from './atom.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
+import { whitespace } from './whitespace.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
@@ -48,7 +49,6 @@ const makeIncrementingIndexer = (): Indexer => {
 // Language-specific parsers follow.
 
 const propertyDelimiter = parser.regularExpression(/[\s,]+/)
-const whitespace = parser.regularExpression(/\s+/)
 
 const sugaredLookup: Parser<PartialMolecule> =
   optionallySurroundedByParentheses(

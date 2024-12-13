@@ -1,4 +1,5 @@
 import { parser, type Parser } from '../../parsing.js'
+import { whitespace } from './whitespace.js'
 
 const optionallySurroundedBy = <Output>(
   parser1: Parser<unknown>,
@@ -16,4 +17,16 @@ const optionallySurroundedBy = <Output>(
 export const optionallySurroundedByParentheses = <Output>(
   theParser: Parser<Output>,
 ): Parser<Output> =>
-  optionallySurroundedBy(parser.literal('('), theParser, parser.literal(')'))
+  parser.oneOf([
+    // This allows `theParser` to greedily consume whitespace.
+    optionallySurroundedBy(
+      parser.literal('('),
+      theParser,
+      parser.sequence([parser.zeroOrMore(whitespace), parser.literal(')')]),
+    ),
+    optionallySurroundedBy(
+      parser.sequence([parser.literal('('), parser.zeroOrMore(whitespace)]),
+      theParser,
+      parser.sequence([parser.zeroOrMore(whitespace), parser.literal(')')]),
+    ),
+  ])
