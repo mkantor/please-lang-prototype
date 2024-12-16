@@ -3,10 +3,13 @@ import type {
   ElaborationError,
   InvalidExpressionError,
 } from '../../../errors.js'
-import { isFunctionNode, type KeyPath } from '../../../semantics.js'
 import {
   isExpression,
+  isFunctionNode,
   type Expression,
+  type KeyPath,
+} from '../../../semantics.js'
+import {
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'

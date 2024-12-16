@@ -3,12 +3,10 @@ import type { ElaborationError } from '../../../errors.js'
 import type { Atom, Molecule } from '../../../parsing.js'
 import {
   makeUnelaboratedObjectNode,
+  type Expression,
   type ObjectNode,
 } from '../../../semantics.js'
-import type {
-  Expression,
-  ExpressionContext,
-} from '../../../semantics/expression-elaboration.js'
+import type { ExpressionContext } from '../../../semantics/expression-elaboration.js'
 import { stringifyKeyPathForEndUser } from '../../../semantics/key-path.js'
 import { lookupPropertyOfObjectNode } from '../../../semantics/object-node.js'
 import {

@@ -2,16 +2,16 @@ import { either, option, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
 import type { Atom, Molecule } from '../../../parsing.js'
 import {
+  isExpression,
   makeFunctionNode,
   makeUnelaboratedObjectNode,
   serialize,
   types,
+  type Expression,
   type FunctionNode,
 } from '../../../semantics.js'
 import {
   elaborateWithContext,
-  isExpression,
-  type Expression,
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'

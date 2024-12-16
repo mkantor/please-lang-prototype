@@ -1,7 +1,7 @@
 import { either, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
+import type { Expression } from '../../../semantics.js'
 import {
-  type Expression,
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'

@@ -5,6 +5,7 @@ export {
   type KeywordElaborationResult,
   type KeywordModule,
 } from './semantics/expression-elaboration.js'
+export { isExpression, type Expression } from './semantics/expression.js'
 export {
   isFunctionNode,
   makeFunctionNode,
