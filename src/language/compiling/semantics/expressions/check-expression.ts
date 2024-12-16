@@ -1,17 +1,17 @@
 import { either, option, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
 import type { Molecule } from '../../../parsing.js'
-import { isFunctionNode } from '../../../semantics.js'
+import {
+  isFunctionNode,
+  makeUnelaboratedObjectNode,
+} from '../../../semantics.js'
 import {
   isExpression,
   type Expression,
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'
-import {
-  lookupPropertyOfObjectNode,
-  makeUnelaboratedObjectNode,
-} from '../../../semantics/object-node.js'
+import { lookupPropertyOfObjectNode } from '../../../semantics/object-node.js'
 import {
   stringifySemanticGraphForEndUser,
   type SemanticGraph,

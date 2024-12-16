@@ -3,6 +3,7 @@ import type { ElaborationError } from '../../../errors.js'
 import type { Atom, Molecule } from '../../../parsing.js'
 import {
   makeFunctionNode,
+  makeUnelaboratedObjectNode,
   serialize,
   types,
   type FunctionNode,
@@ -14,10 +15,7 @@ import {
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'
-import {
-  makeObjectNode,
-  makeUnelaboratedObjectNode,
-} from '../../../semantics/object-node.js'
+import { makeObjectNode } from '../../../semantics/object-node.js'
 import {
   updateValueAtKeyPathInSemanticGraph,
   type SemanticGraph,

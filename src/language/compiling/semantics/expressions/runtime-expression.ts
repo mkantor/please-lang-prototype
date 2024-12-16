@@ -3,6 +3,7 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   isAssignable,
   isFunctionNode,
+  makeUnelaboratedObjectNode,
   replaceAllTypeParametersWithTheirConstraints,
   types,
 } from '../../../semantics.js'
@@ -12,7 +13,6 @@ import {
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'
-import { makeUnelaboratedObjectNode } from '../../../semantics/object-node.js'
 import {
   containsAnyUnelaboratedNodes,
   type SemanticGraph,

@@ -3,8 +3,12 @@ import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
-import { makeObjectNode, type KeyPath, type ObjectNode } from '../semantics.js'
-import { makeUnelaboratedObjectNode } from './object-node.js'
+import {
+  makeObjectNode,
+  makeUnelaboratedObjectNode,
+  type KeyPath,
+  type ObjectNode,
+} from '../semantics.js'
 import {
   extractStringValueIfPossible,
   updateValueAtKeyPathInSemanticGraph,

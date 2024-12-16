@@ -1,16 +1,16 @@
 import { either, option, type Either, type Option } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
 import type { Atom, Molecule } from '../../../parsing.js'
-import { type ObjectNode } from '../../../semantics.js'
+import {
+  makeUnelaboratedObjectNode,
+  type ObjectNode,
+} from '../../../semantics.js'
 import type {
   Expression,
   ExpressionContext,
 } from '../../../semantics/expression-elaboration.js'
 import { stringifyKeyPathForEndUser } from '../../../semantics/key-path.js'
-import {
-  lookupPropertyOfObjectNode,
-  makeUnelaboratedObjectNode,
-} from '../../../semantics/object-node.js'
+import { lookupPropertyOfObjectNode } from '../../../semantics/object-node.js'
 import {
   applyKeyPathToSemanticGraph,
   isSemanticGraph,
