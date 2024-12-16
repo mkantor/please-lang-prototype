@@ -2,14 +2,14 @@ import { either, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
 import {
   isAssignable,
+  isExpression,
   isFunctionNode,
   makeUnelaboratedObjectNode,
   replaceAllTypeParametersWithTheirConstraints,
   types,
+  type Expression,
 } from '../../../semantics.js'
 import {
-  isExpression,
-  type Expression,
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'

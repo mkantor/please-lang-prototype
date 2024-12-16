@@ -9,11 +9,11 @@ import {
   makeObjectNode,
   serialize,
   types,
+  type Expression,
   type KeywordElaborationResult,
   type KeywordModule,
   type SemanticGraph,
 } from '../semantics.js'
-import type { Expression } from '../semantics/expression-elaboration.js'
 import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
 
 const unserializableFunction = () =>

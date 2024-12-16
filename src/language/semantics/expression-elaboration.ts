@@ -9,6 +9,7 @@ import {
   type KeyPath,
   type ObjectNode,
 } from '../semantics.js'
+import type { Expression } from './expression.js'
 import {
   extractStringValueIfPossible,
   updateValueAtKeyPathInSemanticGraph,
@@ -18,13 +19,6 @@ import {
 declare const _elaborated: unique symbol
 type Elaborated = { readonly [_elaborated]: true }
 export type ElaboratedSemanticGraph = WithPhantomData<SemanticGraph, Elaborated>
-
-export type Expression = ObjectNode & {
-  readonly 0: `@${string}`
-}
-
-export const isExpression = (node: SemanticGraph): node is Expression =>
-  typeof node === 'object' && typeof node[0] === 'string' && node[0][0] === '@'
 
 export type ExpressionContext = {
   readonly program: SemanticGraph

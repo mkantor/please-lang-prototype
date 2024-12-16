@@ -2,12 +2,12 @@ import { either, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
 import type { Molecule } from '../../../parsing.js'
 import {
+  isExpression,
   isFunctionNode,
   makeUnelaboratedObjectNode,
+  type Expression,
 } from '../../../semantics.js'
 import {
-  isExpression,
-  type Expression,
   type ExpressionContext,
   type KeywordHandler,
 } from '../../../semantics/expression-elaboration.js'
