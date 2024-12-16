@@ -6,14 +6,12 @@ import {
   isObjectNode,
   makeFunctionNode,
   makeObjectNode,
+  makeUnelaboratedObjectNode,
   types,
   type ObjectNode,
 } from '../../semantics.js'
 import { keyPathToMolecule } from '../../semantics/key-path.js'
-import {
-  lookupPropertyOfObjectNode,
-  makeUnelaboratedObjectNode,
-} from '../../semantics/object-node.js'
+import { lookupPropertyOfObjectNode } from '../../semantics/object-node.js'
 import {
   containsAnyUnelaboratedNodes,
   isSemanticGraph,

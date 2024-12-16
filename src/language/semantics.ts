@@ -14,6 +14,7 @@ export { type KeyPath } from './semantics/key-path.js'
 export {
   isObjectNode,
   makeObjectNode,
+  makeUnelaboratedObjectNode,
   type ObjectNode,
 } from './semantics/object-node.js'
 export {
