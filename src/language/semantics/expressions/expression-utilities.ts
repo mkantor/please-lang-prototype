@@ -1,19 +1,19 @@
-import { either, option, type Either, type Option } from '../../../../adts.js'
-import type { ElaborationError } from '../../../errors.js'
-import type { Atom, Molecule } from '../../../parsing.js'
+import { either, option, type Either, type Option } from '../../../adts.js'
+import type { ElaborationError } from '../../errors.js'
+import type { Atom, Molecule } from '../../parsing.js'
+import type { ExpressionContext } from '../expression-elaboration.js'
+import type { Expression } from '../expression.js'
+import { stringifyKeyPathForEndUser } from '../key-path.js'
 import {
+  lookupPropertyOfObjectNode,
   makeUnelaboratedObjectNode,
-  type Expression,
   type ObjectNode,
-} from '../../../semantics.js'
-import type { ExpressionContext } from '../../../semantics/expression-elaboration.js'
-import { stringifyKeyPathForEndUser } from '../../../semantics/key-path.js'
-import { lookupPropertyOfObjectNode } from '../../../semantics/object-node.js'
+} from '../object-node.js'
 import {
   applyKeyPathToSemanticGraph,
   isSemanticGraph,
   type SemanticGraph,
-} from '../../../semantics/semantic-graph.js'
+} from '../semantic-graph.js'
 
 export const asSemanticGraph = (
   value: SemanticGraph | Molecule,

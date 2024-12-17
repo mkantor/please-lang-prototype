@@ -1,57 +1,39 @@
 import { type KeywordHandlers } from '../../semantics.js'
-import {
-  applyKeyword,
-  applyKeywordHandler,
-} from './expressions/apply-expression.js'
-import {
-  checkKeyword,
-  checkKeywordHandler,
-} from './expressions/check-expression.js'
-import {
-  functionKeyword,
-  functionKeywordHandler,
-} from './expressions/function-expression.js'
-import {
-  lookupKeyword,
-  lookupKeywordHandler,
-} from './expressions/lookup-expression.js'
-import {
-  runtimeKeyword,
-  runtimeKeywordHandler,
-} from './expressions/runtime-expression.js'
-import {
-  todoKeyword,
-  todoKeywordHandler,
-} from './expressions/todo-expression.js'
+import { applyKeywordHandler } from './keyword-handlers/apply-handler.js'
+import { checkKeywordHandler } from './keyword-handlers/check-handler.js'
+import { functionKeywordHandler } from './keyword-handlers/function-handler.js'
+import { lookupKeywordHandler } from './keyword-handlers/lookup-handler.js'
+import { runtimeKeywordHandler } from './keyword-handlers/runtime-handler.js'
+import { todoKeywordHandler } from './keyword-handlers/todo-handler.js'
 
 export const keywordHandlers: KeywordHandlers = {
   /**
    * Calls the given function with a given argument.
    */
-  [applyKeyword]: applyKeywordHandler,
+  '@apply': applyKeywordHandler,
 
   /**
    * Checks whether a given value is assignable to a given type.
    */
-  [checkKeyword]: checkKeywordHandler,
+  '@check': checkKeywordHandler,
 
   /**
    * Creates a function.
    */
-  [functionKeyword]: functionKeywordHandler,
+  '@function': functionKeywordHandler,
 
   /**
    * Given a query, resolves the value of a property within the program.
    */
-  [lookupKeyword]: lookupKeywordHandler,
+  '@lookup': lookupKeywordHandler,
 
   /**
    * Defers evaluation until runtime.
    */
-  [runtimeKeyword]: runtimeKeywordHandler,
+  '@runtime': runtimeKeywordHandler,
 
   /**
    * Ignores all properties and evaluates to an empty object.
    */
-  [todoKeyword]: todoKeywordHandler,
+  '@todo': todoKeywordHandler,
 }
