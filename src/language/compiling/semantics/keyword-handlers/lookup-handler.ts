@@ -181,7 +181,11 @@ const lookup = ({
           // Try the parent scope.
           lookup({
             relativePath,
-            context: { program: context.program, location: pathToCurrentScope },
+            context: {
+              keywordHandlers: context.keywordHandlers,
+              location: pathToCurrentScope,
+              program: context.program,
+            },
           }),
         some: lookedUpValue => either.makeRight(option.makeSome(lookedUpValue)),
       }),

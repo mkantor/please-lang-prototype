@@ -22,8 +22,9 @@ type Elaborated = { readonly [_elaborated]: true }
 export type ElaboratedSemanticGraph = WithPhantomData<SemanticGraph, Elaborated>
 
 export type ExpressionContext = {
-  readonly program: SemanticGraph
+  readonly keywordHandlers: KeywordHandlers
   readonly location: KeyPath
+  readonly program: SemanticGraph
 }
 
 export type KeywordElaborationResult = Either<ElaborationError, SemanticGraph>
@@ -39,7 +40,8 @@ export const elaborate = (
   program: SyntaxTree,
   keywordHandlers: KeywordHandlers,
 ): Either<ElaborationError, ElaboratedSemanticGraph> =>
-  elaborateWithContext(program, keywordHandlers, {
+  elaborateWithContext(program, {
+    keywordHandlers,
     location: [],
     program:
       typeof program === 'string'
@@ -49,19 +51,17 @@ export const elaborate = (
 
 export const elaborateWithContext = (
   program: SyntaxTree,
-  keywordHandlers: KeywordHandlers,
   context: ExpressionContext,
 ): Either<ElaborationError, ElaboratedSemanticGraph> =>
   either.map(
     typeof program === 'string'
       ? handleAtomWhichMayNotBeAKeyword(program)
-      : elaborateWithinMolecule(program, keywordHandlers, context),
+      : elaborateWithinMolecule(program, context),
     withPhantomData<Elaborated>(),
   )
 
 const elaborateWithinMolecule = (
   molecule: Molecule,
-  keywordHandlers: KeywordHandlers,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
   const possibleExpressionAsObjectNode: Writable<ObjectNode> = makeObjectNode(
@@ -79,14 +79,11 @@ const elaborateWithinMolecule = (
       if (typeof value === 'string') {
         possibleExpressionAsObjectNode[updatedKey] = value
       } else {
-        const elaborationResult = elaborateWithinMolecule(
-          value,
-          keywordHandlers,
-          {
-            location: [...context.location, key],
-            program: updatedProgram,
-          },
-        )
+        const elaborationResult = elaborateWithinMolecule(value, {
+          keywordHandlers: context.keywordHandlers,
+          location: [...context.location, key],
+          program: updatedProgram,
+        })
         if (either.isLeft(elaborationResult)) {
           // Immediately bail on error.
           return elaborationResult
@@ -146,8 +143,8 @@ const elaborateWithinMolecule = (
             ...possibleExpressionAsObjectNode,
             0: possibleKeywordAsString,
           },
-          keywordHandlers,
           {
+            keywordHandlers: context.keywordHandlers,
             program: updatedProgram,
             location: context.location,
           },
@@ -158,7 +155,6 @@ const elaborateWithinMolecule = (
 
 const handleObjectNodeWhichMayBeAExpression = (
   node: ObjectNode & { readonly 0: Atom },
-  keywordHandlers: KeywordHandlers,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
   const { 0: possibleKeyword, ...possibleArguments } = node
@@ -174,7 +170,7 @@ const handleObjectNodeWhichMayBeAExpression = (
             0: unescapeKeywordSigil(possibleKeyword),
           }),
     some: keyword =>
-      keywordHandlers[keyword](
+      context.keywordHandlers[keyword](
         makeObjectNode({ ...possibleArguments, 0: keyword }),
         context,
       ),

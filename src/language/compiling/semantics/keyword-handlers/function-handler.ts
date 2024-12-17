@@ -20,7 +20,6 @@ import {
   updateValueAtKeyPathInSemanticGraph,
   type SemanticGraph,
 } from '../../../semantics/semantic-graph.js'
-import { keywordHandlers } from '../keywords.js'
 
 export const functionKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -66,16 +65,11 @@ const apply = (
           }),
       ),
       updatedProgram =>
-        elaborateWithContext(
-          serializedBody,
-          // TODO: This should use compile-time or runtime handlers when appropriate. Perhaps
-          // keyword handlers should be part of `ExpressionContext`?
-          keywordHandlers,
-          {
-            location: [...context.location, returnKey],
-            program: updatedProgram,
-          },
-        ),
+        elaborateWithContext(serializedBody, {
+          keywordHandlers: context.keywordHandlers,
+          location: [...context.location, returnKey],
+          program: updatedProgram,
+        }),
     ),
   )
 
