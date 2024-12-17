@@ -3,7 +3,7 @@ export {
   type ElaboratedSemanticGraph,
   type ExpressionContext,
   type KeywordElaborationResult,
-  type KeywordModule,
+  type KeywordHandlers,
 } from './semantics/expression-elaboration.js'
 export { isExpression, type Expression } from './semantics/expression.js'
 export {
@@ -12,6 +12,7 @@ export {
   type FunctionNode,
 } from './semantics/function-node.js'
 export { type KeyPath } from './semantics/key-path.js'
+export { isKeyword, type Keyword } from './semantics/keyword.js'
 export {
   isObjectNode,
   makeObjectNode,

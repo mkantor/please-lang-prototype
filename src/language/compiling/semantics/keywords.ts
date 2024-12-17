@@ -1,4 +1,4 @@
-import { type KeywordModule } from '../../semantics.js'
+import { type KeywordHandlers } from '../../semantics.js'
 import {
   applyKeyword,
   applyKeywordHandler,
@@ -24,7 +24,7 @@ import {
   todoKeywordHandler,
 } from './expressions/todo-expression.js'
 
-export const handlers = {
+export const keywordHandlers: KeywordHandlers = {
   /**
    * Calls the given function with a given argument.
    */
@@ -54,11 +54,4 @@ export const handlers = {
    * Ignores all properties and evaluates to an empty object.
    */
   [todoKeyword]: todoKeywordHandler,
-} satisfies KeywordModule<`@${string}`>['handlers']
-
-export type Keyword = keyof typeof handlers
-
-// `isKeyword` is correct as long as `handlers` does not have excess properties.
-const allKeywords = new Set(Object.keys(handlers))
-export const isKeyword = (input: string): input is Keyword =>
-  allKeywords.has(input)
+}

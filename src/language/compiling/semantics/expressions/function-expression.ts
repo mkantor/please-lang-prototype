@@ -21,7 +21,7 @@ import {
   type SemanticGraph,
   type unelaboratedKey,
 } from '../../../semantics/semantic-graph.js'
-import { handlers, isKeyword } from '../keywords.js'
+import { keywordHandlers } from '../keywords.js'
 import {
   asSemanticGraph,
   readArgumentsFromExpression,
@@ -115,7 +115,9 @@ const apply = (
       updatedProgram =>
         elaborateWithContext(
           serializedBody,
-          { handlers, isKeyword },
+          // TODO: This should use compile-time or runtime handlers when appropriate. Perhaps
+          // keyword handlers should be part of `ExpressionContext`?
+          keywordHandlers,
           {
             location: [...context.location, returnKey],
             program: updatedProgram,

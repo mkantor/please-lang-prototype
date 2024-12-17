@@ -10,8 +10,7 @@ import {
   serialize,
   types,
   type Expression,
-  type KeywordElaborationResult,
-  type KeywordModule,
+  type KeywordHandlers,
   type SemanticGraph,
 } from '../semantics.js'
 import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
@@ -125,12 +124,12 @@ const runtimeContext = makeObjectNode({
   }),
 })
 
-export const handlers = {
+export const keywordHandlers: KeywordHandlers = {
   ...compilerKeywordHandlers,
   /**
    * Evaluates the given function, passing runtime context captured in `world`.
    */
-  '@runtime': (expression): KeywordElaborationResult => {
+  '@runtime': expression => {
     const runtimeFunction = lookupWithinExpression(
       ['function', '1'],
       expression,
@@ -158,14 +157,7 @@ export const handlers = {
       }
     }
   },
-} satisfies KeywordModule<`@${string}`>['handlers']
-
-export type Keyword = keyof typeof handlers
-
-// `isKeyword` is correct as long as `handlers` does not have excess properties.
-const allKeywords = new Set(Object.keys(handlers))
-export const isKeyword = (input: string): input is Keyword =>
-  allKeywords.has(input)
+}
 
 const lookupWithinExpression = (
   keyAliases: [Atom, ...(readonly Atom[])],

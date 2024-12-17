@@ -3,13 +3,14 @@ import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
+import type { Expression } from './expression.js'
+import type { KeyPath } from './key-path.js'
+import { isKeyword, type Keyword } from './keyword.js'
 import {
   makeObjectNode,
   makeUnelaboratedObjectNode,
-  type KeyPath,
   type ObjectNode,
-} from '../semantics.js'
-import type { Expression } from './expression.js'
+} from './object-node.js'
 import {
   extractStringValueIfPossible,
   updateValueAtKeyPathInSemanticGraph,
@@ -32,16 +33,13 @@ export type KeywordHandler = (
   context: ExpressionContext,
 ) => KeywordElaborationResult
 
-export type KeywordModule<Keyword extends `@${string}`> = {
-  readonly isKeyword: (input: string) => input is Keyword
-  readonly handlers: Readonly<Record<Keyword, KeywordHandler>>
-}
+export type KeywordHandlers = Readonly<Record<Keyword, KeywordHandler>>
 
 export const elaborate = (
   program: SyntaxTree,
-  keywordModule: KeywordModule<`@${string}`>,
+  keywordHandlers: KeywordHandlers,
 ): Either<ElaborationError, ElaboratedSemanticGraph> =>
-  elaborateWithContext(program, keywordModule, {
+  elaborateWithContext(program, keywordHandlers, {
     location: [],
     program:
       typeof program === 'string'
@@ -51,19 +49,19 @@ export const elaborate = (
 
 export const elaborateWithContext = (
   program: SyntaxTree,
-  keywordModule: KeywordModule<`@${string}`>,
+  keywordHandlers: KeywordHandlers,
   context: ExpressionContext,
 ): Either<ElaborationError, ElaboratedSemanticGraph> =>
   either.map(
     typeof program === 'string'
       ? handleAtomWhichMayNotBeAKeyword(program)
-      : elaborateWithinMolecule(program, keywordModule, context),
+      : elaborateWithinMolecule(program, keywordHandlers, context),
     withPhantomData<Elaborated>(),
   )
 
 const elaborateWithinMolecule = (
   molecule: Molecule,
-  keywordModule: KeywordModule<`@${string}`>,
+  keywordHandlers: KeywordHandlers,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
   const possibleExpressionAsObjectNode: Writable<ObjectNode> = makeObjectNode(
@@ -83,7 +81,7 @@ const elaborateWithinMolecule = (
       } else {
         const elaborationResult = elaborateWithinMolecule(
           value,
-          keywordModule,
+          keywordHandlers,
           {
             location: [...context.location, key],
             program: updatedProgram,
@@ -148,7 +146,7 @@ const elaborateWithinMolecule = (
             ...possibleExpressionAsObjectNode,
             0: possibleKeywordAsString,
           },
-          keywordModule,
+          keywordHandlers,
           {
             program: updatedProgram,
             location: context.location,
@@ -158,32 +156,29 @@ const elaborateWithinMolecule = (
   }
 }
 
-const handleObjectNodeWhichMayBeAExpression = <Keyword extends `@${string}`>(
+const handleObjectNodeWhichMayBeAExpression = (
   node: ObjectNode & { readonly 0: Atom },
-  keywordModule: KeywordModule<Keyword>,
+  keywordHandlers: KeywordHandlers,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
   const { 0: possibleKeyword, ...possibleArguments } = node
-  return option.match(
-    option.fromPredicate(possibleKeyword, keywordModule.isKeyword),
-    {
-      none: () =>
-        /^@[^@]/.test(possibleKeyword)
-          ? either.makeLeft({
-              kind: 'unknownKeyword',
-              message: `unknown keyword: \`${possibleKeyword}\``,
-            })
-          : either.makeRight({
-              ...node,
-              0: unescapeKeywordSigil(possibleKeyword),
-            }),
-      some: keyword =>
-        keywordModule.handlers[keyword](
-          makeObjectNode({ ...possibleArguments, 0: keyword }),
-          context,
-        ),
-    },
-  )
+  return option.match(option.fromPredicate(possibleKeyword, isKeyword), {
+    none: () =>
+      /^@[^@]/.test(possibleKeyword)
+        ? either.makeLeft({
+            kind: 'unknownKeyword',
+            message: `unknown keyword: \`${possibleKeyword}\``,
+          })
+        : either.makeRight({
+            ...node,
+            0: unescapeKeywordSigil(possibleKeyword),
+          }),
+    some: keyword =>
+      keywordHandlers[keyword](
+        makeObjectNode({ ...possibleArguments, 0: keyword }),
+        context,
+      ),
+  })
 }
 
 const handleAtomWhichMayNotBeAKeyword = (
