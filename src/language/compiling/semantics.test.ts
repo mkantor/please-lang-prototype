@@ -13,12 +13,12 @@ import {
   type ObjectNode,
 } from '../semantics.js'
 import type { SemanticGraph } from '../semantics/semantic-graph.js'
-import * as keywordModule from './semantics/keywords.js'
+import { keywordHandlers } from './semantics/keywords.js'
 import { prelude } from './semantics/prelude.js'
 
 const elaborationSuite = testCases(
   (input: Atom | Molecule) =>
-    elaborate(withPhantomData<never>()(input), keywordModule),
+    elaborate(withPhantomData<never>()(input), keywordHandlers),
   input => `elaborating expressions in \`${JSON.stringify(input)}\``,
 )
 
