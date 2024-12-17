@@ -1,8 +1,10 @@
 export {
   elaborate,
+  elaborateWithContext,
   type ElaboratedSemanticGraph,
   type ExpressionContext,
   type KeywordElaborationResult,
+  type KeywordHandler,
   type KeywordHandlers,
 } from './semantics/expression-elaboration.js'
 export { isExpression, type Expression } from './semantics/expression.js'
@@ -41,16 +43,26 @@ export {
   makeFunctionNode,
   type FunctionNode,
 } from './semantics/function-node.js'
-export { type KeyPath } from './semantics/key-path.js'
+export {
+  keyPathToMolecule,
+  stringifyKeyPathForEndUser,
+  type KeyPath,
+} from './semantics/key-path.js'
 export { isKeyword, type Keyword } from './semantics/keyword.js'
 export {
   isObjectNode,
+  lookupPropertyOfObjectNode,
   makeObjectNode,
   makeUnelaboratedObjectNode,
   type ObjectNode,
 } from './semantics/object-node.js'
+export { prelude } from './semantics/prelude.js'
 export {
+  applyKeyPathToSemanticGraph,
+  containsAnyUnelaboratedNodes,
   serialize,
+  stringifySemanticGraphForEndUser,
+  updateValueAtKeyPathInSemanticGraph,
   type Output,
   type SemanticGraph,
 } from './semantics/semantic-graph.js'

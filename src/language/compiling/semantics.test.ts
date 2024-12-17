@@ -12,9 +12,9 @@ import {
   type ElaboratedSemanticGraph,
   type ObjectNode,
 } from '../semantics.js'
+import { prelude } from '../semantics/prelude.js'
 import type { SemanticGraph } from '../semantics/semantic-graph.js'
 import { keywordHandlers } from './semantics/keywords.js'
-import { prelude } from './semantics/prelude.js'
 
 const elaborationSuite = testCases(
   (input: Atom | Molecule) =>
