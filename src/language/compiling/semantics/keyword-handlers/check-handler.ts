@@ -3,18 +3,14 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   asSemanticGraph,
   isFunctionNode,
+  lookupPropertyOfObjectNode,
   readCheckExpression,
+  stringifySemanticGraphForEndUser,
   type Expression,
-} from '../../../semantics.js'
-import {
   type ExpressionContext,
   type KeywordHandler,
-} from '../../../semantics/expression-elaboration.js'
-import { lookupPropertyOfObjectNode } from '../../../semantics/object-node.js'
-import {
-  stringifySemanticGraphForEndUser,
   type SemanticGraph,
-} from '../../../semantics/semantic-graph.js'
+} from '../../../semantics.js'
 
 export const checkKeywordHandler: KeywordHandler = (
   expression: Expression,

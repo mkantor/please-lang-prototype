@@ -4,30 +4,22 @@ import type {
   InvalidExpressionError,
 } from '../../../errors.js'
 import {
+  applyKeyPathToSemanticGraph,
+  isObjectNode,
+  keyPathToMolecule,
   makeLookupExpression,
+  makeObjectNode,
+  prelude,
   readFunctionExpression,
   readLookupExpression,
-  type Expression,
-  type KeyPath,
-} from '../../../semantics.js'
-import {
-  type ExpressionContext,
-  type KeywordHandler,
-} from '../../../semantics/expression-elaboration.js'
-import {
-  keyPathToMolecule,
   stringifyKeyPathForEndUser,
-} from '../../../semantics/key-path.js'
-import {
-  isObjectNode,
-  makeObjectNode,
+  type Expression,
+  type ExpressionContext,
+  type KeyPath,
+  type KeywordHandler,
   type ObjectNode,
-} from '../../../semantics/object-node.js'
-import {
-  applyKeyPathToSemanticGraph,
   type SemanticGraph,
-} from '../../../semantics/semantic-graph.js'
-import { prelude } from '../prelude.js'
+} from '../../../semantics.js'
 
 export const lookupKeywordHandler: KeywordHandler = (
   expression: Expression,

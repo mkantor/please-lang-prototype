@@ -2,18 +2,14 @@ import { either, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
 import {
   asSemanticGraph,
+  containsAnyUnelaboratedNodes,
   isFunctionNode,
   readApplyExpression,
   type Expression,
-} from '../../../semantics.js'
-import {
   type ExpressionContext,
   type KeywordHandler,
-} from '../../../semantics/expression-elaboration.js'
-import {
-  containsAnyUnelaboratedNodes,
   type SemanticGraph,
-} from '../../../semantics/semantic-graph.js'
+} from '../../../semantics.js'
 
 export const applyKeywordHandler: KeywordHandler = (
   expression: Expression,

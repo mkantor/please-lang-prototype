@@ -1,29 +1,28 @@
-import { either, option, type Either } from '../../../adts.js'
-import type { DependencyUnavailable, Panic } from '../../errors.js'
-import type { Atom } from '../../parsing.js'
+import { either, option, type Either } from '../../adts.js'
+import type { DependencyUnavailable, Panic } from '../errors.js'
+import type { Atom } from '../parsing.js'
+import { isFunctionNode, makeFunctionNode } from './function-node.js'
+import { keyPathToMolecule } from './key-path.js'
 import {
-  isFunctionNode,
   isObjectNode,
-  makeFunctionNode,
+  lookupPropertyOfObjectNode,
   makeObjectNode,
   makeUnelaboratedObjectNode,
-  types,
   type ObjectNode,
-} from '../../semantics.js'
-import { keyPathToMolecule } from '../../semantics/key-path.js'
-import { lookupPropertyOfObjectNode } from '../../semantics/object-node.js'
+} from './object-node.js'
 import {
   containsAnyUnelaboratedNodes,
   isSemanticGraph,
   type SemanticGraph,
-} from '../../semantics/semantic-graph.js'
+} from './semantic-graph.js'
+import { types } from './type-system.js'
 import {
   makeFunctionType,
   makeObjectType,
   makeTypeParameter,
   makeUnionType,
   type FunctionType,
-} from '../../semantics/type-system/type-formats.js'
+} from './type-system/type-formats.js'
 
 const handleUnavailableDependencies =
   (

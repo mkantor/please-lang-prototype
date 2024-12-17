@@ -9,12 +9,10 @@ import {
   replaceAllTypeParametersWithTheirConstraints,
   types,
   type Expression,
-} from '../../../semantics.js'
-import {
   type ExpressionContext,
   type KeywordHandler,
-} from '../../../semantics/expression-elaboration.js'
-import { type SemanticGraph } from '../../../semantics/semantic-graph.js'
+  type SemanticGraph,
+} from '../../../semantics.js'
 
 export const runtimeKeywordHandler: KeywordHandler = (
   expression: Expression,

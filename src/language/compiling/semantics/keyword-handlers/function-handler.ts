@@ -2,24 +2,20 @@ import { either, option, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
 import {
   asSemanticGraph,
+  elaborateWithContext,
   makeFunctionNode,
+  makeObjectNode,
   readFunctionExpression,
   serialize,
   types,
+  updateValueAtKeyPathInSemanticGraph,
   type Expression,
+  type ExpressionContext,
   type FunctionExpression,
   type FunctionNode,
-} from '../../../semantics.js'
-import {
-  elaborateWithContext,
-  type ExpressionContext,
   type KeywordHandler,
-} from '../../../semantics/expression-elaboration.js'
-import { makeObjectNode } from '../../../semantics/object-node.js'
-import {
-  updateValueAtKeyPathInSemanticGraph,
   type SemanticGraph,
-} from '../../../semantics/semantic-graph.js'
+} from '../../../semantics.js'
 
 export const functionKeywordHandler: KeywordHandler = (
   expression: Expression,

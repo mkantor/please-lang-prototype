@@ -1,12 +1,12 @@
 import { either, type Either } from '../../../../adts.js'
 import type { ElaborationError } from '../../../errors.js'
-import type { Expression } from '../../../semantics.js'
 import {
+  makeObjectNode,
+  type Expression,
   type ExpressionContext,
   type KeywordHandler,
-} from '../../../semantics/expression-elaboration.js'
-import { makeObjectNode } from '../../../semantics/object-node.js'
-import { type SemanticGraph } from '../../../semantics/semantic-graph.js'
+  type SemanticGraph,
+} from '../../../semantics.js'
 
 export const todoKeywordHandler: KeywordHandler = (
   _expression: Expression,
