@@ -7,6 +7,36 @@ export {
 } from './semantics/expression-elaboration.js'
 export { isExpression, type Expression } from './semantics/expression.js'
 export {
+  makeApplyExpression,
+  readApplyExpression,
+  type ApplyExpression,
+} from './semantics/expressions/apply-expression.js'
+export {
+  makeCheckExpression,
+  readCheckExpression,
+  type CheckExpression,
+} from './semantics/expressions/check-expression.js'
+export {
+  asSemanticGraph,
+  readArgumentsFromExpression,
+} from './semantics/expressions/expression-utilities.js'
+export {
+  makeFunctionExpression,
+  readFunctionExpression,
+  type FunctionExpression,
+} from './semantics/expressions/function-expression.js'
+export {
+  makeLookupExpression,
+  readLookupExpression,
+  type LookupExpression,
+} from './semantics/expressions/lookup-expression.js'
+export {
+  makeRuntimeExpression,
+  readRuntimeExpression,
+  type RuntimeExpression,
+} from './semantics/expressions/runtime-expression.js'
+export { type TodoExpression } from './semantics/expressions/todo-expression.js'
+export {
   isFunctionNode,
   makeFunctionNode,
   type FunctionNode,

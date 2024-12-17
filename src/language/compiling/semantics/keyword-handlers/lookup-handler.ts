@@ -4,8 +4,9 @@ import type {
   InvalidExpressionError,
 } from '../../../errors.js'
 import {
-  isExpression,
-  isFunctionNode,
+  makeLookupExpression,
+  readFunctionExpression,
+  readLookupExpression,
   type Expression,
   type KeyPath,
 } from '../../../semantics.js'
@@ -20,66 +21,13 @@ import {
 import {
   isObjectNode,
   makeObjectNode,
-  makeUnelaboratedObjectNode,
   type ObjectNode,
 } from '../../../semantics/object-node.js'
 import {
   applyKeyPathToSemanticGraph,
   type SemanticGraph,
-  type unelaboratedKey,
 } from '../../../semantics/semantic-graph.js'
 import { prelude } from '../prelude.js'
-import {
-  asSemanticGraph,
-  readArgumentsFromExpression,
-} from './expression-utilities.js'
-import { readFunctionExpression } from './function-expression.js'
-
-export const lookupKeyword = '@lookup'
-
-export type LookupExpression = Expression & {
-  readonly 0: '@lookup'
-  readonly query: ObjectNode
-}
-
-export const readLookupExpression = (
-  node: SemanticGraph,
-): Either<ElaborationError, LookupExpression> =>
-  isExpression(node)
-    ? either.flatMap(
-        readArgumentsFromExpression(node, [['query', '1']]),
-        ([q]) => {
-          const query = asSemanticGraph(q)
-          if (isFunctionNode(query)) {
-            return either.makeLeft({
-              kind: 'invalidExpression',
-              message: 'query cannot be a function',
-            })
-          } else {
-            const canonicalizedQuery =
-              typeof query === 'string'
-                ? makeObjectNode(keyPathToMolecule(query.split('.')))
-                : query
-
-            return either.map(
-              keyPathFromObjectNode(canonicalizedQuery),
-              _keyPath => makeLookupExpression(canonicalizedQuery),
-            )
-          }
-        },
-      )
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not an expression',
-      })
-
-export const makeLookupExpression = (
-  query: ObjectNode,
-): LookupExpression & { readonly [unelaboratedKey]: true } =>
-  makeUnelaboratedObjectNode({
-    0: '@lookup',
-    query,
-  })
 
 export const lookupKeywordHandler: KeywordHandler = (
   expression: Expression,
