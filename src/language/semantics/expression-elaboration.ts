@@ -161,7 +161,10 @@ const handleObjectNodeWhichMayBeAExpression = (
   const { 0: possibleKeyword, ...possibleArguments } = node
   return isKeyword(possibleKeyword)
     ? context.keywordHandlers[possibleKeyword](
-        makeObjectNode({ ...possibleArguments, 0: possibleKeyword }),
+        makeUnelaboratedObjectNode({
+          ...possibleArguments,
+          0: possibleKeyword,
+        }),
         context,
       )
     : /^@[^@]/.test(possibleKeyword)
