@@ -10,6 +10,7 @@ import type {
 import type { KeyPath } from '../semantics.js'
 import { atomParser, type Atom } from './atom.js'
 import { moleculeParser, type Molecule } from './molecule.js'
+import { trivia } from './trivia.js'
 
 declare const _canonicalized: unique symbol
 export type Canonicalized = { readonly [_canonicalized]: true }
@@ -79,6 +80,10 @@ type JSONRecordForbiddingSymbolicKeys = {
 }>
 
 export const syntaxTreeParser: Parser<SyntaxTree> = parser.map(
-  parser.oneOf([atomParser, moleculeParser]),
-  canonicalize,
+  parser.sequence([
+    parser.zeroOrMore(trivia),
+    parser.oneOf([atomParser, moleculeParser]),
+    parser.zeroOrMore(trivia),
+  ]),
+  ([_leadingTrivia, syntaxTree, _trailingTrivia]) => canonicalize(syntaxTree),
 )
