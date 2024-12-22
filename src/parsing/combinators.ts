@@ -37,6 +37,24 @@ export const lazy =
   input =>
     parser()(input)
 
+export const lookaheadNot =
+  <Output>(
+    parser: Parser<Output>,
+    notFollowedBy: Parser<unknown>,
+    followedByName: string,
+  ): Parser<Output> =>
+  input =>
+    either.flatMap(parser(input), success =>
+      either.match(notFollowedBy(success.remainingInput), {
+        left: _ => either.makeRight(success),
+        right: _ =>
+          either.makeLeft({
+            input,
+            message: `input was unexpectedly followed by ${followedByName}`,
+          }),
+      }),
+    )
+
 export const map =
   <Output, NewOutput>(
     parser: Parser<Output>,

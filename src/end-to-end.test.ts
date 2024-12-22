@@ -62,6 +62,18 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{ (a: A) (b: B) }', either.makeRight({ a: 'A', b: 'B' })],
   ['( { ((a): :(b)) ( ( b ): B ) } )', either.makeRight({ a: 'B', b: 'B' })],
   ['{ (a: :(")")), (")": (B)) }', either.makeRight({ a: 'B', ')': 'B' })],
+  [`/**/a/**/`, either.makeRight('a')],
+  ['hello//world', either.makeRight('hello')],
+  [`"hello//world"`, either.makeRight('hello//world')],
+  [`{a/* this works as a delimiter */b}`, either.makeRight({ 0: 'a', 1: 'b' })],
+  [
+    `/**/{/**/a:/**/b/**/,/**/c:/**/d/**/}/**/`,
+    either.makeRight({ a: 'b', c: 'd' }),
+  ],
+  [
+    `/**/(/**/a/**/=>/**/:a/**/)(/**/output/**/)/**/`,
+    either.makeRight('output'),
+  ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':{string concatenate}(a)(b)', either.makeRight('ba')],
   [
@@ -70,6 +82,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{
+        // foo: bar
         "static data":"blah blah blah"
         "evaluated data": {
           0:@runtime

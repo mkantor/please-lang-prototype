@@ -1,5 +1,5 @@
 import { parser, type Parser } from '../../parsing.js'
-import { whitespace } from './whitespace.js'
+import { trivia } from './trivia.js'
 
 const optionallySurroundedBy = <Output>(
   parser1: Parser<unknown>,
@@ -18,15 +18,15 @@ export const optionallySurroundedByParentheses = <Output>(
   theParser: Parser<Output>,
 ): Parser<Output> =>
   parser.oneOf([
-    // This allows `theParser` to greedily consume whitespace.
+    // This allows `theParser` to greedily consume trivia.
     optionallySurroundedBy(
       parser.literal('('),
       theParser,
-      parser.sequence([parser.zeroOrMore(whitespace), parser.literal(')')]),
+      parser.sequence([parser.zeroOrMore(trivia), parser.literal(')')]),
     ),
     optionallySurroundedBy(
-      parser.sequence([parser.literal('('), parser.zeroOrMore(whitespace)]),
+      parser.sequence([parser.literal('('), parser.zeroOrMore(trivia)]),
       theParser,
-      parser.sequence([parser.zeroOrMore(whitespace), parser.literal(')')]),
+      parser.sequence([parser.zeroOrMore(trivia), parser.literal(')')]),
     ),
   ])

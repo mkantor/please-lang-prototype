@@ -1,7 +1,7 @@
 import { parser, type Parser } from '../../parsing.js'
 import { atomParser, type Atom } from './atom.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
-import { whitespace } from './whitespace.js'
+import { trivia } from './trivia.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
@@ -48,7 +48,14 @@ const makeIncrementingIndexer = (): Indexer => {
 
 // Language-specific parsers follow.
 
-const propertyDelimiter = parser.regularExpression(/[\s,]+/)
+const propertyDelimiter = parser.oneOf([
+  parser.sequence([
+    optional(omit(trivia)),
+    parser.literal(','),
+    optional(omit(trivia)),
+  ]),
+  trivia,
+])
 
 const sugaredLookup: Parser<PartialMolecule> =
   optionallySurroundedByParentheses(
@@ -67,9 +74,9 @@ const sugaredFunction: Parser<PartialMolecule> =
       flat(
         parser.sequence([
           parser.map(atomParser, output => [output]),
-          omit(whitespace),
+          omit(trivia),
           omit(parser.literal('=>')),
-          omit(whitespace),
+          omit(trivia),
           parser.map(
             parser.lazy(() => propertyValue),
             output => [output],
@@ -90,9 +97,9 @@ const sugaredApply: Parser<PartialMolecule> = parser.map(
     parser.oneOrMore(
       parser.sequence([
         parser.literal('('),
-        optional(omit(whitespace)),
+        optional(omit(trivia)),
         parser.lazy(() => propertyValue),
-        optional(omit(whitespace)),
+        optional(omit(trivia)),
         parser.literal(')'),
       ]),
     ),
@@ -120,7 +127,7 @@ const namedProperty = flat(
   parser.sequence([
     propertyKey,
     omit(parser.literal(':')),
-    optional(omit(whitespace)),
+    optional(omit(trivia)),
     propertyValue,
   ]),
 )
