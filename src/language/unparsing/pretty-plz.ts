@@ -85,9 +85,7 @@ const sugaredLookup = (keyPathAsNode: Molecule | SemanticGraph) => {
   if (
     keyPath !== 'invalid' &&
     Object.keys(keyPathAsNode).length === keyPath.length &&
-    keyPath.every(
-      key => typeof key === 'string' && !either.isLeft(unquotedAtomParser(key)),
-    )
+    keyPath.every(key => !either.isLeft(unquotedAtomParser(key)))
   ) {
     return either.makeRight(kleur.cyan(colon.concat(keyPath.join(dot))))
   } else {

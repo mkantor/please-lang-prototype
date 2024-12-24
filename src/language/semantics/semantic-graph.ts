@@ -35,18 +35,14 @@ export const applyKeyPathToSemanticGraph = (
       atom: _ => option.none,
       function: _ => option.none,
       object: graph => {
-        if (typeof firstKey === 'symbol') {
+        const next = graph[firstKey]
+        if (next === undefined) {
           return option.none
         } else {
-          const next = graph[firstKey]
-          if (next === undefined) {
-            return option.none
-          } else {
-            return applyKeyPathToSemanticGraph(
-              isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
-              remainingKeyPath,
-            )
-          }
+          return applyKeyPathToSemanticGraph(
+            isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
+            remainingKeyPath,
+          )
         }
       },
     })
@@ -106,28 +102,24 @@ export const updateValueAtKeyPathInSemanticGraph = (
       atom: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
       function: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
       object: node => {
-        if (typeof firstKey === 'symbol') {
+        const next = node[firstKey]
+        if (next === undefined) {
           return either.makeLeft(makePropertyNotFoundError(keyPath))
         } else {
-          const next = node[firstKey]
-          if (next === undefined) {
-            return either.makeLeft(makePropertyNotFoundError(keyPath))
-          } else {
-            return either.map(
-              updateValueAtKeyPathInSemanticGraph(
-                isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
-                remainingKeyPath,
-                operation,
-              ),
-              updatedNode =>
-                (isUnelaborated(node)
-                  ? makeUnelaboratedObjectNode
-                  : makeObjectNode)({
-                  ...node,
-                  [firstKey]: updatedNode,
-                }),
-            )
-          }
+          return either.map(
+            updateValueAtKeyPathInSemanticGraph(
+              isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
+              remainingKeyPath,
+              operation,
+            ),
+            updatedNode =>
+              (isUnelaborated(node)
+                ? makeUnelaboratedObjectNode
+                : makeObjectNode)({
+                ...node,
+                [firstKey]: updatedNode,
+              }),
+          )
         }
       },
     })

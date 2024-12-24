@@ -26,9 +26,6 @@ export const applyKeyPathToSyntaxTree = (
   } else {
     if (typeof syntaxTree === 'string') {
       return option.none
-    } else if (typeof firstKey === 'symbol') {
-      // TODO: Treat this as an error? Or change the type of `keyPath`?
-      return option.none
     } else {
       const next = withPhantomData<Canonicalized>()(syntaxTree[firstKey])
       if (next === undefined) {
