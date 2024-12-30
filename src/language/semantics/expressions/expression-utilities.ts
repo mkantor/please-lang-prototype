@@ -72,7 +72,10 @@ const lookupWithinExpression = (
   expression: Expression,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(key, expression)
+    const result = lookupPropertyOfObjectNode(
+      key,
+      makeUnelaboratedObjectNode(expression),
+    )
     if (!option.isNone(result)) {
       return result
     }

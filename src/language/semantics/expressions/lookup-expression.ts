@@ -1,6 +1,7 @@
 import { either, type Either } from '../../../adts.js'
 import type { ElaborationError, InvalidExpressionError } from '../../errors.js'
-import { isExpression, type Expression } from '../expression.js'
+import type { Molecule } from '../../parsing.js'
+import { isExpression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
 import { keyPathToMolecule, type KeyPath } from '../key-path.js'
 import {
@@ -14,13 +15,13 @@ import {
   readArgumentsFromExpression,
 } from './expression-utilities.js'
 
-export type LookupExpression = Expression & {
+export type LookupExpression = ObjectNode & {
   readonly 0: '@lookup'
   readonly query: ObjectNode
 }
 
 export const readLookupExpression = (
-  node: SemanticGraph,
+  node: SemanticGraph | Molecule,
 ): Either<ElaborationError, LookupExpression> =>
   isExpression(node)
     ? either.flatMap(

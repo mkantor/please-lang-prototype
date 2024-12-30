@@ -1,5 +1,5 @@
-import { type Expression } from '../expression.js'
+import type { ObjectNode } from '../object-node.js'
 
-export type TodoExpression = Expression & {
+export type TodoExpression = ObjectNode & {
   readonly 0: '@todo'
 }

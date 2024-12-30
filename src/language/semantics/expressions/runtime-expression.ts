@@ -1,8 +1,9 @@
 import { either, type Either } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
-import { isExpression, type Expression } from '../expression.js'
+import type { Molecule } from '../../parsing.js'
+import { isExpression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
-import { makeUnelaboratedObjectNode } from '../object-node.js'
+import { makeUnelaboratedObjectNode, type ObjectNode } from '../object-node.js'
 import {
   containsAnyUnelaboratedNodes,
   type SemanticGraph,
@@ -13,13 +14,13 @@ import {
   readArgumentsFromExpression,
 } from './expression-utilities.js'
 
-export type RuntimeExpression = Expression & {
+export type RuntimeExpression = ObjectNode & {
   readonly 0: '@runtime'
   readonly function: SemanticGraph
 }
 
 export const readRuntimeExpression = (
-  node: SemanticGraph,
+  node: SemanticGraph | Molecule,
 ): Either<ElaborationError, RuntimeExpression> =>
   isExpression(node)
     ? either.flatMap(

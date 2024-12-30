@@ -1,8 +1,8 @@
 import { either, type Either } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
-import { isExpression, type Expression } from '../expression.js'
-import { makeUnelaboratedObjectNode } from '../object-node.js'
+import { isExpression } from '../expression.js'
+import { makeUnelaboratedObjectNode, type ObjectNode } from '../object-node.js'
 import {
   serialize,
   type SemanticGraph,
@@ -13,14 +13,14 @@ import {
   readArgumentsFromExpression,
 } from './expression-utilities.js'
 
-export type FunctionExpression = Expression & {
+export type FunctionExpression = ObjectNode & {
   readonly 0: '@function'
   readonly parameter: Atom
   readonly body: SemanticGraph | Molecule
 }
 
 export const readFunctionExpression = (
-  node: SemanticGraph,
+  node: SemanticGraph | Molecule,
 ): Either<ElaborationError, FunctionExpression> =>
   isExpression(node)
     ? either.flatMap(

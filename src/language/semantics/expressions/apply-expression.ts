@@ -1,19 +1,19 @@
 import { either, type Either } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
-import { isExpression, type Expression } from '../expression.js'
-import { makeUnelaboratedObjectNode } from '../object-node.js'
+import { isExpression } from '../expression.js'
+import { makeUnelaboratedObjectNode, type ObjectNode } from '../object-node.js'
 import { type SemanticGraph, type unelaboratedKey } from '../semantic-graph.js'
 import { readArgumentsFromExpression } from './expression-utilities.js'
 
-export type ApplyExpression = Expression & {
+export type ApplyExpression = ObjectNode & {
   readonly 0: '@apply'
   readonly function: SemanticGraph | Molecule
   readonly argument: SemanticGraph | Molecule
 }
 
 export const readApplyExpression = (
-  node: SemanticGraph,
+  node: SemanticGraph | Molecule,
 ): Either<ElaborationError, ApplyExpression> =>
   isExpression(node)
     ? either.map(
