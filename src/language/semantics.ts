@@ -60,6 +60,7 @@ export { prelude } from './semantics/prelude.js'
 export {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
+  isSemanticGraph,
   serialize,
   stringifySemanticGraphForEndUser,
   updateValueAtKeyPathInSemanticGraph,

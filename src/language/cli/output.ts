@@ -3,6 +3,7 @@ import { either, type Either } from '../../adts.js'
 import { type SyntaxTree } from '../parsing/syntax-tree.js'
 import { unparse, type Notation } from '../unparsing.js'
 import { prettyJson } from '../unparsing/pretty-json.js'
+import { prettyPlz } from '../unparsing/pretty-plz.js'
 
 export const handleOutput = async (
   process: NodeJS.Process,
@@ -22,6 +23,8 @@ export const handleOutput = async (
     let notation: Notation
     if (outputFormat === 'json') {
       notation = prettyJson
+    } else if (outputFormat === 'plz') {
+      notation = prettyPlz
     } else {
       throw new Error(`Unsupported output format: "${outputFormat}"`)
     }
