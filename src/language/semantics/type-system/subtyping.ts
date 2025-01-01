@@ -41,7 +41,7 @@ export const isAssignable = ({
             ) {
               // The source is an identity function (`a => a`), which means this much simpler check
               // can be performed. This also allows correctly handling the fact that `a => a` is
-              // assignable to a type like `string => string`.
+              // assignable to a type like `atom => atom`.
               return (
                 isAssignable({
                   source: target.signature.parameter,
@@ -61,16 +61,16 @@ export const isAssignable = ({
               )
 
               // An example showing how this will be used:
-              // When checking whether `{ a: (a <: string) } => a` is assignable to
+              // When checking whether `{ a: (a <: atom) } => a` is assignable to
               // `{ a: (b <: "a") } => b`, the parameter types are compatible if
-              // `{ a: (b <: "a") }` is assignable to `{ a: string }` (it is).
+              // `{ a: (b <: "a") }` is assignable to `{ a: atom }` (it is).
               let sourceParameterWithTypeParametersReplacedByConstraints =
                 source.signature.parameter
 
               // An example showing how this will be used:
-              // When checking whether `a => { a: a, b: string }` is assignable to
-              // `(b <: string) => { a: b }`, the return types are compatible if
-              // `{ a: b, b: string }` is assignable to `{ a: b }` (it is).
+              // When checking whether `a => { a: a, b: atom }` is assignable to
+              // `(b <: atom) => { a: b }`, the return types are compatible if
+              // `{ a: b, b: atom }` is assignable to `{ a: b }` (it is).
               let sourceReturnWithTypeParametersReplacedByTargetTypeParameters =
                 source.signature.return
 
@@ -283,8 +283,8 @@ const isUnionAssignableToNonUnion = ({
  * Removes redundancies and otherwise attempts to reduce the number of members in a union while
  * preserving the semantics of the given `UnionType`.
  *
- * For example, `{ a: 'a' | 'b' } | { a: 'b' } | { a: 'c' } | string | 'a'` is simplified to
- * `{ a: 'a' | 'b' | 'c' } | string`.
+ * For example, `{ a: 'a' | 'b' } | { a: 'b' } | { a: 'c' } | atom | 'a'` is simplified to
+ * `{ a: 'a' | 'b' | 'c' } | atom`.
  */
 export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
   const reducibleSubsets: Map<

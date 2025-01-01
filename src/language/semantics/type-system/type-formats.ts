@@ -47,7 +47,7 @@ export type OpaqueType = {
 }
 
 // TODO: Opaque object/function types?
-export const makeOpaqueStringType = (
+export const makeOpaqueAtomType = (
   name: string,
   subtyping: {
     readonly isAssignableFromLiteralType: (literalType: string) => boolean

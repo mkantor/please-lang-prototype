@@ -29,8 +29,8 @@ const runtimeContext = makeObjectNode({
   arguments: makeObjectNode({
     lookup: makeFunctionNode(
       {
-        parameter: types.string,
-        return: types.option(types.string),
+        parameter: types.atom,
+        return: types.option(types.atom),
       },
       unserializableFunction,
       option.none,
@@ -71,8 +71,8 @@ const runtimeContext = makeObjectNode({
   environment: makeObjectNode({
     lookup: makeFunctionNode(
       {
-        parameter: types.string,
-        return: types.option(types.string),
+        parameter: types.atom,
+        return: types.option(types.atom),
       },
       unserializableFunction,
       option.none,

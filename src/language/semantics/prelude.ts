@@ -443,7 +443,7 @@ export const prelude: ObjectNode = makeObjectNode({
       ['object', 'lookup'],
       {
         // TODO
-        parameter: types.string,
+        parameter: types.atom,
         return: types.something,
       },
       key => {
@@ -494,33 +494,30 @@ export const prelude: ObjectNode = makeObjectNode({
     ),
   }),
 
-  string: makeObjectNode({
+  atom: makeObjectNode({
     concatenate: preludeFunction(
-      ['string', 'concatenate'],
+      ['atom', 'concatenate'],
       {
-        parameter: types.string,
+        parameter: types.atom,
         return: makeFunctionType('', {
-          parameter: types.string,
-          return: types.string,
+          parameter: types.atom,
+          return: types.atom,
         }),
       },
       string2 =>
         either.makeRight(
           makeFunctionNode(
             {
-              parameter: types.string,
-              return: types.string,
+              parameter: types.atom,
+              return: types.atom,
             },
-            serializePartiallyAppliedFunction(
-              ['string', 'concatenate'],
-              string2,
-            ),
+            serializePartiallyAppliedFunction(['atom', 'concatenate'], string2),
             option.none,
             string1 => {
               if (typeof string1 !== 'string' || typeof string1 !== 'string') {
                 return either.makeLeft({
                   kind: 'panic',
-                  message: 'concatenate received a non-string argument',
+                  message: 'concatenate received a non-atom argument',
                 })
               } else {
                 return either.makeRight(string1 + string2)
