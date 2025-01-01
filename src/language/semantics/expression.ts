@@ -1,8 +1,11 @@
-import type { ObjectNode, SemanticGraph } from '../semantics.js'
+import type { Molecule } from '../parsing.js'
+import type { SemanticGraph } from './semantic-graph.js'
 
-export type Expression = ObjectNode & {
+export type Expression = {
   readonly 0: `@${string}`
 }
 
-export const isExpression = (node: SemanticGraph): node is Expression =>
+export const isExpression = (
+  node: SemanticGraph | Molecule,
+): node is Expression =>
   typeof node === 'object' && typeof node[0] === 'string' && node[0][0] === '@'

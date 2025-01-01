@@ -1,6 +1,6 @@
 import { parseArgs } from 'util'
 import { either, option, type Option } from '../../adts.js'
-import { writeJSON } from '../cli/output.js'
+import { writeOutput } from '../cli/output.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
 import type { Atom } from '../parsing.js'
 import {
@@ -13,7 +13,11 @@ import {
   type KeywordHandlers,
   type SemanticGraph,
 } from '../semantics.js'
-import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
+import {
+  lookupPropertyOfObjectNode,
+  makeUnelaboratedObjectNode,
+} from '../semantics/object-node.js'
+import { prettyJson } from '../unparsing/pretty-json.js'
 
 const unserializableFunction = () =>
   either.makeLeft({
@@ -114,8 +118,8 @@ const runtimeContext = makeObjectNode({
           message: serializationResult.value.message,
         })
       } else {
-        writeJSON(process.stderr, serializationResult.value)
-        return either.makeRight(makeObjectNode({}))
+        writeOutput(process.stderr, prettyJson, serializationResult.value)
+        return either.makeRight(output)
       }
     },
   ),
@@ -164,7 +168,10 @@ const lookupWithinExpression = (
   expression: Expression,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(key, expression)
+    const result = lookupPropertyOfObjectNode(
+      key,
+      makeUnelaboratedObjectNode(expression),
+    )
     if (!option.isNone(result)) {
       return result
     }
