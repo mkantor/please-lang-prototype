@@ -2,9 +2,9 @@ import { option, type Option } from '../../adts.js'
 import { parser, type Parser } from '../../parsing.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type {
-  JSONArray,
-  JSONRecord,
-  JSONValue,
+  JsonArray,
+  JsonRecord,
+  JsonValue,
   Writable,
 } from '../../utility-types.js'
 import type { KeyPath } from '../semantics.js'
@@ -47,7 +47,7 @@ export const applyKeyPathToSyntaxTree = (
  * The JSON value `["a", 1, null]` is canonicalized as `{ "0": "a", "1": "1", "2": "null" }`.
  */
 export const canonicalize = (
-  input: JSONValueForbiddingSymbolicKeys,
+  input: JsonValueForbiddingSymbolicKeys,
 ): SyntaxTree => {
   let canonicalized: Atom | Writable<Molecule>
   if (typeof input === 'object' && input !== null) {
@@ -66,15 +66,15 @@ export const canonicalize = (
  * (because symbolic keys can always be widened away), but will catch simple mistakes like directly
  * feeding an `Option<…>` into `canonicalize`.
  */
-export type JSONValueForbiddingSymbolicKeys =
-  | Exclude<JSONValue, JSONArray | JSONRecord>
-  | JSONArrayForbiddingSymbolicKeys
-  | JSONRecordForbiddingSymbolicKeys
+export type JsonValueForbiddingSymbolicKeys =
+  | Exclude<JsonValue, JsonArray | JsonRecord>
+  | JsonArrayForbiddingSymbolicKeys
+  | JsonRecordForbiddingSymbolicKeys
 
-type JSONArrayForbiddingSymbolicKeys =
-  readonly JSONValueForbiddingSymbolicKeys[]
-type JSONRecordForbiddingSymbolicKeys = {
-  readonly [key: string]: JSONValueForbiddingSymbolicKeys
+type JsonArrayForbiddingSymbolicKeys =
+  readonly JsonValueForbiddingSymbolicKeys[]
+type JsonRecordForbiddingSymbolicKeys = {
+  readonly [key: string]: JsonValueForbiddingSymbolicKeys
 } & Partial<{
   readonly [key: symbol]: undefined
 }>

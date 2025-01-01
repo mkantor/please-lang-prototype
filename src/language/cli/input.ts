@@ -1,15 +1,15 @@
 import { parseArgs } from 'util'
 import { either, type Either } from '../../adts.js'
-import { type JSONValueForbiddingSymbolicKeys } from '../parsing.js'
+import { type JsonValueForbiddingSymbolicKeys } from '../parsing.js'
 
 export type InvalidJsonError = {
-  readonly kind: 'invalidJSON'
+  readonly kind: 'invalidJson'
   readonly message: string
 }
 
 export const handleInput = async <Result>(
   process: NodeJS.Process,
-  command: (input: JSONValueForbiddingSymbolicKeys) => Result,
+  command: (input: JsonValueForbiddingSymbolicKeys) => Result,
 ): Promise<Result> => {
   const args = parseArgs({
     args: process.argv.slice(2), // remove `execPath` and `filename`
@@ -25,7 +25,7 @@ export const handleInput = async <Result>(
       `Unsupported input format: "${args.values['input-format']}"`,
     )
   } else {
-    const input = await readJSON(process.stdin)
+    const input = await readJson(process.stdin)
     return either.match(input, {
       left: error => {
         throw new Error(error.message) // TODO: Improve error reporting.
@@ -35,10 +35,10 @@ export const handleInput = async <Result>(
   }
 }
 
-export const readJSON = async (
+export const readJson = async (
   stream: AsyncIterable<string>,
-): Promise<Either<InvalidJsonError, JSONValueForbiddingSymbolicKeys>> =>
-  parseJSON(await readString(stream))
+): Promise<Either<InvalidJsonError, JsonValueForbiddingSymbolicKeys>> =>
+  parseJson(await readString(stream))
 
 export const readString = async (
   stream: AsyncIterable<string>,
@@ -50,13 +50,13 @@ export const readString = async (
   return input
 }
 
-const parseJSON = (
+const parseJson = (
   source: string,
-): Either<InvalidJsonError, JSONValueForbiddingSymbolicKeys> =>
+): Either<InvalidJsonError, JsonValueForbiddingSymbolicKeys> =>
   either.mapLeft(
-    either.tryCatch((): JSONValueForbiddingSymbolicKeys => JSON.parse(source)),
+    either.tryCatch((): JsonValueForbiddingSymbolicKeys => JSON.parse(source)),
     jsonParseError => ({
-      kind: 'invalidJSON',
+      kind: 'invalidJson',
       message:
         jsonParseError instanceof Error
           ? jsonParseError.message

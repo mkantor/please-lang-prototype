@@ -1,4 +1,4 @@
-import { option as optionADT } from '../../../adts.js'
+import { option as optionAdt } from '../../../adts.js'
 import {
   makeFunctionType,
   makeObjectType,
@@ -23,22 +23,22 @@ export const boolean = makeUnionType('boolean', ['false', 'true'])
 
 export const atom = makeOpaqueAtomType('atom', {
   isAssignableFromLiteralType: (_literalType: string) => true,
-  nearestOpaqueAssignableFrom: () => optionADT.makeSome(integer),
-  nearestOpaqueAssignableTo: () => optionADT.none,
+  nearestOpaqueAssignableFrom: () => optionAdt.makeSome(integer),
+  nearestOpaqueAssignableTo: () => optionAdt.none,
 })
 
 export const integer = makeOpaqueAtomType('natural_number', {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
-  nearestOpaqueAssignableFrom: () => optionADT.makeSome(naturalNumber),
-  nearestOpaqueAssignableTo: () => optionADT.makeSome(atom),
+  nearestOpaqueAssignableFrom: () => optionAdt.makeSome(naturalNumber),
+  nearestOpaqueAssignableTo: () => optionAdt.makeSome(atom),
 })
 
 export const naturalNumber = makeOpaqueAtomType('natural_number', {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
-  nearestOpaqueAssignableFrom: () => optionADT.none,
-  nearestOpaqueAssignableTo: () => optionADT.makeSome(integer),
+  nearestOpaqueAssignableFrom: () => optionAdt.none,
+  nearestOpaqueAssignableTo: () => optionAdt.makeSome(integer),
 })
 
 export const object = makeObjectType('object', {})
