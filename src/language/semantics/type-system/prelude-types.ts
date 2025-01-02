@@ -2,7 +2,7 @@ import { option as optionADT } from '../../../adts.js'
 import {
   makeFunctionType,
   makeObjectType,
-  makeOpaqueStringType,
+  makeOpaqueAtomType,
   makeUnionType,
   type FunctionType,
   type Type,
@@ -17,24 +17,24 @@ export const nullType = makeUnionType('null', ['null'])
 export const boolean = makeUnionType('boolean', ['false', 'true'])
 
 // The current type hierarchy for opaque types is:
-//  - string
+//  - atom
 //    - integer
 //      - natural_number
 
-export const string = makeOpaqueStringType('string', {
+export const atom = makeOpaqueAtomType('atom', {
   isAssignableFromLiteralType: (_literalType: string) => true,
   nearestOpaqueAssignableFrom: () => optionADT.makeSome(integer),
   nearestOpaqueAssignableTo: () => optionADT.none,
 })
 
-export const integer = makeOpaqueStringType('natural_number', {
+export const integer = makeOpaqueAtomType('natural_number', {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
   nearestOpaqueAssignableFrom: () => optionADT.makeSome(naturalNumber),
-  nearestOpaqueAssignableTo: () => optionADT.makeSome(string),
+  nearestOpaqueAssignableTo: () => optionADT.makeSome(atom),
 })
 
-export const naturalNumber = makeOpaqueStringType('natural_number', {
+export const naturalNumber = makeOpaqueAtomType('natural_number', {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
   nearestOpaqueAssignableFrom: () => optionADT.none,
@@ -55,11 +55,7 @@ Object.assign(
 )
 Object.assign(
   something,
-  makeUnionType('something', [
-    functionType,
-    string,
-    object,
-  ]) satisfies UnionType,
+  makeUnionType('something', [functionType, atom, object]) satisfies UnionType,
 )
 
 export const option = (value: Type) =>
@@ -76,8 +72,8 @@ export const option = (value: Type) =>
 
 export const runtimeContext = makeObjectType('runtime_context', {
   environment: makeObjectType('', {
-    lookup: makeFunctionType('', { parameter: string, return: option(string) }),
+    lookup: makeFunctionType('', { parameter: atom, return: option(atom) }),
   }),
   log: makeFunctionType('', { parameter: something, return: option(object) }),
-  program: makeObjectType('', { start_time: string }),
+  program: makeObjectType('', { start_time: atom }),
 })

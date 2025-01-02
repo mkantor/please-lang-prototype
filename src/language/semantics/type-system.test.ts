@@ -1,5 +1,6 @@
 import { testCases } from '../../test-utilities.test.js'
 import {
+  atom,
   boolean,
   functionType,
   integer,
@@ -8,7 +9,6 @@ import {
   nullType,
   object,
   something,
-  string,
 } from './type-system/prelude-types.js'
 import { showType } from './type-system/show-type.js'
 import { isAssignable, simplifyUnionType } from './type-system/subtyping.js'
@@ -33,10 +33,10 @@ const B = makeTypeParameter('b', { assignableTo: something })
 const C = makeTypeParameter('c', { assignableTo: something })
 const D = makeTypeParameter('d', { assignableTo: something })
 
-const extendsString = makeTypeParameter('z', {
-  assignableTo: string,
+const extendsAnyAtom = makeTypeParameter('z', {
+  assignableTo: atom,
 })
-const extendsAtom = makeTypeParameter('y', {
+const extendsSpecificAtom = makeTypeParameter('y', {
   assignableTo: makeUnionType('', ['a']),
 })
 const extendsUnionOfAtoms = makeTypeParameter('x', {
@@ -45,14 +45,14 @@ const extendsUnionOfAtoms = makeTypeParameter('x', {
 const extendsA = makeTypeParameter('w', {
   assignableTo: A,
 })
-const extendsFunctionFromStringToValue = makeTypeParameter('i', {
-  assignableTo: makeFunctionType('', { parameter: string, return: something }),
+const extendsFunctionFromAtomToValue = makeTypeParameter('i', {
+  assignableTo: makeFunctionType('', { parameter: atom, return: something }),
 })
-const extendsFunctionFromValueToString = makeTypeParameter('v', {
-  assignableTo: makeFunctionType('', { parameter: something, return: string }),
+const extendsFunctionFromValueToAtom = makeTypeParameter('v', {
+  assignableTo: makeFunctionType('', { parameter: something, return: atom }),
 })
-const extendsExtendsString = makeTypeParameter('u', {
-  assignableTo: extendsString,
+const extendsExtendsAnyAtom = makeTypeParameter('u', {
+  assignableTo: extendsAnyAtom,
 })
 
 testCases(
@@ -62,7 +62,7 @@ testCases(
   [
     makeUnionType('', [
       'a',
-      string,
+      atom,
       makeObjectType('', {
         a: makeUnionType('', ['a', 'b']),
       }),
@@ -73,7 +73,7 @@ testCases(
         a: makeUnionType('', ['c']),
       }),
     ]),
-    '(string | { a: ("a" | "b" | "c") })',
+    '(atom | { a: ("a" | "b" | "c") })',
   ],
 ])
 typeAssignabilitySuite('prelude types (assignable)', [
@@ -92,26 +92,26 @@ typeAssignabilitySuite('prelude types (assignable)', [
   [[boolean, boolean], true],
   [[naturalNumber, naturalNumber], true],
   [[integer, integer], true],
-  [[string, string], true],
+  [[atom, atom], true],
   [[object, object], true],
   [[functionType, functionType], true],
   [[something, something], true],
   [[nothing, nullType], true],
   [[nothing, naturalNumber], true],
-  [[nothing, string], true],
+  [[nothing, atom], true],
   [[nothing, object], true],
   [[nothing, functionType], true],
   [[nothing, something], true],
-  [[nullType, string], true],
+  [[nullType, atom], true],
   [[nullType, something], true],
-  [[boolean, string], true],
+  [[boolean, atom], true],
   [[boolean, something], true],
   [[naturalNumber, integer], true],
-  [[naturalNumber, string], true],
+  [[naturalNumber, atom], true],
   [[naturalNumber, something], true],
-  [[integer, string], true],
+  [[integer, atom], true],
   [[integer, something], true],
-  [[string, something], true],
+  [[atom, something], true],
   [[object, something], true],
   [[functionType, something], true],
 ])
@@ -140,42 +140,42 @@ typeAssignabilitySuite('prelude types (not assignable)', [
   [[integer, naturalNumber], false],
   [[integer, object], false],
   [[integer, functionType], false],
-  [[string, nothing], false],
-  [[string, nullType], false],
-  [[string, boolean], false],
-  [[string, naturalNumber], false],
-  [[string, integer], false],
-  [[string, object], false],
-  [[string, functionType], false],
+  [[atom, nothing], false],
+  [[atom, nullType], false],
+  [[atom, boolean], false],
+  [[atom, naturalNumber], false],
+  [[atom, integer], false],
+  [[atom, object], false],
+  [[atom, functionType], false],
   [[object, nothing], false],
   [[object, nullType], false],
   [[object, boolean], false],
   [[object, naturalNumber], false],
   [[object, integer], false],
-  [[object, string], false],
+  [[object, atom], false],
   [[object, functionType], false],
   [[functionType, nothing], false],
   [[functionType, nullType], false],
   [[functionType, boolean], false],
   [[functionType, naturalNumber], false],
   [[functionType, integer], false],
-  [[functionType, string], false],
+  [[functionType, atom], false],
   [[functionType, object], false],
   [[something, nothing], false],
   [[something, nullType], false],
   [[something, boolean], false],
   [[something, naturalNumber], false],
   [[something, integer], false],
-  [[something, string], false],
+  [[something, atom], false],
   [[something, object], false],
   [[something, functionType], false],
 ])
 
 typeAssignabilitySuite('custom types (assignable)', [
   [[makeUnionType('', ['a']), makeUnionType('', ['a', 'b'])], true],
-  [[makeUnionType('', ['a']), string], true],
-  [[makeUnionType('', ['a', 'b']), string], true],
-  [[makeUnionType('', ['a']), makeUnionType('', [string, 'b'])], true],
+  [[makeUnionType('', ['a']), atom], true],
+  [[makeUnionType('', ['a', 'b']), atom], true],
+  [[makeUnionType('', ['a']), makeUnionType('', [atom, 'b'])], true],
   [[makeUnionType('', ['1']), naturalNumber], true],
   [[makeUnionType('', ['0', '1']), naturalNumber], true],
   [
@@ -193,7 +193,7 @@ typeAssignabilitySuite('custom types (assignable)', [
         b: object,
       }),
       makeObjectType('', {
-        a: string,
+        a: atom,
         b: object,
       }),
     ],
@@ -207,7 +207,7 @@ typeAssignabilitySuite('custom types (assignable)', [
         c: nullType,
       }),
       makeObjectType('', {
-        a: string,
+        a: atom,
         b: object,
       }),
     ],
@@ -497,14 +497,14 @@ typeAssignabilitySuite('custom types (assignable)', [
   ],
   [
     [
-      // `string => 'a' | string => 'b'` is assignable to `'a' => 'a' | 'b'`
+      // `atom => 'a' | atom => 'b'` is assignable to `'a' => 'a' | 'b'`
       makeUnionType('', [
         makeFunctionType('', {
-          parameter: string,
+          parameter: atom,
           return: makeUnionType('', ['a']),
         }),
         makeFunctionType('', {
-          parameter: string,
+          parameter: atom,
           return: makeUnionType('', ['b']),
         }),
       ]),
@@ -564,11 +564,11 @@ typeAssignabilitySuite('custom types (not assignable)', [
   [
     [
       makeObjectType('', {
-        a: string,
+        a: atom,
         b: object,
       }),
       makeObjectType('', {
-        a: string,
+        a: atom,
         b: object,
         c: boolean, // required property in target not present in source
       }),
@@ -636,28 +636,28 @@ typeAssignabilitySuite('custom types (not assignable)', [
   ],
   [
     [
-      makeFunctionType('', { parameter: string, return: string }),
+      makeFunctionType('', { parameter: atom, return: atom }),
       makeFunctionType('', { parameter: object, return: object }),
     ],
     false,
   ],
   [
     [
-      makeFunctionType('', { parameter: string, return: object }),
+      makeFunctionType('', { parameter: atom, return: object }),
       makeFunctionType('', { parameter: object, return: object }),
     ],
     false,
   ],
   [
     [
-      makeFunctionType('', { parameter: object, return: string }),
+      makeFunctionType('', { parameter: object, return: atom }),
       makeFunctionType('', { parameter: object, return: object }),
     ],
     false,
   ],
   [
     [
-      makeFunctionType('', { parameter: string, return: string }),
+      makeFunctionType('', { parameter: atom, return: atom }),
       makeFunctionType('', { parameter: something, return: something }),
     ],
     false,
@@ -665,7 +665,7 @@ typeAssignabilitySuite('custom types (not assignable)', [
   [
     [
       makeFunctionType('', { parameter: something, return: something }),
-      makeFunctionType('', { parameter: string, return: string }),
+      makeFunctionType('', { parameter: atom, return: atom }),
     ],
     false,
   ],
@@ -716,41 +716,41 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `a => a` is assignable to `(a <: string) => a`
+      // `a => a` is assignable to `(a <: atom) => a`
       makeFunctionType('', {
         parameter: A,
         return: A,
       }),
       makeFunctionType('', {
-        parameter: extendsString,
-        return: extendsString,
+        parameter: extendsAnyAtom,
+        return: extendsAnyAtom,
       }),
     ],
     true,
   ],
   [
     [
-      // `a => a` is assignable to `string => string`
+      // `a => a` is assignable to `atom => atom`
       makeFunctionType('', {
         parameter: A,
         return: A,
       }),
       makeFunctionType('', {
-        parameter: string,
-        return: string,
+        parameter: atom,
+        return: atom,
       }),
     ],
     true,
   ],
   [
     [
-      // `(a <: string) => a` is assignable to `string => something`
+      // `(a <: atom) => a` is assignable to `atom => something`
       makeFunctionType('', {
-        parameter: extendsString,
-        return: extendsString,
+        parameter: extendsAnyAtom,
+        return: extendsAnyAtom,
       }),
       makeFunctionType('', {
-        parameter: string,
+        parameter: atom,
         return: something,
       }),
     ],
@@ -758,13 +758,13 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `(a <: string) => { a: a }` is assignable to `string => something`
+      // `(a <: atom) => { a: a }` is assignable to `atom => something`
       makeFunctionType('', {
-        parameter: extendsString,
-        return: makeObjectType('', { a: extendsString }),
+        parameter: extendsAnyAtom,
+        return: makeObjectType('', { a: extendsAnyAtom }),
       }),
       makeFunctionType('', {
-        parameter: string,
+        parameter: atom,
         return: something,
       }),
     ],
@@ -772,38 +772,38 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `a => { a: a, b: string }` is assignable to `(a <: string) => { a: a }`
+      // `a => { a: a, b: atom }` is assignable to `(a <: atom) => { a: a }`
       makeFunctionType('', {
         parameter: A,
         return: makeObjectType('', {
           a: A,
-          b: string,
+          b: atom,
         }),
       }),
       makeFunctionType('', {
-        parameter: extendsString,
-        return: makeObjectType('', { a: extendsString }),
+        parameter: extendsAnyAtom,
+        return: makeObjectType('', { a: extendsAnyAtom }),
       }),
     ],
     true,
   ],
   [
     [
-      // `(a <: string) => { a: a }` is assignable to `string => { a: string }`
+      // `(a <: atom) => { a: a }` is assignable to `atom => { a: atom }`
       makeFunctionType('', {
-        parameter: extendsString,
-        return: makeObjectType('', { a: extendsString }),
+        parameter: extendsAnyAtom,
+        return: makeObjectType('', { a: extendsAnyAtom }),
       }),
       makeFunctionType('', {
-        parameter: string,
-        return: makeObjectType('', { a: string }),
+        parameter: atom,
+        return: makeObjectType('', { a: atom }),
       }),
     ],
     true,
   ],
   [
     [
-      // `{ a: a } => a` is assignable to `{ a: (a <: string) } => a`
+      // `{ a: a } => a` is assignable to `{ a: (a <: atom) } => a`
       makeFunctionType('', {
         parameter: makeObjectType('', {
           a: A,
@@ -812,16 +812,16 @@ typeAssignabilitySuite('generic function types (assignable)', [
       }),
       makeFunctionType('', {
         parameter: makeObjectType('', {
-          a: extendsString,
+          a: extendsAnyAtom,
         }),
-        return: extendsString,
+        return: extendsAnyAtom,
       }),
     ],
     true,
   ],
   [
     [
-      // `{ a: a } => { b: a }` is assignable to `{ a: (a <: string) } => { b: a }`
+      // `{ a: a } => { b: a }` is assignable to `{ a: (a <: atom) } => { b: a }`
       makeFunctionType('', {
         parameter: makeObjectType('', {
           a: A,
@@ -832,10 +832,10 @@ typeAssignabilitySuite('generic function types (assignable)', [
       }),
       makeFunctionType('', {
         parameter: makeObjectType('', {
-          a: extendsString,
+          a: extendsAnyAtom,
         }),
         return: makeObjectType('', {
-          b: extendsString,
+          b: extendsAnyAtom,
         }),
       }),
     ],
@@ -843,10 +843,10 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `((a <: string) | object) => (a | "z")` is assignable to `(a <: ("a" | "b")) => (a | "y" | "z")`
+      // `((a <: atom) | object) => (a | "z")` is assignable to `(a <: ("a" | "b")) => (a | "y" | "z")`
       makeFunctionType('', {
-        parameter: makeUnionType('', [extendsString, object]),
-        return: makeUnionType('', [extendsString, 'z']),
+        parameter: makeUnionType('', [extendsAnyAtom, object]),
+        return: makeUnionType('', [extendsAnyAtom, 'z']),
       }),
       makeFunctionType('', {
         parameter: extendsUnionOfAtoms,
@@ -857,14 +857,14 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `(a <: string => something) => a` is assignable to `(b => string) => b`
+      // `(a <: atom => something) => a` is assignable to `(b => atom) => b`
       makeFunctionType('', {
-        parameter: extendsFunctionFromStringToValue,
-        return: extendsFunctionFromStringToValue,
+        parameter: extendsFunctionFromAtomToValue,
+        return: extendsFunctionFromAtomToValue,
       }),
       makeFunctionType('', {
-        parameter: extendsFunctionFromValueToString,
-        return: extendsFunctionFromValueToString,
+        parameter: extendsFunctionFromValueToAtom,
+        return: extendsFunctionFromValueToAtom,
       }),
     ],
     true,
@@ -872,10 +872,10 @@ typeAssignabilitySuite('generic function types (assignable)', [
 
   [
     [
-      // `(a <: (string => something)) => a` is assignable to `(something => something) => (something => something)`
+      // `(a <: (atom => something)) => a` is assignable to `(something => something) => (something => something)`
       makeFunctionType('', {
-        parameter: extendsFunctionFromStringToValue,
-        return: extendsFunctionFromStringToValue,
+        parameter: extendsFunctionFromAtomToValue,
+        return: extendsFunctionFromAtomToValue,
       }),
       makeFunctionType('', {
         parameter: makeFunctionType('', {
@@ -892,7 +892,7 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `a => { 0: a, 1: a }` is assignable to `(a <: string) => { 0: a, 1: string }`
+      // `a => { 0: a, 1: a }` is assignable to `(a <: atom) => { 0: a, 1: atom }`
       makeFunctionType('', {
         parameter: A,
         return: makeObjectType('', {
@@ -901,10 +901,10 @@ typeAssignabilitySuite('generic function types (assignable)', [
         }),
       }),
       makeFunctionType('', {
-        parameter: extendsString,
+        parameter: extendsAnyAtom,
         return: makeObjectType('', {
-          0: extendsString,
-          1: string,
+          0: extendsAnyAtom,
+          1: atom,
         }),
       }),
     ],
@@ -938,7 +938,7 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `{ 0: a, 1: b } => { 0: b, 1: a }` is assignable to `{ 0: (a <: string), 1: (b <: "a") } => { 0: b, 1: a }`
+      // `{ 0: a, 1: b } => { 0: b, 1: a }` is assignable to `{ 0: (a <: atom), 1: (b <: "a") } => { 0: b, 1: a }`
       makeFunctionType('', {
         parameter: makeObjectType('', {
           0: A,
@@ -951,12 +951,12 @@ typeAssignabilitySuite('generic function types (assignable)', [
       }),
       makeFunctionType('', {
         parameter: makeObjectType('', {
-          0: extendsString,
-          1: extendsAtom,
+          0: extendsAnyAtom,
+          1: extendsSpecificAtom,
         }),
         return: makeObjectType('', {
-          0: extendsAtom,
-          1: extendsString,
+          0: extendsSpecificAtom,
+          1: extendsAnyAtom,
         }),
       }),
     ],
@@ -990,12 +990,12 @@ typeAssignabilitySuite('generic function types (assignable)', [
   ],
   [
     [
-      // `{ a: a, b: b, c: string | b } => { b: a, a: b, c: a }` is assignable to `{ a: (a <: string), b: (b <: a), c: b } => { b: a, a: b | a, c: string }`
+      // `{ a: a, b: b, c: atom | b } => { b: a, a: b, c: a }` is assignable to `{ a: (a <: atom), b: (b <: a), c: b } => { b: a, a: b | a, c: atom }`
       makeFunctionType('', {
         parameter: makeObjectType('', {
           a: A,
           b: B,
-          c: makeUnionType('', [string, B]),
+          c: makeUnionType('', [atom, B]),
         }),
         return: makeObjectType('', {
           b: A,
@@ -1005,14 +1005,14 @@ typeAssignabilitySuite('generic function types (assignable)', [
       }),
       makeFunctionType('', {
         parameter: makeObjectType('', {
-          a: extendsString,
-          b: extendsExtendsString,
-          c: extendsExtendsString,
+          a: extendsAnyAtom,
+          b: extendsExtendsAnyAtom,
+          c: extendsExtendsAnyAtom,
         }),
         return: makeObjectType('', {
-          b: extendsString,
-          a: makeUnionType('', [extendsString, extendsExtendsString]),
-          c: string,
+          b: extendsAnyAtom,
+          a: makeUnionType('', [extendsAnyAtom, extendsExtendsAnyAtom]),
+          c: atom,
         }),
       }),
     ],
@@ -1023,10 +1023,10 @@ typeAssignabilitySuite('generic function types (assignable)', [
 typeAssignabilitySuite('generic function types (not assignable)', [
   [
     [
-      //  `(a <: string) => a` is not assignable to `object => object`
+      // `(a <: atom) => a` is not assignable to `object => object`
       makeFunctionType('', {
-        parameter: extendsString,
-        return: extendsString,
+        parameter: extendsAnyAtom,
+        return: extendsAnyAtom,
       }),
       makeFunctionType('', {
         parameter: object,
@@ -1037,24 +1037,24 @@ typeAssignabilitySuite('generic function types (not assignable)', [
   ],
   [
     [
-      // `(a <: 'a') => a` is not assignable to `string => string`
+      // `(a <: 'a') => a` is not assignable to `atom => atom`
       makeFunctionType('', {
-        parameter: extendsAtom,
-        return: extendsAtom,
+        parameter: extendsSpecificAtom,
+        return: extendsSpecificAtom,
       }),
       makeFunctionType('', {
-        parameter: string,
-        return: string,
+        parameter: atom,
+        return: atom,
       }),
     ],
     false,
   ],
   [
     [
-      // `(a <: string) => a` is not assignable to `a => a`
+      // `(a <: atom) => a` is not assignable to `a => a`
       makeFunctionType('', {
-        parameter: extendsString,
-        return: extendsString,
+        parameter: extendsAnyAtom,
+        return: extendsAnyAtom,
       }),
       makeFunctionType('', {
         parameter: A,
@@ -1065,14 +1065,14 @@ typeAssignabilitySuite('generic function types (not assignable)', [
   ],
   [
     [
-      // `a => a` is not assignable to `something => string`
+      // `a => a` is not assignable to `something => atom`
       makeFunctionType('', {
         parameter: A,
         return: A,
       }),
       makeFunctionType('', {
         parameter: something,
-        return: string,
+        return: atom,
       }),
     ],
     false,
@@ -1093,14 +1093,14 @@ typeAssignabilitySuite('generic function types (not assignable)', [
   ],
   [
     [
-      // `((a <: string) | object) => (a | "z")` is not assignable to `(a <: string) => a`
+      // `((a <: atom) | object) => (a | "z")` is not assignable to `(a <: atom) => a`
       makeFunctionType('', {
-        parameter: makeUnionType('', [extendsString, object]),
-        return: makeUnionType('', [extendsString, 'z']),
+        parameter: makeUnionType('', [extendsAnyAtom, object]),
+        return: makeUnionType('', [extendsAnyAtom, 'z']),
       }),
       makeFunctionType('', {
-        parameter: extendsString,
-        return: extendsString,
+        parameter: extendsAnyAtom,
+        return: extendsAnyAtom,
       }),
     ],
     false,
@@ -1133,21 +1133,21 @@ typeAssignabilitySuite('generic function types (not assignable)', [
   ],
   [
     [
-      // `(a <: something => string) => a` is not assignable to `(b <: string => something) => b`
+      // `(a <: something => atom) => a` is not assignable to `(b <: atom => something) => b`
       makeFunctionType('', {
-        parameter: extendsFunctionFromValueToString,
-        return: extendsFunctionFromValueToString,
+        parameter: extendsFunctionFromValueToAtom,
+        return: extendsFunctionFromValueToAtom,
       }),
       makeFunctionType('', {
-        parameter: extendsFunctionFromStringToValue,
-        return: extendsFunctionFromStringToValue,
+        parameter: extendsFunctionFromAtomToValue,
+        return: extendsFunctionFromAtomToValue,
       }),
     ],
     false,
   ],
   [
     [
-      // `a => a` is not assignable to `(something => something) => string
+      // `a => a` is not assignable to `(something => something) => atom
       makeFunctionType('', {
         parameter: A,
         return: A,
@@ -1157,7 +1157,7 @@ typeAssignabilitySuite('generic function types (not assignable)', [
           parameter: something,
           return: something,
         }),
-        return: string,
+        return: atom,
       }),
     ],
     false,

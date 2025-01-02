@@ -75,9 +75,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight('output'),
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
-  [':{string concatenate}(a)(b)', either.makeRight('ba')],
+  [':{atom concatenate}(a)(b)', either.makeRight('ba')],
   [
-    ':flow({ :string.concatenate(a) :string.concatenate(b) })(z)',
+    ':flow({ :atom.concatenate(a) :atom.concatenate(b) })(z)',
     either.makeRight('zab'),
   ],
   [
