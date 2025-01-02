@@ -6,6 +6,8 @@ import type {
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import type { Canonicalized } from '../parsing/syntax-tree.js'
+import { unparse } from '../unparsing.js'
+import { prettyPlz } from '../unparsing/pretty-plz.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
@@ -174,7 +176,17 @@ export const serialize = (
 
 export const stringifySemanticGraphForEndUser = (
   graph: SemanticGraph,
-): string => JSON.stringify(serialize(graph))
+): string =>
+  either.match(
+    either.flatMap(serialize(graph), output =>
+      // TODO: Use single-line plz notation.
+      unparse(output, prettyPlz),
+    ),
+    {
+      right: stringifiedOutput => stringifiedOutput,
+      left: error => `(unserializable value: ${error.message})`,
+    },
+  )
 
 export const isSemanticGraph = (
   value:

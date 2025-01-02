@@ -1,4 +1,7 @@
+import { either } from '../../adts.js'
 import type { Atom, Molecule } from '../parsing.js'
+import { unparse } from '../unparsing.js'
+import { prettyPlz } from '../unparsing/pretty-plz.js'
 
 export const functionParameter = Symbol('functionParameter')
 export const functionReturn = Symbol('functionReturn')
@@ -15,7 +18,14 @@ export type KeyPath = readonly (
 )[]
 
 export const stringifyKeyPathForEndUser = (keyPath: KeyPath): string =>
-  JSON.stringify(keyPath)
+  either.match(
+    // TODO: Use single-line plz notation.
+    unparse(keyPathToMolecule(keyPath), prettyPlz),
+    {
+      right: stringifiedOutput => stringifiedOutput,
+      left: error => `(unserializable key path: ${error.message})`,
+    },
+  )
 
 export const keyPathToMolecule = (keyPath: KeyPath): Molecule =>
   Object.fromEntries(
