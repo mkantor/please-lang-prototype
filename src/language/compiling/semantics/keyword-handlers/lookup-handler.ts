@@ -143,22 +143,14 @@ const lookup = ({
               ),
             right: functionExpression => {
               if (functionExpression.parameter === firstPathComponent) {
-                if (!relativePath.every(key => typeof key === 'string')) {
-                  return either.makeLeft({
-                    kind: 'invalidExpression',
-                    message:
-                      'dynamically-resolved lookup query contains symbolic key',
-                  })
-                } else {
-                  // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
-                  return either.makeRight(
-                    option.makeSome(
-                      makeLookupExpression(
-                        makeObjectNode(keyPathToMolecule(relativePath)),
-                      ),
+                // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
+                return either.makeRight(
+                  option.makeSome(
+                    makeLookupExpression(
+                      makeObjectNode(keyPathToMolecule(relativePath)),
                     ),
-                  )
-                }
+                  ),
+                )
               } else {
                 return either.makeRight(option.none)
               }

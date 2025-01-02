@@ -1,10 +1,5 @@
 import type { Writable } from '../../../utility-types.js'
-import {
-  functionParameter,
-  functionReturn,
-  typeParameterAssignableToConstraint,
-  type KeyPath,
-} from '../key-path.js'
+import type { Atom } from '../../parsing.js'
 import { types } from '../type-system.js'
 import { simplifyUnionType } from './subtyping.js'
 import {
@@ -19,6 +14,19 @@ import {
   type UnionType,
 } from './type-formats.js'
 
+const functionParameter = Symbol('functionParameter')
+const functionReturn = Symbol('functionReturn')
+const typeParameterAssignableToConstraint = Symbol(
+  'typeParameterAssignableToConstraint',
+)
+
+export type TypeKeyPath = readonly (
+  | Atom
+  | typeof functionParameter
+  | typeof functionReturn
+  | typeof typeParameterAssignableToConstraint
+)[]
+
 type StringifiedKeyPath = string // this could be branded if that seems useful
 type UnionOfTypeParameters = Omit<UnionType, 'members'> & {
   readonly members: ReadonlySet<TypeParameter>
@@ -26,7 +34,7 @@ type UnionOfTypeParameters = Omit<UnionType, 'members'> & {
 export type TypeParametersByKeyPath = Map<
   StringifiedKeyPath,
   {
-    readonly keyPath: KeyPath
+    readonly keyPath: TypeKeyPath
     readonly typeParameters: UnionOfTypeParameters
   }
 >
@@ -36,7 +44,7 @@ export const containedTypeParameters = (type: Type): TypeParametersByKeyPath =>
 
 const containedTypeParametersImplementation = (
   type: Type,
-  root: KeyPath,
+  root: TypeKeyPath,
 ): TypeParametersByKeyPath => {
   // Avoid infinite recursion when we hit the top type.
   if (type === types.something) {
@@ -96,14 +104,14 @@ const containedTypeParametersImplementation = (
 export const findKeyPathsToTypeParameter = (
   type: Type,
   typeParameterToFind: TypeParameter,
-): Set<KeyPath> =>
+): Set<TypeKeyPath> =>
   findKeyPathsToTypeParameterImplementation(type, typeParameterToFind, [])
 
 const findKeyPathsToTypeParameterImplementation = (
   type: Type,
   typeParameterToFind: TypeParameter,
-  root: KeyPath,
-): Set<KeyPath> => {
+  root: TypeKeyPath,
+): Set<TypeKeyPath> => {
   // Avoid infinite recursion when we hit the top type.
   if (type === types.something) {
     return new Set()
@@ -148,7 +156,7 @@ const findKeyPathsToTypeParameterImplementation = (
       union: ({ members }) =>
         [...members]
           .map(
-            (member): Set<KeyPath> =>
+            (member): Set<TypeKeyPath> =>
               typeof member === 'string'
                 ? new Set()
                 : findKeyPathsToTypeParameterImplementation(
@@ -253,7 +261,7 @@ export const supplyTypeArgument = (
  */
 export const updateTypeAtKeyPathIfValid = (
   type: Type,
-  keyPath: KeyPath,
+  keyPath: TypeKeyPath,
   // TODO: `operation` should be able to update `Atom`s
   operation: (typeAtKeyPath: Exclude<Type, UnionType>) => Type,
 ): Type => {
@@ -400,7 +408,7 @@ const mergeTypeParametersByKeyPath = (
 
 // The string format is not meant for human consumption. The only guarantee is that every distinct
 // key path produces a unique string.
-const stringifyKeyPath = (keyPath: KeyPath): string =>
+const stringifyKeyPath = (keyPath: TypeKeyPath): string =>
   keyPath.reduce((stringifiedKeyPath: string, key) => {
     const stringifiedKey =
       typeof key === 'symbol' ? key.description : JSON.stringify(key)

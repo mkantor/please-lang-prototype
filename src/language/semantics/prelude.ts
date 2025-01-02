@@ -2,7 +2,7 @@ import { either, option, type Either } from '../../adts.js'
 import type { DependencyUnavailable, Panic } from '../errors.js'
 import type { Atom } from '../parsing.js'
 import { isFunctionNode, makeFunctionNode } from './function-node.js'
-import { keyPathToMolecule } from './key-path.js'
+import { keyPathToMolecule, type KeyPath } from './key-path.js'
 import {
   isObjectNode,
   lookupPropertyOfObjectNode,
@@ -44,7 +44,7 @@ const handleUnavailableDependencies =
   }
 
 const serializePartiallyAppliedFunction =
-  (keyPath: readonly string[], argument: SemanticGraph) => () =>
+  (keyPath: KeyPath, argument: SemanticGraph) => () =>
     either.makeRight(
       makeUnelaboratedObjectNode({
         0: '@apply',
@@ -54,7 +54,7 @@ const serializePartiallyAppliedFunction =
     )
 
 const preludeFunction = (
-  keyPath: readonly string[],
+  keyPath: KeyPath,
   signature: FunctionType['signature'],
   f: (
     value: SemanticGraph,
