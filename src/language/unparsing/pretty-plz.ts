@@ -132,19 +132,25 @@ const sugarFreeMolecule = (value: Molecule) => {
     return either.makeRight(openBrace + closeBrace)
   } else {
     const keyValuePairsAsStrings: string[] = []
+    let ordinalPropertyKeyCounter = 0n
     for (const [propertyKey, propertyValue] of entries) {
       const valueAsStringResult = atomOrMolecule(propertyValue)
       if (either.isLeft(valueAsStringResult)) {
         return valueAsStringResult
       }
 
-      keyValuePairsAsStrings.push(
-        // TODO: Intelligently omit all ordinal property keys, not just `0`.
-        (propertyKey === '0'
-          ? ''
-          : kleur.cyan(quoteIfNecessary(propertyKey).concat(colon)).concat(' ')
-        ).concat(valueAsStringResult.value),
-      )
+      // Omit ordinal property keys:
+      if (propertyKey === String(ordinalPropertyKeyCounter)) {
+        keyValuePairsAsStrings.push(valueAsStringResult.value)
+        ordinalPropertyKeyCounter += 1n
+      } else {
+        keyValuePairsAsStrings.push(
+          kleur
+            .cyan(quoteIfNecessary(propertyKey).concat(colon))
+            .concat(' ')
+            .concat(valueAsStringResult.value),
+        )
+      }
     }
 
     return either.makeRight(
