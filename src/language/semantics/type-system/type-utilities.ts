@@ -80,10 +80,7 @@ const containedTypeParametersImplementation = (
               stringifyKeyPath(root),
               {
                 keyPath: root,
-                typeParameters:
-                  // TODO: eliminate the type assertion, perhaps by making `makeUnionType` generic
-                  // over the member type
-                  makeUnionType('', [type]) as UnionOfTypeParameters,
+                typeParameters: makeUnionType('', [type]),
               },
             ],
           ]),
@@ -382,18 +379,33 @@ const mergeTypeParametersByKeyPath = (
     if (valueFromB === undefined) {
       result.set(key, { keyPath, typeParameters })
     } else {
-      // Merge all type(s) at this key path into a union.
+      // Merge all type(s) at this key path into a (simplified) union.
+      const supposedTypeParametersAsArray = [
+        ...simplifyUnionType(
+          makeUnionType(typeParameters.name, [
+            ...typeParameters.members,
+            ...valueFromB.typeParameters.members,
+          ]),
+        ).members.values(),
+      ]
+      if (
+        !supposedTypeParametersAsArray.every(
+          supposedTypeParameter =>
+            typeof supposedTypeParameter !== 'string' &&
+            supposedTypeParameter.kind == 'parameter',
+        )
+      ) {
+        throw new Error(
+          'Union type member was unexpectedly not a type parameter. This is a bug!',
+        )
+      }
+
       result.set(key, {
         keyPath,
-        typeParameters:
-          // TODO: eliminate the type assertion, perhaps by making `makeUnionType` and
-          // `simplifyUnionType` generic over their member types
-          simplifyUnionType(
-            makeUnionType(typeParameters.name, [
-              ...typeParameters.members,
-              ...valueFromB.typeParameters.members,
-            ]),
-          ) as UnionOfTypeParameters,
+        typeParameters: makeUnionType(
+          typeParameters.name,
+          supposedTypeParametersAsArray,
+        ),
       })
     }
   }

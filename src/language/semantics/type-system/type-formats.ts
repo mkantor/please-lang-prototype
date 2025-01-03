@@ -152,10 +152,15 @@ export type UnionType = {
   >
 }
 
-export const makeUnionType = (
+type SpecificUnionType<Member extends Atom | Exclude<Type, UnionType>> =
+  UnionType & {
+    readonly members: ReadonlySet<Member>
+  }
+
+export const makeUnionType = <Member extends Atom | Exclude<Type, UnionType>>(
   name: string,
-  members: readonly (Atom | Exclude<Type, UnionType>)[],
-): UnionType => ({
+  members: readonly Member[],
+): SpecificUnionType<Member> => ({
   name,
   kind: 'union',
   members: new Set(members),
