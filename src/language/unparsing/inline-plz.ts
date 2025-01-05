@@ -13,13 +13,14 @@ import {
   type KeyPath,
   type SemanticGraph,
 } from '../semantics.js'
-import { indent, type Notation } from './unparsing-utilities.js'
+import { type Notation } from './unparsing-utilities.js'
 
-// TODO: Share implementation details with inline plz notation.
+// TODO: Share implementation details with pretty plz notation.
 
 const dot = kleur.dim('.')
 const quote = kleur.dim('"')
 const colon = kleur.dim(':')
+const comma = kleur.dim(',')
 const openBrace = kleur.dim('{')
 const closeBrace = kleur.dim('}')
 const openParenthesis = kleur.dim('(')
@@ -157,9 +158,9 @@ const sugarFreeMolecule = (value: Molecule) => {
 
     return either.makeRight(
       openBrace
-        .concat('\n')
-        .concat(indent(2, keyValuePairsAsStrings.join('\n')))
-        .concat('\n')
+        .concat(' ')
+        .concat(keyValuePairsAsStrings.join(comma.concat(' ')))
+        .concat(' ')
         .concat(closeBrace),
     )
   }
@@ -175,4 +176,4 @@ const serializeIfNeeded = (
 const atomOrMolecule = (value: Atom | Molecule) =>
   typeof value === 'string' ? atom(value) : molecule(value)
 
-export const prettyPlz: Notation = { atom, molecule }
+export const inlinePlz: Notation = { atom, molecule }

@@ -7,7 +7,7 @@ import type {
 import type { Atom, Molecule } from '../parsing.js'
 import type { Canonicalized } from '../parsing/syntax-tree.js'
 import { unparse } from '../unparsing.js'
-import { prettyPlz } from '../unparsing/pretty-plz.js'
+import { inlinePlz } from '../unparsing/inline-plz.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
@@ -170,10 +170,7 @@ export const stringifySemanticGraphForEndUser = (
   graph: SemanticGraph,
 ): string =>
   either.match(
-    either.flatMap(serialize(graph), output =>
-      // TODO: Use single-line plz notation.
-      unparse(output, prettyPlz),
-    ),
+    either.flatMap(serialize(graph), output => unparse(output, inlinePlz)),
     {
       right: stringifiedOutput => stringifiedOutput,
       left: error => `(unserializable value: ${error.message})`,
