@@ -1,4 +1,4 @@
-import { either, type Either } from '../../adts.js'
+import either, { type Either } from '@matt.kantor/either'
 import type { RuntimeError } from '../errors.js'
 import type { JsonValueForbiddingSymbolicKeys } from '../parsing.js'
 import { canonicalize } from '../parsing.js'

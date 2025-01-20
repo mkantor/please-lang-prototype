@@ -1,4 +1,4 @@
-import { either } from '../adts.js'
+import either from '@matt.kantor/either'
 import { nothing } from './constructors.js'
 import type { AlwaysSucceedingParser, Parser, Success } from './parser.js'
 

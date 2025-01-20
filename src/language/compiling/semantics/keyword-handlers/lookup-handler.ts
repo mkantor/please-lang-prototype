@@ -1,5 +1,5 @@
+import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
-import { either, type Either } from '../../../../adts.js'
 import type {
   ElaborationError,
   InvalidExpressionError,

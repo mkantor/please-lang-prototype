@@ -1,4 +1,4 @@
-import { either, type Either } from '../../../../adts.js'
+import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../../errors.js'
 import {
   asSemanticGraph,

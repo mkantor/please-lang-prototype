@@ -1,5 +1,5 @@
+import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
-import { either, type Either } from '../../adts.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'

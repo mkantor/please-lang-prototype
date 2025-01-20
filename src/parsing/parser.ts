@@ -1,5 +1,4 @@
-import type { Either } from '../adts.js'
-import type { Right } from '../adts/either.js'
+import type { Either, Right } from '@matt.kantor/either'
 
 export type Success<Output> = {
   readonly remainingInput: string

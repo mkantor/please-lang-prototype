@@ -1,4 +1,4 @@
-import { either } from '../adts.js'
+import either from '@matt.kantor/either'
 import type { AlwaysSucceedingParser, Parser } from './parser.js'
 
 export const anySingleCharacter: Parser<string> = input => {

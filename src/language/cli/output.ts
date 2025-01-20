@@ -1,5 +1,5 @@
+import either, { type Either } from '@matt.kantor/either'
 import { parseArgs } from 'util'
-import { either, type Either } from '../../adts.js'
 import { type SyntaxTree } from '../parsing/syntax-tree.js'
 import { unparse, type Notation } from '../unparsing.js'
 import { prettyJson } from '../unparsing/pretty-json.js'
