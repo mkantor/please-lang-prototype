@@ -1,5 +1,6 @@
+import option, { type Option } from '@matt.kantor/option'
 import { parseArgs } from 'util'
-import { either, option, type Option } from '../../adts.js'
+import { either } from '../../adts.js'
 import { writeOutput } from '../cli/output.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
 import type { Atom } from '../parsing.js'

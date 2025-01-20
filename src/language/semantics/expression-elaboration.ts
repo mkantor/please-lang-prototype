@@ -1,4 +1,5 @@
-import { either, option, type Either } from '../../adts.js'
+import option from '@matt.kantor/option'
+import { either, type Either } from '../../adts.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
@@ -158,23 +159,20 @@ const handleObjectNodeWhichMayBeAExpression = (
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
   const { 0: possibleKeyword, ...possibleArguments } = node
-  return option.match(option.fromPredicate(possibleKeyword, isKeyword), {
-    none: () =>
-      /^@[^@]/.test(possibleKeyword)
-        ? either.makeLeft({
-            kind: 'unknownKeyword',
-            message: `unknown keyword: \`${possibleKeyword}\``,
-          })
-        : either.makeRight({
-            ...node,
-            0: unescapeKeywordSigil(possibleKeyword),
-          }),
-    some: keyword =>
-      context.keywordHandlers[keyword](
-        makeObjectNode({ ...possibleArguments, 0: keyword }),
+  return isKeyword(possibleKeyword)
+    ? context.keywordHandlers[possibleKeyword](
+        makeObjectNode({ ...possibleArguments, 0: possibleKeyword }),
         context,
-      ),
-  })
+      )
+    : /^@[^@]/.test(possibleKeyword)
+    ? either.makeLeft({
+        kind: 'unknownKeyword',
+        message: `unknown keyword: \`${possibleKeyword}\``,
+      })
+    : either.makeRight({
+        ...node,
+        0: unescapeKeywordSigil(possibleKeyword),
+      })
 }
 
 const handleAtomWhichMayNotBeAKeyword = (

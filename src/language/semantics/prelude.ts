@@ -1,4 +1,5 @@
-import { either, option, type Either } from '../../adts.js'
+import option from '@matt.kantor/option'
+import { either, type Either } from '../../adts.js'
 import type { DependencyUnavailable, Panic } from '../errors.js'
 import type { Atom } from '../parsing.js'
 import { isFunctionNode, makeFunctionNode } from './function-node.js'

@@ -1,4 +1,5 @@
-import { either, option, type Either, type Option } from '../../adts.js'
+import option, { type Option } from '@matt.kantor/option'
+import { either, type Either } from '../../adts.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type {
   InvalidExpressionError,

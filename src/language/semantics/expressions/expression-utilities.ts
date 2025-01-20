@@ -1,4 +1,5 @@
-import { either, option, type Either, type Option } from '../../../adts.js'
+import option, { type Option } from '@matt.kantor/option'
+import { either, type Either } from '../../../adts.js'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
