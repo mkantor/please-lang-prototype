@@ -1,4 +1,4 @@
-import { option as optionAdt } from '../../../adts.js'
+import optionAdt from '@matt.kantor/option'
 import {
   makeFunctionType,
   makeObjectType,

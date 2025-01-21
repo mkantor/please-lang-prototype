@@ -1,5 +1,5 @@
+import either, { type Either } from '@matt.kantor/either'
 import assert from 'node:assert'
-import { either, type Either } from '../../adts.js'
 import { withPhantomData } from '../../phantom-data.js'
 import { testCases } from '../../test-utilities.test.js'
 import type { ElaborationError } from '../errors.js'

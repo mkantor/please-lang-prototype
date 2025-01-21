@@ -1,4 +1,4 @@
-import { either, type Either } from '../../adts.js'
+import either, { type Either } from '@matt.kantor/either'
 import type { ParseError } from '../errors.js'
 import { type SyntaxTree, syntaxTreeParser } from './syntax-tree.js'
 

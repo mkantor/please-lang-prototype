@@ -1,5 +1,5 @@
-import { option } from '../../../adts.js'
-import type { None, Some } from '../../../adts/option.js'
+import type { None, Some } from '@matt.kantor/option'
+import option from '@matt.kantor/option'
 import type { Atom } from '../../parsing.js'
 
 export type FunctionType = {

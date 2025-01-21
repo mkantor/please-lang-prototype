@@ -1,5 +1,6 @@
+import either, { type Either } from '@matt.kantor/either'
+import option from '@matt.kantor/option'
 import assert from 'node:assert'
-import { either, option, type Either } from '../../adts.js'
 import { withPhantomData } from '../../phantom-data.js'
 import { testCases } from '../../test-utilities.test.js'
 import type { Writable } from '../../utility-types.js'

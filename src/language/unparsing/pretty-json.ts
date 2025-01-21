@@ -1,6 +1,6 @@
+import type { Right } from '@matt.kantor/either'
+import either from '@matt.kantor/either'
 import kleur from 'kleur'
-import { either } from '../../adts.js'
-import type { Right } from '../../adts/either.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { indent, type Notation } from './unparsing-utilities.js'
 

@@ -1,4 +1,4 @@
-import { either, type Either } from '../../adts.js'
+import either, { type Either } from '@matt.kantor/either'
 import { compile } from '../compiling.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { parse } from '../parsing/parser.js'

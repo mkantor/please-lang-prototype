@@ -1,4 +1,5 @@
-import { either, type Either, type Option } from '../../adts.js'
+import either, { type Either } from '@matt.kantor/either'
+import { type Option } from '@matt.kantor/option'
 import type { Writable } from '../../utility-types.js'
 import type {
   DependencyUnavailable,

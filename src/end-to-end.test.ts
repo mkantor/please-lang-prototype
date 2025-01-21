@@ -1,5 +1,5 @@
+import either, { type Either } from '@matt.kantor/either'
 import assert from 'node:assert'
-import { either, type Either } from './adts.js'
 import { compile } from './language/compiling.js'
 import type { Atom, Molecule } from './language/parsing.js'
 import { parse } from './language/parsing/parser.js'

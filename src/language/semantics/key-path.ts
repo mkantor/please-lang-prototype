@@ -1,4 +1,4 @@
-import { either } from '../../adts.js'
+import either from '@matt.kantor/either'
 import type { Atom, Molecule } from '../parsing.js'
 import { unparse } from '../unparsing.js'
 import { inlinePlz } from '../unparsing/inline-plz.js'
