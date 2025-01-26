@@ -1,4 +1,16 @@
-import { parser, type Parser } from '../../parsing.js'
+import {
+  type Parser,
+  anySingleCharacter,
+  as,
+  butNot,
+  lazy,
+  literal,
+  map,
+  oneOf,
+  oneOrMore,
+  sequence,
+  zeroOrMore,
+} from '@matt.kantor/parsing'
 import { optionallySurroundedByParentheses } from './parentheses.js'
 import { whitespace } from './trivia.js'
 
@@ -10,57 +22,57 @@ export const isAtom = (value: unknown): value is Atom =>
 export const unit = '' as const
 
 export const atomParser: Parser<Atom> = optionallySurroundedByParentheses(
-  parser.lazy(() => parser.oneOf([quotedAtom, unquotedAtom])),
+  lazy(() => oneOf([quotedAtom, unquotedAtom])),
 )
 
-const quotedAtom = parser.map(
-  parser.sequence([
-    parser.as(parser.literal('"'), ''),
-    parser.map(
-      parser.zeroOrMore(
-        parser.oneOf([
-          parser.butNot(
-            parser.anySingleCharacter,
-            parser.oneOf([parser.literal('"'), parser.literal('\\')]),
+const quotedAtom = map(
+  sequence([
+    as(literal('"'), ''),
+    map(
+      zeroOrMore(
+        oneOf([
+          butNot(
+            anySingleCharacter,
+            oneOf([literal('"'), literal('\\')]),
             '`"` or `\\`',
           ),
-          parser.as(parser.literal('\\"'), '"'),
-          parser.as(parser.literal('\\\\'), '\\'),
+          as(literal('\\"'), '"'),
+          as(literal('\\\\'), '\\'),
         ]),
       ),
       output => output.join(''),
     ),
-    parser.as(parser.literal('"'), ''),
+    as(literal('"'), ''),
   ]),
   ([_1, contents, _2]) => contents,
 )
 
-const unquotedAtom = parser.map(
-  parser.oneOrMore(
-    parser.butNot(
-      parser.anySingleCharacter,
-      parser.oneOf([
+const unquotedAtom = map(
+  oneOrMore(
+    butNot(
+      anySingleCharacter,
+      oneOf([
         whitespace,
-        parser.literal('"'),
-        parser.literal('{'),
-        parser.literal('}'),
-        parser.literal('['),
-        parser.literal(']'),
-        parser.literal('('),
-        parser.literal(')'),
-        parser.literal('<'),
-        parser.literal('>'),
-        parser.literal('#'),
-        parser.literal('&'),
-        parser.literal('|'),
-        parser.literal('\\'),
-        parser.literal('='),
-        parser.literal(':'),
-        parser.literal(';'),
-        parser.literal(','),
-        parser.literal('//'),
-        parser.literal('/*'),
-        parser.literal('*/'),
+        literal('"'),
+        literal('{'),
+        literal('}'),
+        literal('['),
+        literal(']'),
+        literal('('),
+        literal(')'),
+        literal('<'),
+        literal('>'),
+        literal('#'),
+        literal('&'),
+        literal('|'),
+        literal('\\'),
+        literal('='),
+        literal(':'),
+        literal(';'),
+        literal(','),
+        literal('//'),
+        literal('/*'),
+        literal('*/'),
       ]),
       'a forbidden character sequence',
     ),

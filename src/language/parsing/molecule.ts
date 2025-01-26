@@ -1,4 +1,15 @@
-import { parser, type Parser } from '../../parsing.js'
+import {
+  as,
+  lazy,
+  literal,
+  map,
+  nothing,
+  oneOf,
+  oneOrMore,
+  sequence,
+  zeroOrMore,
+  type Parser,
+} from '@matt.kantor/parsing'
 import { atomParser, type Atom } from './atom.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
 import { trivia } from './trivia.js'
@@ -7,32 +18,32 @@ export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
 export const unit: Molecule = {}
 
-export const moleculeParser: Parser<Molecule> = parser.oneOf([
+export const moleculeParser: Parser<Molecule> = oneOf([
   optionallySurroundedByParentheses(
-    parser.map(
-      parser.lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
+    map(
+      lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
       Object.fromEntries,
     ),
   ),
-  parser.lazy(() => sugaredApply),
-  parser.lazy(() => sugaredFunction),
+  lazy(() => sugaredApply),
+  lazy(() => sugaredFunction),
 ])
 
 // During parsing molecules and properties are represented as nested arrays (of key/value pairs).
 // The following utilities make it easier to work with such a structure.
 
 const flat = <Output>(theParser: Parser<readonly Output[]>) =>
-  parser.map(theParser, output => output.flat())
+  map(theParser, output => output.flat())
 
-const omit = (theParser: Parser<unknown>) => parser.as(theParser, [])
+const omit = (theParser: Parser<unknown>) => as(theParser, [])
 
 const optional = <Output>(
   theParser: Parser<readonly Output[]>,
-): Parser<readonly Output[]> => parser.oneOf([theParser, omit(parser.nothing)])
+): Parser<readonly Output[]> => oneOf([theParser, omit(nothing)])
 
 const withoutOmittedOutputs = <Output>(
   theParser: Parser<readonly (readonly Output[])[]>,
-) => parser.map(theParser, output => output.filter(output => output.length > 0))
+) => map(theParser, output => output.filter(output => output.length > 0))
 
 // Keyless properties are automatically assigned numeric indexes, which uses some mutable state.
 type Indexer = () => string
@@ -48,37 +59,30 @@ const makeIncrementingIndexer = (): Indexer => {
 
 // Language-specific parsers follow.
 
-const propertyDelimiter = parser.oneOf([
-  parser.sequence([
-    optional(omit(trivia)),
-    parser.literal(','),
-    optional(omit(trivia)),
-  ]),
+const propertyDelimiter = oneOf([
+  sequence([optional(omit(trivia)), literal(','), optional(omit(trivia))]),
   trivia,
 ])
 
 const sugaredLookup: Parser<PartialMolecule> =
   optionallySurroundedByParentheses(
-    parser.map(
-      parser.sequence([
-        parser.literal(':'),
-        parser.oneOf([atomParser, moleculeParser]),
-      ]),
+    map(
+      sequence([literal(':'), oneOf([atomParser, moleculeParser])]),
       ([_colon, query]) => ({ 0: '@lookup', query }),
     ),
   )
 
 const sugaredFunction: Parser<PartialMolecule> =
   optionallySurroundedByParentheses(
-    parser.map(
+    map(
       flat(
-        parser.sequence([
-          parser.map(atomParser, output => [output]),
+        sequence([
+          map(atomParser, output => [output]),
           omit(trivia),
-          omit(parser.literal('=>')),
+          omit(literal('=>')),
           omit(trivia),
-          parser.map(
-            parser.lazy(() => propertyValue),
+          map(
+            lazy(() => propertyValue),
             output => [output],
           ),
         ]),
@@ -91,16 +95,16 @@ const sugaredFunction: Parser<PartialMolecule> =
     ),
   )
 
-const sugaredApply: Parser<PartialMolecule> = parser.map(
-  parser.sequence([
-    parser.oneOf([sugaredLookup, parser.lazy(() => sugaredFunction)]),
-    parser.oneOrMore(
-      parser.sequence([
-        parser.literal('('),
+const sugaredApply: Parser<PartialMolecule> = map(
+  sequence([
+    oneOf([sugaredLookup, lazy(() => sugaredFunction)]),
+    oneOrMore(
+      sequence([
+        literal('('),
         optional(omit(trivia)),
-        parser.lazy(() => propertyValue),
+        lazy(() => propertyValue),
         optional(omit(trivia)),
-        parser.literal(')'),
+        literal(')'),
       ]),
     ),
   ]),
@@ -116,52 +120,49 @@ const sugaredApply: Parser<PartialMolecule> = parser.map(
 )
 
 const propertyKey = atomParser
-const propertyValue = parser.oneOf([
+const propertyValue = oneOf([
   sugaredApply, // must come first to avoid ambiguity
-  parser.lazy(() => moleculeParser), // must come second to avoid ambiguity
+  lazy(() => moleculeParser), // must come second to avoid ambiguity
   atomParser,
   sugaredLookup,
 ])
 
 const namedProperty = flat(
-  parser.sequence([
+  sequence([
     propertyKey,
-    omit(parser.literal(':')),
+    omit(literal(':')),
     optional(omit(trivia)),
     propertyValue,
   ]),
 )
 
 const numberedProperty = (index: Indexer) =>
-  parser.map(propertyValue, value => [index(), value])
+  map(propertyValue, value => [index(), value])
 
 const property = (index: Indexer) =>
   optionallySurroundedByParentheses(
-    parser.oneOf([namedProperty, numberedProperty(index)]),
+    oneOf([namedProperty, numberedProperty(index)]),
   )
 
 const moleculeAsEntries = (index: Indexer) =>
   withoutOmittedOutputs(
     flat(
-      parser.sequence([
-        omit(parser.literal('{')),
+      sequence([
+        omit(literal('{')),
         // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
-        parser.map(optional(property(index)), property => [property]),
-        parser.zeroOrMore(
+        map(optional(property(index)), property => [property]),
+        zeroOrMore(
           flat(
-            parser.sequence([
-              omit(propertyDelimiter),
-              parser.lazy(() => property(index)),
-            ]),
+            sequence([omit(propertyDelimiter), lazy(() => property(index))]),
           ),
         ),
         optional(omit(propertyDelimiter)),
-        omit(parser.literal('}')),
+        omit(literal('}')),
       ]),
     ),
   )
 
-// This is a lazy workaround for `parser.sequence` returning an array rather than a tuple with
+// This is a lazy workaround for `sequence` returning an array rather than a tuple with
 // definitely-present elements.
 type PartialMolecule = {
   readonly [key: Atom]: PartialMolecule | Atom | undefined
