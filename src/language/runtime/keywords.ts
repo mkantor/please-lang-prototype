@@ -18,7 +18,7 @@ import {
   lookupPropertyOfObjectNode,
   makeUnelaboratedObjectNode,
 } from '../semantics/object-node.js'
-import { prettyJson } from '../unparsing/pretty-json.js'
+import { prettyJson } from '../unparsing.js'
 
 const unserializableFunction = () =>
   either.makeLeft({

@@ -1,9 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import { parseArgs } from 'util'
 import { type SyntaxTree } from '../parsing/syntax-tree.js'
-import { unparse, type Notation } from '../unparsing.js'
-import { prettyJson } from '../unparsing/pretty-json.js'
-import { prettyPlz } from '../unparsing/pretty-plz.js'
+import { prettyJson, prettyPlz, unparse, type Notation } from '../unparsing.js'
 
 export const handleOutput = async (
   process: NodeJS.Process,

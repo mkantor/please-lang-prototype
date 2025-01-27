@@ -16,7 +16,7 @@ const escapeStringContents = (value: string) =>
 const key = (value: Atom): string =>
   quote.concat(kleur.bold(escapeStringContents(value))).concat(quote)
 
-const atom = (value: Atom): Right<string> =>
+const unparseAtom = (value: Atom): Right<string> =>
   either.makeRight(
     quote.concat(
       escapeStringContents(
@@ -26,7 +26,7 @@ const atom = (value: Atom): Right<string> =>
     ),
   )
 
-const molecule = (value: Molecule): Right<string> => {
+const unparseMolecule = (value: Molecule): Right<string> => {
   const entries = Object.entries(value)
   if (entries.length === 0) {
     return either.makeRight(openBrace.concat(closeBrace))
@@ -36,7 +36,7 @@ const molecule = (value: Molecule): Right<string> => {
         key(propertyKey)
           .concat(colon)
           .concat(' ')
-          .concat(atomOrMolecule(propertyValue).value),
+          .concat(unparseAtomOrMolecule(propertyValue).value),
       )
       .join(comma.concat('\n'))
 
@@ -50,7 +50,10 @@ const molecule = (value: Molecule): Right<string> => {
   }
 }
 
-const atomOrMolecule = (value: Atom | Molecule) =>
-  typeof value === 'string' ? atom(value) : molecule(value)
+const unparseAtomOrMolecule = (value: Atom | Molecule) =>
+  typeof value === 'string' ? unparseAtom(value) : unparseMolecule(value)
 
-export const prettyJson: Notation = { atom, molecule }
+export const prettyJson: Notation = {
+  atom: unparseAtom,
+  molecule: unparseMolecule,
+}
