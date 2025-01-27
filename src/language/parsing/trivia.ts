@@ -1,25 +1,33 @@
-import { parser } from '../../parsing.js'
+import {
+  anySingleCharacter,
+  butNot,
+  literal,
+  lookaheadNot,
+  oneOf,
+  oneOrMore,
+  regularExpression,
+  sequence,
+  zeroOrMore,
+} from '@matt.kantor/parsing'
 
-const blockComment = parser.sequence([
-  parser.literal('/*'),
-  parser.zeroOrMore(
-    parser.oneOf([
-      parser.butNot(parser.anySingleCharacter, parser.literal('*'), '*'),
-      parser.lookaheadNot(parser.literal('*'), parser.literal('/'), '/'),
+const blockComment = sequence([
+  literal('/*'),
+  zeroOrMore(
+    oneOf([
+      butNot(anySingleCharacter, literal('*'), '*'),
+      lookaheadNot(literal('*'), literal('/'), '/'),
     ]),
   ),
-  parser.literal('*/'),
+  literal('*/'),
 ])
 
-const singleLineComment = parser.sequence([
-  parser.literal('//'),
-  parser.zeroOrMore(
-    parser.butNot(parser.anySingleCharacter, parser.literal('\n'), 'newline'),
-  ),
+const singleLineComment = sequence([
+  literal('//'),
+  zeroOrMore(butNot(anySingleCharacter, literal('\n'), 'newline')),
 ])
 
-export const whitespace = parser.regularExpression(/\s+/)
+export const whitespace = regularExpression(/\s+/)
 
-export const trivia = parser.oneOrMore(
-  parser.oneOf([whitespace, singleLineComment, blockComment]),
+export const trivia = oneOrMore(
+  oneOf([whitespace, singleLineComment, blockComment]),
 )
