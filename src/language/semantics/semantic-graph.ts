@@ -7,8 +7,7 @@ import type {
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import type { Canonicalized } from '../parsing/syntax-tree.js'
-import { unparse } from '../unparsing.js'
-import { inlinePlz } from '../unparsing/inline-plz.js'
+import { inlinePlz, unparse } from '../unparsing.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {

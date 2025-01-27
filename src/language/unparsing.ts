@@ -3,7 +3,10 @@ import type { UnserializableValueError } from './errors.js'
 import type { Atom, Molecule } from './parsing.js'
 import type { Notation } from './unparsing/unparsing-utilities.js'
 
-export { type Notation } from './unparsing/unparsing-utilities.js'
+export { inlinePlz } from './unparsing/inline-plz.js'
+export { prettyJson } from './unparsing/pretty-json.js'
+export { prettyPlz } from './unparsing/pretty-plz.js'
+export type { Notation } from './unparsing/unparsing-utilities.js'
 
 export const unparse = (
   value: Atom | Molecule,
