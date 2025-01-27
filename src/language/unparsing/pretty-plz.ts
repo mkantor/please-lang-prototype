@@ -29,10 +29,17 @@ const arrow = kleur.dim('=>')
 const escapeStringContents = (value: string) =>
   value.replace('\\', '\\\\').replace('"', '\\"')
 
-const quoteIfNecessary = (value: string) =>
-  !either.isLeft(unquotedAtomParser(value))
-    ? value
-    : quote.concat(escapeStringContents(value)).concat(quote)
+const quoteIfNecessary = (value: string) => {
+  const unquotedAtomResult = unquotedAtomParser(value)
+  if (
+    either.isLeft(unquotedAtomResult) ||
+    unquotedAtomResult.value.remainingInput.length !== 0
+  ) {
+    return quote.concat(escapeStringContents(value)).concat(quote)
+  } else {
+    return value
+  }
+}
 
 const atom = (node: string): Right<string> =>
   either.makeRight(
