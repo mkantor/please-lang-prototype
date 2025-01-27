@@ -46,6 +46,18 @@ testCases(
     },
     either.makeRight('{ identity: a => :a, test: :identity("it works!") }'),
   ],
+  [
+    {
+      0: '@apply',
+      function: {
+        0: '@function',
+        parameter: 'a',
+        body: { 0: '@lookup', 1: 'a' },
+      },
+      argument: 'it works!',
+    },
+    either.makeRight('(a => :a)("it works!")'),
+  ],
 ])
 
 testCases(
@@ -81,6 +93,18 @@ testCases(
     either.makeRight(
       '{\n  identity: a => :a\n  test: :identity("it works!")\n}',
     ),
+  ],
+  [
+    {
+      0: '@apply',
+      function: {
+        0: '@function',
+        parameter: 'a',
+        body: { 0: '@lookup', 1: 'a' },
+      },
+      argument: 'it works!',
+    },
+    either.makeRight('(a => :a)("it works!")'),
   ],
 ])
 
@@ -118,6 +142,20 @@ testCases(
     },
     either.makeRight(
       '{\n  "identity": {\n    "0": "@function",\n    "parameter": "a",\n    "body": {\n      "0": "@lookup",\n      "1": "a"\n    }\n  },\n  "test": {\n    "0": "@apply",\n    "function": {\n      "0": "@lookup",\n      "1": "identity"\n    },\n    "argument": "it works!"\n  }\n}',
+    ),
+  ],
+  [
+    {
+      0: '@apply',
+      function: {
+        0: '@function',
+        parameter: 'a',
+        body: { 0: '@lookup', 1: 'a' },
+      },
+      argument: 'it works!',
+    },
+    either.makeRight(
+      '{\n  "0": "@apply",\n  "function": {\n    "0": "@function",\n    "parameter": "a",\n    "body": {\n      "0": "@lookup",\n      "1": "a"\n    }\n  },\n  "argument": "it works!"\n}',
     ),
   ],
 ])

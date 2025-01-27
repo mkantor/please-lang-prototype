@@ -128,25 +128,37 @@ const escapeStringContents = (value: string) =>
 const unparseSugaredApply = (
   expression: ApplyExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
-) =>
-  either.flatMap(serializeIfNeeded(expression.function), serializedFunction =>
+) => {
+  const functionUnparseResult = either.map(
     either.flatMap(
-      unparseAtomOrMolecule(serializedFunction),
-      functionToApplyAsString =>
-        either.flatMap(
-          serializeIfNeeded(expression.argument),
-          serializedArgument =>
-            either.map(
-              unparseAtomOrMolecule(serializedArgument),
-              argumentAsString =>
-                functionToApplyAsString
-                  .concat(openParenthesis)
-                  .concat(argumentAsString)
-                  .concat(closeParenthesis),
-            ),
-        ),
+      serializeIfNeeded(expression.function),
+      unparseAtomOrMolecule,
     ),
+    unparsedFunction =>
+      either.isRight(readFunctionExpression(expression.function))
+        ? // Immediately-applied function expressions need parentheses.
+          openParenthesis.concat(unparsedFunction).concat(closeParenthesis)
+        : unparsedFunction,
   )
+  if (either.isLeft(functionUnparseResult)) {
+    return functionUnparseResult
+  }
+
+  const argumentUnparseResult = either.flatMap(
+    serializeIfNeeded(expression.argument),
+    unparseAtomOrMolecule,
+  )
+  if (either.isLeft(argumentUnparseResult)) {
+    return argumentUnparseResult
+  }
+
+  return either.makeRight(
+    functionUnparseResult.value
+      .concat(openParenthesis)
+      .concat(argumentUnparseResult.value)
+      .concat(closeParenthesis),
+  )
+}
 
 const unparseSugaredFunction = (
   expression: FunctionExpression,
