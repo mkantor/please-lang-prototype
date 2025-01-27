@@ -75,11 +75,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight('output'),
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
-  [':{atom concatenate}(a)(b)', either.makeRight('ba')],
-  [
-    ':flow({ :atom.concatenate(a) :atom.concatenate(b) })(z)',
-    either.makeRight('zab'),
-  ],
+  [':{atom prepend}(a)(b)', either.makeRight('ab')],
+  [':flow({ :atom.append(a) :atom.append(b) })(z)', either.makeRight('zab')],
   [
     `{
         // foo: bar

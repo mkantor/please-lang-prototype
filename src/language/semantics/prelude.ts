@@ -496,8 +496,8 @@ export const prelude: ObjectNode = makeObjectNode({
   }),
 
   atom: makeObjectNode({
-    concatenate: preludeFunction(
-      ['atom', 'concatenate'],
+    append: preludeFunction(
+      ['atom', 'append'],
       {
         parameter: types.atom,
         return: makeFunctionType('', {
@@ -505,23 +505,63 @@ export const prelude: ObjectNode = makeObjectNode({
           return: types.atom,
         }),
       },
-      string2 =>
+      atomToAppend =>
         either.makeRight(
           makeFunctionNode(
             {
               parameter: types.atom,
               return: types.atom,
             },
-            serializePartiallyAppliedFunction(['atom', 'concatenate'], string2),
+            serializePartiallyAppliedFunction(['atom', 'append'], atomToAppend),
             option.none,
-            string1 => {
-              if (typeof string1 !== 'string' || typeof string1 !== 'string') {
+            atomToAppendTo => {
+              if (
+                typeof atomToAppend !== 'string' ||
+                typeof atomToAppendTo !== 'string'
+              ) {
                 return either.makeLeft({
                   kind: 'panic',
-                  message: 'concatenate received a non-atom argument',
+                  message: 'append received a non-atom argument',
                 })
               } else {
-                return either.makeRight(string1 + string2)
+                return either.makeRight(atomToAppendTo + atomToAppend)
+              }
+            },
+          ),
+        ),
+    ),
+    prepend: preludeFunction(
+      ['atom', 'prepend'],
+      {
+        parameter: types.atom,
+        return: makeFunctionType('', {
+          parameter: types.atom,
+          return: types.atom,
+        }),
+      },
+      atomToPrepend =>
+        either.makeRight(
+          makeFunctionNode(
+            {
+              parameter: types.atom,
+              return: types.atom,
+            },
+            serializePartiallyAppliedFunction(
+              ['atom', 'prepend'],
+              atomToPrepend,
+            ),
+            option.none,
+            atomToPrependTo => {
+              if (
+                typeof atomToPrepend !== 'string' ||
+                typeof atomToPrependTo !== 'string'
+              ) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: 'prepend received a non-atom argument',
+                })
+              } else {
+                return either.makeRight(atomToPrepend + atomToPrependTo)
               }
             },
           ),
