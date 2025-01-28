@@ -24,6 +24,7 @@ testCases(
   [{}, either.makeRight('{}')],
   ['a', either.makeRight('a')],
   ['Hello, world!', either.makeRight('"Hello, world!"')],
+  ['@test', either.makeRight('@test')],
   [{ 0: 'a' }, either.makeRight('{ a }')],
   [{ 1: 'a' }, either.makeRight('{ 1: a }')],
   [
@@ -67,6 +68,7 @@ testCases(
   [{}, either.makeRight('{}')],
   ['a', either.makeRight('a')],
   ['Hello, world!', either.makeRight('"Hello, world!"')],
+  ['@test', either.makeRight('@test')],
   [{ 0: 'a' }, either.makeRight('{\n  a\n}')],
   [{ 1: 'a' }, either.makeRight('{\n  1: a\n}')],
   [
@@ -115,6 +117,7 @@ testCases(
   [{}, either.makeRight('{}')],
   ['a', either.makeRight('"a"')],
   ['Hello, world!', either.makeRight('"Hello, world!"')],
+  ['@test', either.makeRight('"@test"')],
   [{ 0: 'a' }, either.makeRight('{\n  "0": "a"\n}')],
   [{ 1: 'a' }, either.makeRight('{\n  "1": "a"\n}')],
   [

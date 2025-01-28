@@ -113,9 +113,9 @@ export const sugarFreeMoleculeAsKeyValuePairStrings = (
 
 export const unparseAtom = (atom: string): Right<string> =>
   either.makeRight(
-    quoteIfNecessary(
-      /^@[^@]/.test(atom) ? kleur.bold(kleur.underline(atom)) : atom,
-    ),
+    /^@[^@]/.test(atom)
+      ? kleur.bold(kleur.underline(quoteIfNecessary(atom)))
+      : quoteIfNecessary(atom),
   )
 
 type UnparseAtomOrMolecule = (
