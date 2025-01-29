@@ -4,7 +4,9 @@
     "exactOptionalPropertyTypes": true,
     "module": "node16",
     "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
     "rootDir": "./src",
+    "skipLibCheck": true,
     "strict": true,
     "target": "es2023",
     "verbatimModuleSyntax": true
