@@ -41,7 +41,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(result.value.message)
       }
       assert(typeof result.value === 'object')
-      assert.deepEqual(result.value.b, 'A')
+      assert.deepEqual(result.value['b'], 'A')
     },
   ],
   [
@@ -143,8 +143,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(output.value.message)
       }
       assert(typeof output.value === 'object')
-      assert.deepEqual(output.value.tag, 'some')
-      assert.deepEqual(typeof output.value.value, 'string')
+      assert.deepEqual(output.value['tag'], 'some')
+      assert.deepEqual(typeof output.value['value'], 'string')
     },
   ],
   [
@@ -166,8 +166,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(output.value.message)
       }
       assert(typeof output.value === 'object')
-      assert.deepEqual(output.value.tag, 'some')
-      assert.deepEqual(typeof output.value.value, 'string')
+      assert.deepEqual(output.value['tag'], 'some')
+      assert.deepEqual(typeof output.value['value'], 'string')
     },
   ],
   [
@@ -189,8 +189,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(output.value.message)
       }
       assert(typeof output.value === 'object')
-      assert.deepEqual(output.value.tag, 'some')
-      assert.deepEqual(typeof output.value.value, 'string')
+      assert.deepEqual(output.value['tag'], 'some')
+      assert.deepEqual(typeof output.value['value'], 'string')
     },
   ],
   [
@@ -202,8 +202,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(output.value.message)
       }
       assert(typeof output.value === 'object')
-      assert.deepEqual(output.value.tag, 'some')
-      assert.deepEqual(typeof output.value.value, 'string')
+      assert.deepEqual(output.value['tag'], 'some')
+      assert.deepEqual(typeof output.value['value'], 'string')
     },
   ],
   [`:natural_number.add(1)(1)`, either.makeRight('2')],

@@ -580,7 +580,7 @@ type TaggedNode = ObjectNode & {
 }
 const nodeIsTagged = (node: SemanticGraph): node is TaggedNode =>
   isObjectNode(node) &&
-  node.tag !== undefined &&
-  (typeof node.tag === 'string' ||
-    (isSemanticGraph(node.tag) && typeof node.tag === 'string')) &&
-  node.value !== undefined
+  node['tag'] !== undefined &&
+  (typeof node['tag'] === 'string' ||
+    (isSemanticGraph(node['tag']) && typeof node['tag'] === 'string')) &&
+  node['value'] !== undefined

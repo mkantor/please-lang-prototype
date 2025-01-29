@@ -53,8 +53,8 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
       output => {
         assert(!either.isLeft(output))
         assert(typeof output.value === 'object')
-        assert(output.value.tag === 'some')
-        assert(typeof output.value.value === 'string')
+        assert(output.value['tag'] === 'some')
+        assert(typeof output.value['value'] === 'string')
       },
     ],
     [

@@ -3,8 +3,11 @@
     "composite": true,
     "exactOptionalPropertyTypes": true,
     "module": "node16",
+    "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
     "rootDir": "./src",
+    "skipLibCheck": true,
     "strict": true,
     "target": "es2023",
     "verbatimModuleSyntax": true
