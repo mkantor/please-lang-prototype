@@ -59,6 +59,17 @@ testCases(
     },
     either.makeRight('(a => :a)("it works!")'),
   ],
+  [
+    {
+      0: '@runtime',
+      1: {
+        0: '@function',
+        parameter: 'context',
+        body: { 0: '@lookup', query: 'context.program.start_time' },
+      },
+    },
+    either.makeRight('{ @runtime, context => :context.program.start_time }'),
+  ],
 ])
 
 testCases(
@@ -107,6 +118,19 @@ testCases(
       argument: 'it works!',
     },
     either.makeRight('(a => :a)("it works!")'),
+  ],
+  [
+    {
+      0: '@runtime',
+      1: {
+        0: '@function',
+        parameter: 'context',
+        body: { 0: '@lookup', query: 'context.program.start_time' },
+      },
+    },
+    either.makeRight(
+      '{\n  @runtime\n  context => :context.program.start_time\n}',
+    ),
   ],
 ])
 

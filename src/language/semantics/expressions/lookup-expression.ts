@@ -1,7 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError, InvalidExpressionError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
-import { isExpression } from '../expression.js'
+import { isSpecificExpression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
 import { keyPathToMolecule, type KeyPath } from '../key-path.js'
 import {
@@ -23,7 +23,7 @@ export type LookupExpression = ObjectNode & {
 export const readLookupExpression = (
   node: SemanticGraph | Molecule,
 ): Either<ElaborationError, LookupExpression> =>
-  isExpression(node)
+  isSpecificExpression('@lookup', node)
     ? either.flatMap(
         readArgumentsFromExpression(node, [['query', '1']]),
         ([q]) => {
