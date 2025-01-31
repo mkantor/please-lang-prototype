@@ -22,32 +22,10 @@ export const isAtom = (value: unknown): value is Atom =>
 export const unit = '' as const
 
 export const atomParser: Parser<Atom> = optionallySurroundedByParentheses(
-  lazy(() => oneOf([quotedAtom, unquotedAtom])),
+  lazy(() => oneOf([unquotedAtomParser, quotedAtomParser])),
 )
 
-const quotedAtom = map(
-  sequence([
-    as(literal('"'), ''),
-    map(
-      zeroOrMore(
-        oneOf([
-          butNot(
-            anySingleCharacter,
-            oneOf([literal('"'), literal('\\')]),
-            '`"` or `\\`',
-          ),
-          as(literal('\\"'), '"'),
-          as(literal('\\\\'), '\\'),
-        ]),
-      ),
-      output => output.join(''),
-    ),
-    as(literal('"'), ''),
-  ]),
-  ([_1, contents, _2]) => contents,
-)
-
-const unquotedAtom = map(
+export const unquotedAtomParser = map(
   oneOrMore(
     butNot(
       anySingleCharacter,
@@ -80,4 +58,25 @@ const unquotedAtom = map(
   characters => characters.join(''),
 )
 
-export { unquotedAtom as unquotedAtomParser }
+const quotedAtomParser = map(
+  sequence([
+    literal('"'),
+    map(
+      zeroOrMore(
+        oneOf([
+          // `"` and `\` need to be escaped
+          butNot(
+            anySingleCharacter,
+            oneOf([literal('"'), literal('\\')]),
+            '`"` or `\\`',
+          ),
+          as(literal('\\"'), '"'),
+          as(literal('\\\\'), '\\'),
+        ]),
+      ),
+      output => output.join(''),
+    ),
+    literal('"'),
+  ]),
+  ([_1, contents, _2]) => contents,
+)
