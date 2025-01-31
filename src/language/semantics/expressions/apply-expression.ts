@@ -1,7 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
-import { isExpression } from '../expression.js'
+import { isSpecificExpression } from '../expression.js'
 import { makeUnelaboratedObjectNode, type ObjectNode } from '../object-node.js'
 import { type SemanticGraph, type unelaboratedKey } from '../semantic-graph.js'
 import { readArgumentsFromExpression } from './expression-utilities.js'
@@ -15,7 +15,7 @@ export type ApplyExpression = ObjectNode & {
 export const readApplyExpression = (
   node: SemanticGraph | Molecule,
 ): Either<ElaborationError, ApplyExpression> =>
-  isExpression(node)
+  isSpecificExpression('@apply', node)
     ? either.map(
         readArgumentsFromExpression(node, [
           ['function', '1'],

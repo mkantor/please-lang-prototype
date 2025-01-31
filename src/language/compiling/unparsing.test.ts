@@ -24,6 +24,7 @@ testCases(
   [{}, either.makeRight('{}')],
   ['a', either.makeRight('a')],
   ['Hello, world!', either.makeRight('"Hello, world!"')],
+  ['@test', either.makeRight('@test')],
   [{ 0: 'a' }, either.makeRight('{ a }')],
   [{ 1: 'a' }, either.makeRight('{ 1: a }')],
   [
@@ -58,6 +59,17 @@ testCases(
     },
     either.makeRight('(a => :a)("it works!")'),
   ],
+  [
+    {
+      0: '@runtime',
+      1: {
+        0: '@function',
+        parameter: 'context',
+        body: { 0: '@lookup', query: 'context.program.start_time' },
+      },
+    },
+    either.makeRight('{ @runtime, context => :context.program.start_time }'),
+  ],
 ])
 
 testCases(
@@ -67,6 +79,7 @@ testCases(
   [{}, either.makeRight('{}')],
   ['a', either.makeRight('a')],
   ['Hello, world!', either.makeRight('"Hello, world!"')],
+  ['@test', either.makeRight('@test')],
   [{ 0: 'a' }, either.makeRight('{\n  a\n}')],
   [{ 1: 'a' }, either.makeRight('{\n  1: a\n}')],
   [
@@ -106,6 +119,19 @@ testCases(
     },
     either.makeRight('(a => :a)("it works!")'),
   ],
+  [
+    {
+      0: '@runtime',
+      1: {
+        0: '@function',
+        parameter: 'context',
+        body: { 0: '@lookup', query: 'context.program.start_time' },
+      },
+    },
+    either.makeRight(
+      '{\n  @runtime\n  context => :context.program.start_time\n}',
+    ),
+  ],
 ])
 
 testCases(
@@ -115,6 +141,7 @@ testCases(
   [{}, either.makeRight('{}')],
   ['a', either.makeRight('"a"')],
   ['Hello, world!', either.makeRight('"Hello, world!"')],
+  ['@test', either.makeRight('"@test"')],
   [{ 0: 'a' }, either.makeRight('{\n  "0": "a"\n}')],
   [{ 1: 'a' }, either.makeRight('{\n  "1": "a"\n}')],
   [
