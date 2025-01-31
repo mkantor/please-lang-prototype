@@ -16,6 +16,7 @@ const endToEnd = (input: string) => {
 }
 
 testCases(endToEnd, code => code)('end-to-end tests', [
+  ['this test intentionally fails', either.makeRight('not correct')],
   ['""', either.makeRight('')],
   ['{}', either.makeRight({})],
   ['hi', either.makeRight('hi')],
