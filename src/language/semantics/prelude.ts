@@ -2,13 +2,13 @@ import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { DependencyUnavailable, Panic } from '../errors.js'
 import type { Atom } from '../parsing.js'
+import { makeApplyExpression, makeLookupExpression } from '../semantics.js'
 import { isFunctionNode, makeFunctionNode } from './function-node.js'
 import { keyPathToMolecule, type KeyPath } from './key-path.js'
 import {
   isObjectNode,
   lookupPropertyOfObjectNode,
   makeObjectNode,
-  makeUnelaboratedObjectNode,
   type ObjectNode,
 } from './object-node.js'
 import {
@@ -47,9 +47,8 @@ const handleUnavailableDependencies =
 const serializePartiallyAppliedFunction =
   (keyPath: KeyPath, argument: SemanticGraph) => () =>
     either.makeRight(
-      makeUnelaboratedObjectNode({
-        0: '@apply',
-        function: { 0: '@lookup', query: keyPathToMolecule(keyPath) },
+      makeApplyExpression({
+        function: makeLookupExpression(keyPathToMolecule(keyPath)),
         argument,
       }),
     )
@@ -63,13 +62,7 @@ const preludeFunction = (
 ) =>
   makeFunctionNode(
     signature,
-    () =>
-      either.makeRight(
-        makeUnelaboratedObjectNode({
-          0: '@lookup',
-          query: keyPathToMolecule(keyPath),
-        }),
-      ),
+    () => either.makeRight(makeLookupExpression(keyPathToMolecule(keyPath))),
     option.none,
     handleUnavailableDependencies(f),
   )

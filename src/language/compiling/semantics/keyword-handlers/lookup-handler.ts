@@ -4,6 +4,7 @@ import type {
   ElaborationError,
   InvalidExpressionError,
 } from '../../../errors.js'
+import type { Molecule } from '../../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
   isObjectNode,
@@ -27,7 +28,7 @@ export const lookupKeywordHandler: KeywordHandler = (
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readLookupExpression(expression), ({ query }) =>
-    either.flatMap(keyPathFromObjectNode(query), relativePath => {
+    either.flatMap(keyPathFromObject(query), relativePath => {
       if (isObjectNode(context.program)) {
         return either.flatMap(
           lookup({
@@ -55,8 +56,8 @@ export const lookupKeywordHandler: KeywordHandler = (
     }),
   )
 
-const keyPathFromObjectNode = (
-  node: ObjectNode,
+const keyPathFromObject = (
+  node: ObjectNode | Molecule,
 ): Either<InvalidExpressionError, KeyPath> => {
   const relativePath: string[] = []
   let queryIndex = 0

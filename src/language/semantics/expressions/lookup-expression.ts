@@ -17,7 +17,7 @@ import {
 
 export type LookupExpression = ObjectNode & {
   readonly 0: '@lookup'
-  readonly query: ObjectNode
+  readonly query: ObjectNode | Molecule
 }
 
 export const readLookupExpression = (
@@ -52,7 +52,7 @@ export const readLookupExpression = (
       })
 
 export const makeLookupExpression = (
-  query: ObjectNode,
+  query: ObjectNode | Molecule,
 ): LookupExpression & { readonly [unelaboratedKey]: true } =>
   makeUnelaboratedObjectNode({
     0: '@lookup',
