@@ -1,4 +1,5 @@
 import either, { type Either, type Right } from '@matt.kantor/either'
+import parsing from '@matt.kantor/parsing'
 import kleur from 'kleur'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
@@ -63,11 +64,8 @@ export const moleculeUnparser =
   }
 
 export const quoteIfNecessary = (value: string): string => {
-  const unquotedAtomResult = unquotedAtomParser(value)
-  if (
-    either.isLeft(unquotedAtomResult) ||
-    unquotedAtomResult.value.remainingInput.length !== 0
-  ) {
+  const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
+  if (either.isLeft(unquotedAtomResult)) {
     return quote.concat(escapeStringContents(value)).concat(quote)
   } else {
     return value
