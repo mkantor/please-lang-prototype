@@ -64,38 +64,31 @@ const propertyDelimiter = oneOf([
   trivia,
 ])
 
-const sugaredLookup: Parser<PartialMolecule> =
-  optionallySurroundedByParentheses(
-    map(
-      sequence([literal(':'), oneOf([atomParser, moleculeParser])]),
-      ([_colon, query]) => ({ 0: '@lookup', query }),
-    ),
-  )
+const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
+  map(
+    sequence([literal(':'), oneOf([atomParser, moleculeParser])]),
+    ([_colon, query]) => ({ 0: '@lookup', query }),
+  ),
+)
 
-const sugaredFunction: Parser<PartialMolecule> =
-  optionallySurroundedByParentheses(
-    map(
-      flat(
-        sequence([
-          map(atomParser, output => [output]),
-          omit(trivia),
-          omit(literal('=>')),
-          omit(trivia),
-          map(
-            lazy(() => propertyValue),
-            output => [output],
-          ),
-        ]),
-      ),
-      ([parameter, body]) => ({
-        0: '@function',
-        parameter,
-        body,
-      }),
-    ),
-  )
+const sugaredFunction: Parser<Molecule> = optionallySurroundedByParentheses(
+  map(
+    sequence([
+      atomParser,
+      omit(trivia),
+      omit(literal('=>')),
+      omit(trivia),
+      lazy(() => propertyValue),
+    ]),
+    ([parameter, _trivia1, _arrow, _trivia2, body]) => ({
+      0: '@function',
+      parameter,
+      body,
+    }),
+  ),
+)
 
-const sugaredApply: Parser<PartialMolecule> = map(
+const sugaredApply: Parser<Molecule> = map(
   sequence([
     oneOf([sugaredLookup, lazy(() => sugaredFunction)]),
     oneOrMore(
@@ -109,7 +102,7 @@ const sugaredApply: Parser<PartialMolecule> = map(
     ),
   ]),
   ([f, multipleArguments]) =>
-    multipleArguments.reduce<PartialMolecule>(
+    multipleArguments.reduce<Molecule>(
       (expression, [_1, _2, argument, _3, _4]) => ({
         0: '@apply',
         function: expression,
@@ -161,9 +154,3 @@ const moleculeAsEntries = (index: Indexer) =>
       ]),
     ),
   )
-
-// This is a lazy workaround for `sequence` returning an array rather than a tuple with
-// definitely-present elements.
-type PartialMolecule = {
-  readonly [key: Atom]: PartialMolecule | Atom | undefined
-}
