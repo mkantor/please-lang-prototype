@@ -1,5 +1,4 @@
 import {
-  as,
   lazy,
   literal,
   map,
@@ -29,18 +28,9 @@ export const moleculeParser: Parser<Molecule> = oneOf([
   lazy(() => sugaredFunction),
 ])
 
-// During parsing molecules and properties are represented as nested arrays (of key/value pairs).
-// The following utilities make it easier to work with such a structure.
-
-const omit = (theParser: Parser<unknown>) => as(theParser, [])
-
 const optional = <Output>(
-  theParser: Parser<readonly Output[]>,
-): Parser<readonly Output[]> => oneOf([theParser, omit(nothing)])
-
-const withoutOmittedOutputs = <Output>(
-  theParser: Parser<readonly (readonly Output[])[]>,
-) => map(theParser, output => output.filter(output => output.length > 0))
+  parser: Parser<NonNullable<Output>>,
+): Parser<Output | undefined> => oneOf([parser, nothing])
 
 // Keyless properties are automatically assigned numeric indexes, which uses some mutable state.
 type Indexer = () => string
@@ -53,8 +43,6 @@ const makeIncrementingIndexer = (): Indexer => {
     return String(index)
   }
 }
-
-// Language-specific parsers follow.
 
 const propertyDelimiter = oneOf([
   sequence([optional(trivia), literal(','), optional(trivia)]),
@@ -130,28 +118,31 @@ const property = (index: Indexer) =>
     oneOf([namedProperty, numberedProperty(index)]),
   )
 
-const moleculeAsEntries = (index: Indexer) =>
-  withoutOmittedOutputs(
-    map(
-      sequence([
-        literal('{'),
-        // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
-        map(optional(property(index)), property => [property]),
-        zeroOrMore(
-          map(
-            sequence([propertyDelimiter, property(index)]),
-            ([_delimiter, property]) => property,
-          ),
+const moleculeAsEntries = (
+  index: Indexer,
+): Parser<readonly (readonly [string, string | Molecule])[]> =>
+  map(
+    sequence([
+      literal('{'),
+      // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
+      optional(property(index)),
+      zeroOrMore(
+        map(
+          sequence([propertyDelimiter, property(index)]),
+          ([_delimiter, property]) => property,
         ),
-        optional(omit(propertyDelimiter)),
-        literal('}'),
-      ]),
-      ([
-        _openingBrace,
-        optionalInitialProperty,
-        remainingProperties,
-        _delimiter,
-        _closingBrace,
-      ]) => [...optionalInitialProperty, ...remainingProperties],
-    ),
+      ),
+      optional(propertyDelimiter),
+      literal('}'),
+    ]),
+    ([
+      _openingBrace,
+      optionalInitialProperty,
+      remainingProperties,
+      _delimiter,
+      _closingBrace,
+    ]) =>
+      optionalInitialProperty === undefined
+        ? remainingProperties
+        : [optionalInitialProperty, ...remainingProperties],
   )
