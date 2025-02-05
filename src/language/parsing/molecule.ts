@@ -32,9 +32,6 @@ export const moleculeParser: Parser<Molecule> = oneOf([
 // During parsing molecules and properties are represented as nested arrays (of key/value pairs).
 // The following utilities make it easier to work with such a structure.
 
-const flat = <Output>(theParser: Parser<readonly Output[]>) =>
-  map(theParser, output => output.flat())
-
 const omit = (theParser: Parser<unknown>) => as(theParser, [])
 
 const optional = <Output>(
@@ -60,7 +57,7 @@ const makeIncrementingIndexer = (): Indexer => {
 // Language-specific parsers follow.
 
 const propertyDelimiter = oneOf([
-  sequence([optional(omit(trivia)), literal(','), optional(omit(trivia))]),
+  sequence([optional(trivia), literal(','), optional(trivia)]),
   trivia,
 ])
 
@@ -75,9 +72,9 @@ const sugaredFunction: Parser<Molecule> = optionallySurroundedByParentheses(
   map(
     sequence([
       atomParser,
-      omit(trivia),
-      omit(literal('=>')),
-      omit(trivia),
+      trivia,
+      literal('=>'),
+      trivia,
       lazy(() => propertyValue),
     ]),
     ([parameter, _trivia1, _arrow, _trivia2, body]) => ({
@@ -94,9 +91,9 @@ const sugaredApply: Parser<Molecule> = map(
     oneOrMore(
       sequence([
         literal('('),
-        optional(omit(trivia)),
+        optional(trivia),
         lazy(() => propertyValue),
-        optional(omit(trivia)),
+        optional(trivia),
         literal(')'),
       ]),
     ),
@@ -120,17 +117,13 @@ const propertyValue = oneOf([
   sugaredLookup,
 ])
 
-const namedProperty = flat(
-  sequence([
-    propertyKey,
-    omit(literal(':')),
-    optional(omit(trivia)),
-    propertyValue,
-  ]),
+const namedProperty = map(
+  sequence([propertyKey, literal(':'), optional(trivia), propertyValue]),
+  ([key, _colon, _trivia, value]) => [key, value] as const,
 )
 
 const numberedProperty = (index: Indexer) =>
-  map(propertyValue, value => [index(), value])
+  map(propertyValue, value => [index(), value] as const)
 
 const property = (index: Indexer) =>
   optionallySurroundedByParentheses(
@@ -139,18 +132,26 @@ const property = (index: Indexer) =>
 
 const moleculeAsEntries = (index: Indexer) =>
   withoutOmittedOutputs(
-    flat(
+    map(
       sequence([
-        omit(literal('{')),
+        literal('{'),
         // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
         map(optional(property(index)), property => [property]),
         zeroOrMore(
-          flat(
-            sequence([omit(propertyDelimiter), lazy(() => property(index))]),
+          map(
+            sequence([propertyDelimiter, property(index)]),
+            ([_delimiter, property]) => property,
           ),
         ),
         optional(omit(propertyDelimiter)),
-        omit(literal('}')),
+        literal('}'),
       ]),
+      ([
+        _openingBrace,
+        optionalInitialProperty,
+        remainingProperties,
+        _delimiter,
+        _closingBrace,
+      ]) => [...optionalInitialProperty, ...remainingProperties],
     ),
   )
