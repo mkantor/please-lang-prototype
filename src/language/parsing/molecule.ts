@@ -1,5 +1,4 @@
 import {
-  as,
   lazy,
   literal,
   map,
@@ -29,21 +28,9 @@ export const moleculeParser: Parser<Molecule> = oneOf([
   lazy(() => sugaredFunction),
 ])
 
-// During parsing molecules and properties are represented as nested arrays (of key/value pairs).
-// The following utilities make it easier to work with such a structure.
-
-const flat = <Output>(theParser: Parser<readonly Output[]>) =>
-  map(theParser, output => output.flat())
-
-const omit = (theParser: Parser<unknown>) => as(theParser, [])
-
 const optional = <Output>(
-  theParser: Parser<readonly Output[]>,
-): Parser<readonly Output[]> => oneOf([theParser, omit(nothing)])
-
-const withoutOmittedOutputs = <Output>(
-  theParser: Parser<readonly (readonly Output[])[]>,
-) => map(theParser, output => output.filter(output => output.length > 0))
+  parser: Parser<NonNullable<Output>>,
+): Parser<Output | undefined> => oneOf([parser, nothing])
 
 // Keyless properties are automatically assigned numeric indexes, which uses some mutable state.
 type Indexer = () => string
@@ -57,59 +44,50 @@ const makeIncrementingIndexer = (): Indexer => {
   }
 }
 
-// Language-specific parsers follow.
-
 const propertyDelimiter = oneOf([
-  sequence([optional(omit(trivia)), literal(','), optional(omit(trivia))]),
+  sequence([optional(trivia), literal(','), optional(trivia)]),
   trivia,
 ])
 
-const sugaredLookup: Parser<PartialMolecule> =
-  optionallySurroundedByParentheses(
-    map(
-      sequence([literal(':'), oneOf([atomParser, moleculeParser])]),
-      ([_colon, query]) => ({ 0: '@lookup', query }),
-    ),
-  )
+const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
+  map(
+    sequence([literal(':'), oneOf([atomParser, moleculeParser])]),
+    ([_colon, query]) => ({ 0: '@lookup', query }),
+  ),
+)
 
-const sugaredFunction: Parser<PartialMolecule> =
-  optionallySurroundedByParentheses(
-    map(
-      flat(
-        sequence([
-          map(atomParser, output => [output]),
-          omit(trivia),
-          omit(literal('=>')),
-          omit(trivia),
-          map(
-            lazy(() => propertyValue),
-            output => [output],
-          ),
-        ]),
-      ),
-      ([parameter, body]) => ({
-        0: '@function',
-        parameter,
-        body,
-      }),
-    ),
-  )
+const sugaredFunction: Parser<Molecule> = optionallySurroundedByParentheses(
+  map(
+    sequence([
+      atomParser,
+      trivia,
+      literal('=>'),
+      trivia,
+      lazy(() => propertyValue),
+    ]),
+    ([parameter, _trivia1, _arrow, _trivia2, body]) => ({
+      0: '@function',
+      parameter,
+      body,
+    }),
+  ),
+)
 
-const sugaredApply: Parser<PartialMolecule> = map(
+const sugaredApply: Parser<Molecule> = map(
   sequence([
     oneOf([sugaredLookup, lazy(() => sugaredFunction)]),
     oneOrMore(
       sequence([
         literal('('),
-        optional(omit(trivia)),
+        optional(trivia),
         lazy(() => propertyValue),
-        optional(omit(trivia)),
+        optional(trivia),
         literal(')'),
       ]),
     ),
   ]),
   ([f, multipleArguments]) =>
-    multipleArguments.reduce<PartialMolecule>(
+    multipleArguments.reduce<Molecule>(
       (expression, [_1, _2, argument, _3, _4]) => ({
         0: '@apply',
         function: expression,
@@ -127,43 +105,44 @@ const propertyValue = oneOf([
   sugaredLookup,
 ])
 
-const namedProperty = flat(
-  sequence([
-    propertyKey,
-    omit(literal(':')),
-    optional(omit(trivia)),
-    propertyValue,
-  ]),
+const namedProperty = map(
+  sequence([propertyKey, literal(':'), optional(trivia), propertyValue]),
+  ([key, _colon, _trivia, value]) => [key, value] as const,
 )
 
 const numberedProperty = (index: Indexer) =>
-  map(propertyValue, value => [index(), value])
+  map(propertyValue, value => [index(), value] as const)
 
 const property = (index: Indexer) =>
   optionallySurroundedByParentheses(
     oneOf([namedProperty, numberedProperty(index)]),
   )
 
-const moleculeAsEntries = (index: Indexer) =>
-  withoutOmittedOutputs(
-    flat(
-      sequence([
-        omit(literal('{')),
-        // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
-        map(optional(property(index)), property => [property]),
-        zeroOrMore(
-          flat(
-            sequence([omit(propertyDelimiter), lazy(() => property(index))]),
-          ),
+const moleculeAsEntries = (
+  index: Indexer,
+): Parser<readonly (readonly [string, string | Molecule])[]> =>
+  map(
+    sequence([
+      literal('{'),
+      // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
+      optional(property(index)),
+      zeroOrMore(
+        map(
+          sequence([propertyDelimiter, property(index)]),
+          ([_delimiter, property]) => property,
         ),
-        optional(omit(propertyDelimiter)),
-        omit(literal('}')),
-      ]),
-    ),
+      ),
+      optional(propertyDelimiter),
+      literal('}'),
+    ]),
+    ([
+      _openingBrace,
+      optionalInitialProperty,
+      remainingProperties,
+      _delimiter,
+      _closingBrace,
+    ]) =>
+      optionalInitialProperty === undefined
+        ? remainingProperties
+        : [optionalInitialProperty, ...remainingProperties],
   )
-
-// This is a lazy workaround for `sequence` returning an array rather than a tuple with
-// definitely-present elements.
-type PartialMolecule = {
-  readonly [key: Atom]: PartialMolecule | Atom | undefined
-}
