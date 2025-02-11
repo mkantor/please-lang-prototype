@@ -120,17 +120,17 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [':flow({ :atom.append(a) :atom.append(b) })(z)', either.makeRight('zab')],
   [
     `{
-        // foo: bar
-        "static data":"blah blah blah"
-        "evaluated data": {
-          0:@runtime
-          function:{
-            0:@apply
-            function:{0:@lookup query:{0:object 1:lookup}}
-            argument:"key which does not exist in runtime context"
-          }
+      // foo: bar
+      "static data":"blah blah blah"
+      "evaluated data": {
+        0:@runtime
+        function:{
+          0:@apply
+          function:{0:@lookup query:{0:object 1:lookup}}
+          argument:"key which does not exist in runtime context"
         }
-      }`,
+      }
+    }`,
     either.makeRight({
       'static data': 'blah blah blah',
       'evaluated data': { tag: 'none', value: {} },
