@@ -21,38 +21,64 @@ export const isAtom = (value: unknown): value is Atom =>
 
 export const unit = '' as const
 
+const atomComponentsRequiringQuotation = [
+  whitespace,
+  literal('"'),
+  literal('{'),
+  literal('}'),
+  literal('['),
+  literal(']'),
+  literal('('),
+  literal(')'),
+  literal('<'),
+  literal('>'),
+  literal('#'),
+  literal('&'),
+  literal('|'),
+  literal('\\'),
+  literal('='),
+  literal(':'),
+  literal(';'),
+  literal(','),
+  literal('//'),
+  literal('/*'),
+  literal('*/'),
+] as const
+
 export const atomParser: Parser<Atom> = optionallySurroundedByParentheses(
   lazy(() => oneOf([unquotedAtomParser, quotedAtomParser])),
 )
+
+export const atomWithAdditionalQuotationRequirements = (
+  additionalQuoteRequiringComponent: Parser<unknown>,
+) =>
+  optionallySurroundedByParentheses(
+    lazy(() =>
+      oneOf([
+        map(
+          oneOrMore(
+            butNot(
+              anySingleCharacter,
+              oneOf([
+                ...atomComponentsRequiringQuotation,
+                additionalQuoteRequiringComponent,
+              ]),
+              'a character sequence requiring quotation',
+            ),
+          ),
+          characters => characters.join(''),
+        ),
+        quotedAtomParser,
+      ]),
+    ),
+  )
 
 export const unquotedAtomParser = map(
   oneOrMore(
     butNot(
       anySingleCharacter,
-      oneOf([
-        whitespace,
-        literal('"'),
-        literal('{'),
-        literal('}'),
-        literal('['),
-        literal(']'),
-        literal('('),
-        literal(')'),
-        literal('<'),
-        literal('>'),
-        literal('#'),
-        literal('&'),
-        literal('|'),
-        literal('\\'),
-        literal('='),
-        literal(':'),
-        literal(';'),
-        literal(','),
-        literal('//'),
-        literal('/*'),
-        literal('*/'),
-      ]),
-      'a forbidden character sequence',
+      oneOf(atomComponentsRequiringQuotation),
+      'a character sequence requiring quotation',
     ),
   ),
   characters => characters.join(''),
