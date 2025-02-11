@@ -16,9 +16,6 @@ import { whitespace } from './trivia.js'
 
 export type Atom = string
 
-export const isAtom = (value: unknown): value is Atom =>
-  typeof value === 'string'
-
 const atomComponentsRequiringQuotation = [
   whitespace,
   literal('"'),
