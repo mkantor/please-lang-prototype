@@ -210,8 +210,8 @@ languages:
 
 `plz` has a specific textual representation, but `plo` & `plt` could be encoded
 in any format in which hierarchial key/value pairs of strings are representable
-(currently only JSON is implemented, but YAML, TOML, HOCON, BSON, MessagePack,
-etc could be supported).
+(currently only JSON is implemented, but YAML, TOML, HOCON, BSON, S-expressions,
+MessagePack, CBOR, etc could be supported).
 
 Take this example `plz` program:
 
