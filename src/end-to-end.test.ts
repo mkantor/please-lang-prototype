@@ -53,6 +53,47 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       body: { 0: '@lookup', query: { 0: 'a' } },
     }),
   ],
+  ['{ success }.0', either.makeRight('success')],
+  ['{ f: :identity }.f(success)', either.makeRight('success')],
+  ['{ f: :identity }.f({ a: success }).a', either.makeRight('success')],
+  [
+    '{ f: :identity }.f({ g: :identity }).g({ a: success }).a',
+    either.makeRight('success'),
+  ],
+  ['{ a: { b: success } }.a.b', either.makeRight('success')],
+  [
+    '{ a: { "b.c(d) e \\" {}": success } }.a."b.c(d) e \\" {}"',
+    either.makeRight('success'),
+  ],
+  ['(a => { b: :a }.b)(success)', either.makeRight('success')],
+  ['(a => { b: :a })(success).b', either.makeRight('success')],
+  ['{ success }/**/./**/0', either.makeRight('success')],
+  [
+    `
+      { a: { b: success } } // blah
+        // blah
+        .a // blah
+        // blah
+        .b // blah
+    `,
+    either.makeRight('success'),
+  ],
+  [
+    `{
+      a: {
+        b: {
+          c: z => {
+            d: y => x => {
+              e: {
+                f: w => { g: { :z :y :x :w } }
+              }
+            }
+          }
+        }
+      }
+    }.a.b.c(a).d(b)(c).e.f(d).g`,
+    either.makeRight({ 0: 'a', 1: 'b', 2: 'c', 3: 'd' }),
+  ],
   ['{ a: ({ A }) }', either.makeRight({ a: { 0: 'A' } })],
   ['{ a: ( A ) }', either.makeRight({ a: 'A' })],
   ['{ a: ("A A A") }', either.makeRight({ a: 'A A A' })],

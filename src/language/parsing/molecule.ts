@@ -9,7 +9,12 @@ import {
   zeroOrMore,
   type Parser,
 } from '@matt.kantor/parsing'
-import { atomParser, type Atom } from './atom.js'
+import { keyPathToMolecule } from '../semantics.js'
+import {
+  atomParser,
+  atomWithAdditionalQuotationRequirements,
+  type Atom,
+} from './atom.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
 import { trivia } from './trivia.js'
 
@@ -17,20 +22,9 @@ export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
 export const unit: Molecule = {}
 
-export const moleculeParser: Parser<Molecule> = oneOf([
-  optionallySurroundedByParentheses(
-    map(
-      lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
-      Object.fromEntries,
-    ),
-  ),
-  lazy(() => sugaredApply),
-  lazy(() => sugaredFunction),
-])
-
-const optional = <Output>(
-  parser: Parser<NonNullable<Output>>,
-): Parser<Output | undefined> => oneOf([parser, nothing])
+export const moleculeParser: Parser<Molecule> = lazy(
+  () => potentiallySugaredMolecule,
+)
 
 // Keyless properties are automatically assigned numeric indexes, which uses some mutable state.
 type Indexer = () => string
@@ -44,65 +38,14 @@ const makeIncrementingIndexer = (): Indexer => {
   }
 }
 
-const propertyDelimiter = oneOf([
-  sequence([optional(trivia), literal(','), optional(trivia)]),
-  trivia,
-])
-
-const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
-  map(
-    sequence([literal(':'), oneOf([atomParser, moleculeParser])]),
-    ([_colon, query]) => ({ 0: '@lookup', query }),
-  ),
-)
-
-const sugaredFunction: Parser<Molecule> = optionallySurroundedByParentheses(
-  map(
-    sequence([
-      atomParser,
-      trivia,
-      literal('=>'),
-      trivia,
-      lazy(() => propertyValue),
-    ]),
-    ([parameter, _trivia1, _arrow, _trivia2, body]) => ({
-      0: '@function',
-      parameter,
-      body,
-    }),
-  ),
-)
-
-const sugaredApply: Parser<Molecule> = map(
-  sequence([
-    oneOf([sugaredLookup, lazy(() => sugaredFunction)]),
-    oneOrMore(
-      sequence([
-        literal('('),
-        optional(trivia),
-        lazy(() => propertyValue),
-        optional(trivia),
-        literal(')'),
-      ]),
-    ),
-  ]),
-  ([f, multipleArguments]) =>
-    multipleArguments.reduce<Molecule>(
-      (expression, [_1, _2, argument, _3, _4]) => ({
-        0: '@apply',
-        function: expression,
-        argument,
-      }),
-      f,
-    ),
-)
+const optional = <Output>(
+  parser: Parser<NonNullable<Output>>,
+): Parser<Output | undefined> => oneOf([parser, nothing])
 
 const propertyKey = atomParser
 const propertyValue = oneOf([
-  sugaredApply, // must come first to avoid ambiguity
-  lazy(() => moleculeParser), // must come second to avoid ambiguity
+  lazy(() => potentiallySugaredMolecule),
   atomParser,
-  sugaredLookup,
 ])
 
 const namedProperty = map(
@@ -117,6 +60,33 @@ const property = (index: Indexer) =>
   optionallySurroundedByParentheses(
     oneOf([namedProperty, numberedProperty(index)]),
   )
+
+const propertyDelimiter = oneOf([
+  sequence([optional(trivia), literal(','), optional(trivia)]),
+  trivia,
+])
+
+const argument = map(
+  sequence([
+    literal('('),
+    optional(trivia),
+    propertyValue,
+    optional(trivia),
+    literal(')'),
+  ]),
+  ([_openingParenthesis, _trivia1, argument, _trivia2, _closingParenthesis]) =>
+    argument,
+)
+
+const dottedKeyPathComponent = map(
+  sequence([
+    optional(trivia),
+    literal('.'),
+    optional(trivia),
+    atomWithAdditionalQuotationRequirements(literal('.')),
+  ]),
+  ([_trivia1, _dot, _trivia2, key]) => key,
+)
 
 const moleculeAsEntries = (
   index: Indexer,
@@ -146,3 +116,95 @@ const moleculeAsEntries = (
         ? remainingProperties
         : [optionalInitialProperty, ...remainingProperties],
   )
+
+const sugarFreeMolecule: Parser<Molecule> = optionallySurroundedByParentheses(
+  map(
+    lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
+    Object.fromEntries,
+  ),
+)
+
+const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
+  map(
+    sequence([literal(':'), oneOf([atomParser, sugarFreeMolecule])]),
+    ([_colon, query]) => ({ 0: '@lookup', query }),
+  ),
+)
+
+const sugaredFunction: Parser<Molecule> = optionallySurroundedByParentheses(
+  map(
+    sequence([atomParser, trivia, literal('=>'), trivia, propertyValue]),
+    ([parameter, _trivia1, _arrow, _trivia2, body]) => ({
+      0: '@function',
+      parameter,
+      body,
+    }),
+  ),
+)
+
+const potentiallySugaredMolecule: Parser<Molecule> = (() => {
+  // The awkward setup in here avoids infinite recursion when applying the mutually-dependent
+  // parsers for index and apply sugars. Indexes/applications can be chained to form
+  // arbitrarily-long expressions (e.g. `:a.b.c(d).e(f)(g).h.i(j).k`).
+
+  const potentiallySugaredNonApply = map(
+    sequence([
+      oneOf([sugaredLookup, sugaredFunction, sugarFreeMolecule]),
+      zeroOrMore(dottedKeyPathComponent),
+    ]),
+    ([object, keyPath]) =>
+      keyPath.length === 0
+        ? object
+        : {
+            0: '@index',
+            object,
+            query: keyPathToMolecule(keyPath),
+          },
+  )
+
+  const sugaredApplyWithOptionalTrailingIndexesAndApplies = map(
+    sequence([
+      potentiallySugaredNonApply,
+      oneOrMore(argument),
+      zeroOrMore(
+        sequence([oneOrMore(dottedKeyPathComponent), zeroOrMore(argument)]),
+      ),
+    ]),
+    ([
+      functionToApply,
+      multipleArguments,
+      trailingIndexQueriesAndApplyArguments,
+    ]) => {
+      const initialApply = multipleArguments.reduce<Molecule>(
+        (expression, argument) => ({
+          0: '@apply',
+          function: expression,
+          argument,
+        }),
+        functionToApply,
+      )
+
+      return trailingIndexQueriesAndApplyArguments.reduce(
+        (expression, [keyPath, possibleArguments]) =>
+          possibleArguments.reduce<Molecule>(
+            (functionToApply, argument) => ({
+              0: '@apply',
+              function: functionToApply,
+              argument,
+            }),
+            {
+              0: '@index',
+              object: expression,
+              query: keyPathToMolecule(keyPath),
+            },
+          ),
+        initialApply,
+      )
+    },
+  )
+
+  return oneOf([
+    sugaredApplyWithOptionalTrailingIndexesAndApplies,
+    potentiallySugaredNonApply,
+  ])
+})()
