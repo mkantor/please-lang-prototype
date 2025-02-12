@@ -14,10 +14,7 @@ import {
   type KeywordHandlers,
   type SemanticGraph,
 } from '../semantics.js'
-import {
-  lookupPropertyOfObjectNode,
-  makeUnelaboratedObjectNode,
-} from '../semantics/object-node.js'
+import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
 import { prettyJson } from '../unparsing.js'
 
 const unserializableFunction = () =>
@@ -169,10 +166,7 @@ const lookupWithinExpression = (
   expression: Expression,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(
-      key,
-      makeUnelaboratedObjectNode(expression),
-    )
+    const result = lookupPropertyOfObjectNode(key, makeObjectNode(expression))
     if (!option.isNone(result)) {
       return result
     }

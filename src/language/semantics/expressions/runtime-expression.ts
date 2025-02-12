@@ -3,11 +3,10 @@ import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
 import { isSpecificExpression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
-import { makeUnelaboratedObjectNode, type ObjectNode } from '../object-node.js'
+import { makeObjectNode, type ObjectNode } from '../object-node.js'
 import {
   containsAnyUnelaboratedNodes,
   type SemanticGraph,
-  type unelaboratedKey,
 } from '../semantic-graph.js'
 import {
   asSemanticGraph,
@@ -46,10 +45,8 @@ export const readRuntimeExpression = (
         message: 'not an expression',
       })
 
-export const makeRuntimeExpression = (
-  f: SemanticGraph,
-): RuntimeExpression & { readonly [unelaboratedKey]: true } =>
-  makeUnelaboratedObjectNode({
+export const makeRuntimeExpression = (f: SemanticGraph): RuntimeExpression =>
+  makeObjectNode({
     0: '@runtime',
     function: f,
   })

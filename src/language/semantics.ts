@@ -59,7 +59,6 @@ export {
   isObjectNode,
   lookupPropertyOfObjectNode,
   makeObjectNode,
-  makeUnelaboratedObjectNode,
   type ObjectNode,
 } from './semantics/object-node.js'
 export { prelude } from './semantics/prelude.js'
@@ -67,7 +66,6 @@ export {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
   isSemanticGraph,
-  isUnelaborated,
   matchSemanticGraph,
   serialize,
   stringifySemanticGraphForEndUser,

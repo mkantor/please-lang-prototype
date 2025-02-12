@@ -7,7 +7,7 @@ import type { Expression } from '../expression.js'
 import { stringifyKeyPathForEndUser } from '../key-path.js'
 import {
   lookupPropertyOfObjectNode,
-  makeUnelaboratedObjectNode,
+  makeObjectNode,
   type ObjectNode,
 } from '../object-node.js'
 import {
@@ -18,8 +18,7 @@ import {
 
 export const asSemanticGraph = (
   value: SemanticGraph | Molecule,
-): SemanticGraph =>
-  isSemanticGraph(value) ? value : makeUnelaboratedObjectNode(value)
+): SemanticGraph => (isSemanticGraph(value) ? value : makeObjectNode(value))
 
 export const locateSelf = (context: ExpressionContext) =>
   option.match(applyKeyPathToSemanticGraph(context.program, context.location), {
@@ -73,10 +72,7 @@ const lookupWithinExpression = (
   expression: Expression,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(
-      key,
-      makeUnelaboratedObjectNode(expression),
-    )
+    const result = lookupPropertyOfObjectNode(key, makeObjectNode(expression))
     if (!option.isNone(result)) {
       return result
     }

@@ -7,11 +7,7 @@ import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import type { Expression } from './expression.js'
 import type { KeyPath } from './key-path.js'
 import { isKeyword, type Keyword } from './keyword.js'
-import {
-  makeObjectNode,
-  makeUnelaboratedObjectNode,
-  type ObjectNode,
-} from './object-node.js'
+import { makeObjectNode, type ObjectNode } from './object-node.js'
 import {
   extractStringValueIfPossible,
   updateValueAtKeyPathInSemanticGraph,
@@ -44,10 +40,7 @@ export const elaborate = (
   elaborateWithContext(program, {
     keywordHandlers,
     location: [],
-    program:
-      typeof program === 'string'
-        ? program
-        : makeUnelaboratedObjectNode(program),
+    program: typeof program === 'string' ? program : makeObjectNode(program),
   })
 
 export const elaborateWithContext = (
@@ -161,7 +154,7 @@ const handleObjectNodeWhichMayBeAExpression = (
   const { 0: possibleKeyword, ...possibleArguments } = node
   return isKeyword(possibleKeyword)
     ? context.keywordHandlers[possibleKeyword](
-        makeUnelaboratedObjectNode({
+        makeObjectNode({
           ...possibleArguments,
           0: possibleKeyword,
         }),
