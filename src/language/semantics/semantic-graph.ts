@@ -8,6 +8,7 @@ import type {
 import type { Atom, Molecule } from '../parsing.js'
 import type { Canonicalized } from '../parsing/syntax-tree.js'
 import { inlinePlz, unparse } from '../unparsing.js'
+import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
@@ -49,15 +50,10 @@ export const applyKeyPathToSemanticGraph = (
   }
 }
 
-export const isUnelaborated = (node: SemanticGraph | Molecule): boolean =>
-  typeof node !== 'string' &&
-  unelaboratedKey in node &&
-  node[unelaboratedKey] === true
-
 export const containsAnyUnelaboratedNodes = (
   node: SemanticGraph | Molecule,
 ): boolean => {
-  if (isUnelaborated(node)) {
+  if (isExpression(node)) {
     return true
   } else if (typeof node === 'object') {
     for (const propertyValue of Object.values(node)) {
@@ -113,7 +109,7 @@ export const updateValueAtKeyPathInSemanticGraph = (
               operation,
             ),
             updatedNode =>
-              (isUnelaborated(node)
+              (isExpression(node)
                 ? makeUnelaboratedObjectNode
                 : makeObjectNode)({
                 ...node,

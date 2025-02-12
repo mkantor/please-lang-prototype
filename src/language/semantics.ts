@@ -67,7 +67,6 @@ export {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
   isSemanticGraph,
-  isUnelaborated,
   matchSemanticGraph,
   serialize,
   stringifySemanticGraphForEndUser,
