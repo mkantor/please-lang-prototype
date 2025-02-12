@@ -5,10 +5,10 @@ import { isSpecificExpression } from '../expression.js'
 import { keyPathFromObjectNodeOrMolecule } from '../key-path.js'
 import {
   isObjectNode,
-  makeUnelaboratedObjectNode,
+  makeObjectNode,
   type ObjectNode,
 } from '../object-node.js'
-import { type SemanticGraph, type unelaboratedKey } from '../semantic-graph.js'
+import { type SemanticGraph } from '../semantic-graph.js'
 import {
   asSemanticGraph,
   readArgumentsFromExpression,
@@ -61,8 +61,8 @@ export const makeIndexExpression = ({
 }: {
   readonly query: ObjectNode | Molecule
   readonly object: ObjectNode | Molecule
-}): IndexExpression & { readonly [unelaboratedKey]: true } =>
-  makeUnelaboratedObjectNode({
+}): IndexExpression =>
+  makeObjectNode({
     0: '@index',
     object,
     query,

@@ -7,12 +7,8 @@ import {
   keyPathFromObjectNodeOrMolecule,
   keyPathToMolecule,
 } from '../key-path.js'
-import {
-  makeObjectNode,
-  makeUnelaboratedObjectNode,
-  type ObjectNode,
-} from '../object-node.js'
-import { type SemanticGraph, type unelaboratedKey } from '../semantic-graph.js'
+import { makeObjectNode, type ObjectNode } from '../object-node.js'
+import { type SemanticGraph } from '../semantic-graph.js'
 import {
   asSemanticGraph,
   readArgumentsFromExpression,
@@ -56,8 +52,8 @@ export const readLookupExpression = (
 
 export const makeLookupExpression = (
   query: ObjectNode | Molecule,
-): LookupExpression & { readonly [unelaboratedKey]: true } =>
-  makeUnelaboratedObjectNode({
+): LookupExpression =>
+  makeObjectNode({
     0: '@lookup',
     query,
   })

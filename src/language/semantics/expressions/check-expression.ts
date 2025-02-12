@@ -2,8 +2,8 @@ import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
 import { isSpecificExpression } from '../expression.js'
-import { makeUnelaboratedObjectNode, type ObjectNode } from '../object-node.js'
-import { type SemanticGraph, type unelaboratedKey } from '../semantic-graph.js'
+import { makeObjectNode, type ObjectNode } from '../object-node.js'
+import { type SemanticGraph } from '../semantic-graph.js'
 import { readArgumentsFromExpression } from './expression-utilities.js'
 
 export type CheckExpression = ObjectNode & {
@@ -34,8 +34,8 @@ export const makeCheckExpression = ({
 }: {
   value: SemanticGraph | Molecule
   type: SemanticGraph | Molecule
-}): CheckExpression & { readonly [unelaboratedKey]: true } =>
-  makeUnelaboratedObjectNode({
+}): CheckExpression =>
+  makeObjectNode({
     0: '@check',
     value,
     type,

@@ -13,14 +13,11 @@ import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
   makeObjectNode,
-  makeUnelaboratedObjectNode,
   serializeObjectNode,
   type ObjectNode,
 } from './object-node.js'
 
 export const nodeTag = Symbol('nodeTag')
-
-export const unelaboratedKey = Symbol('unelaborated')
 
 export type SemanticGraph = Atom | FunctionNode | ObjectNode
 
@@ -109,9 +106,7 @@ export const updateValueAtKeyPathInSemanticGraph = (
               operation,
             ),
             updatedNode =>
-              (isExpression(node)
-                ? makeUnelaboratedObjectNode
-                : makeObjectNode)({
+              (isExpression(node) ? makeObjectNode : makeObjectNode)({
                 ...node,
                 [firstKey]: updatedNode,
               }),
@@ -189,6 +184,4 @@ export const isSemanticGraph = (
 const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,
 ): ObjectNode | Atom =>
-  typeof syntaxTree === 'string'
-    ? syntaxTree
-    : makeUnelaboratedObjectNode(syntaxTree)
+  typeof syntaxTree === 'string' ? syntaxTree : makeObjectNode(syntaxTree)
