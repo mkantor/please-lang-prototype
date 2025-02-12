@@ -236,6 +236,17 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{@runtime context =>
+      :identity(:context).program.start_time
+    }`,
+    output => {
+      if (either.isLeft(output)) {
+        assert.fail(output.value.message)
+      }
+      assert(typeof output.value === 'string')
+    },
+  ],
+  [
+    `{@runtime context =>
       :context.environment.lookup(PATH)
     }`,
     output => {
