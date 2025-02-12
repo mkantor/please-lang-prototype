@@ -28,6 +28,11 @@ export {
   type FunctionExpression,
 } from './semantics/expressions/function-expression.js'
 export {
+  makeIndexExpression,
+  readIndexExpression,
+  type IndexExpression,
+} from './semantics/expressions/index-expression.js'
+export {
   makeLookupExpression,
   readLookupExpression,
   type LookupExpression,
@@ -44,6 +49,7 @@ export {
   type FunctionNode,
 } from './semantics/function-node.js'
 export {
+  keyPathFromObjectNodeOrMolecule,
   keyPathToMolecule,
   stringifyKeyPathForEndUser,
   type KeyPath,

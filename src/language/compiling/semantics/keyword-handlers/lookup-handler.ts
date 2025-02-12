@@ -1,13 +1,10 @@
 import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
-import type {
-  ElaborationError,
-  InvalidExpressionError,
-} from '../../../errors.js'
-import type { Molecule } from '../../../parsing.js'
+import type { ElaborationError } from '../../../errors.js'
 import {
   applyKeyPathToSemanticGraph,
   isObjectNode,
+  keyPathFromObjectNodeOrMolecule,
   keyPathToMolecule,
   makeLookupExpression,
   makeObjectNode,
@@ -19,7 +16,6 @@ import {
   type ExpressionContext,
   type KeyPath,
   type KeywordHandler,
-  type ObjectNode,
   type SemanticGraph,
 } from '../../../semantics.js'
 
@@ -28,7 +24,7 @@ export const lookupKeywordHandler: KeywordHandler = (
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readLookupExpression(expression), ({ query }) =>
-    either.flatMap(keyPathFromObject(query), relativePath => {
+    either.flatMap(keyPathFromObjectNodeOrMolecule(query), relativePath => {
       if (isObjectNode(context.program)) {
         return either.flatMap(
           lookup({
@@ -55,28 +51,6 @@ export const lookupKeywordHandler: KeywordHandler = (
       }
     }),
   )
-
-const keyPathFromObject = (
-  node: ObjectNode | Molecule,
-): Either<InvalidExpressionError, KeyPath> => {
-  const relativePath: string[] = []
-  let queryIndex = 0
-  // Consume numeric indexes ("0", "1", …) until exhausted, validating that each is an atom.
-  let key = node[queryIndex]
-  while (key !== undefined) {
-    if (typeof key !== 'string') {
-      return either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'query must be a key path composed of sequential atoms',
-      })
-    } else {
-      relativePath.push(key)
-    }
-    queryIndex++
-    key = node[queryIndex]
-  }
-  return either.makeRight(relativePath)
-}
 
 const lookup = ({
   context,
