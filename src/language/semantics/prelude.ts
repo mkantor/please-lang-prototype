@@ -52,7 +52,7 @@ type NonEmptyKeyPath = readonly [Atom, ...KeyPath]
 
 const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
   const [initialKey, ...indexes] = keyPath
-  const initialLookup = makeLookupExpression(keyPathToMolecule([initialKey]))
+  const initialLookup = makeLookupExpression(initialKey)
   if (indexes.length === 0) {
     return initialLookup
   } else {

@@ -1,14 +1,12 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
-import type { Molecule } from '../../parsing.js'
+import type { Atom, Molecule } from '../../parsing.js'
 import { isSpecificExpression } from '../expression.js'
-import { isFunctionNode } from '../function-node.js'
-import {
-  keyPathFromObjectNodeOrMolecule,
-  keyPathToMolecule,
-} from '../key-path.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
-import { type SemanticGraph } from '../semantic-graph.js'
+import {
+  stringifySemanticGraphForEndUser,
+  type SemanticGraph,
+} from '../semantic-graph.js'
 import {
   asSemanticGraph,
   readArgumentsFromExpression,
@@ -16,7 +14,7 @@ import {
 
 export type LookupExpression = ObjectNode & {
   readonly 0: '@lookup'
-  readonly query: ObjectNode | Molecule
+  readonly key: Atom
 }
 
 export const readLookupExpression = (
@@ -24,24 +22,17 @@ export const readLookupExpression = (
 ): Either<ElaborationError, LookupExpression> =>
   isSpecificExpression('@lookup', node)
     ? either.flatMap(
-        readArgumentsFromExpression(node, [['query', '1']]),
-        ([q]) => {
-          const query = asSemanticGraph(q)
-          if (isFunctionNode(query)) {
+        readArgumentsFromExpression(node, [['key', '1']]),
+        ([key]) => {
+          if (typeof key !== 'string') {
             return either.makeLeft({
               kind: 'invalidExpression',
-              message: 'query cannot be a function',
+              message: `lookup key must be an atom, got \`${stringifySemanticGraphForEndUser(
+                asSemanticGraph(key),
+              )}\``,
             })
           } else {
-            const canonicalizedQuery =
-              typeof query === 'string'
-                ? makeObjectNode(keyPathToMolecule(query.split('.')))
-                : query
-
-            return either.map(
-              keyPathFromObjectNodeOrMolecule(canonicalizedQuery),
-              _keyPath => makeLookupExpression(canonicalizedQuery),
-            )
+            return either.makeRight(makeLookupExpression(key))
           }
         },
       )
@@ -50,10 +41,8 @@ export const readLookupExpression = (
         message: 'not an expression',
       })
 
-export const makeLookupExpression = (
-  query: ObjectNode | Molecule,
-): LookupExpression =>
+export const makeLookupExpression = (key: Atom): LookupExpression =>
   makeObjectNode({
     0: '@lookup',
-    query,
+    key,
   })

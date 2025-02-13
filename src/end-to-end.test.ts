@@ -27,9 +27,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{a,1:overwritten,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{overwritten,0:a,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{@check type:true value:true}', either.makeRight('true')],
-  ['{a:A b:{@lookup {a}}}', either.makeRight({ a: 'A', b: 'A' })],
+  ['{a:A b:{@lookup a}}', either.makeRight({ a: 'A', b: 'A' })],
   ['{a:A b: :a}', either.makeRight({ a: 'A', b: 'A' })],
-  ['{a:A {@lookup {a}}}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{a:A {@lookup a}}', either.makeRight({ a: 'A', 0: 'A' })],
   ['{a:A :a}', either.makeRight({ a: 'A', 0: 'A' })],
   ['{ a: (a => :a)(A) }', either.makeRight({ a: 'A' })],
   ['{ a: ( a => :a )( A ) }', either.makeRight({ a: 'A' })],
@@ -50,7 +50,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({
       0: '@function',
       parameter: 'a',
-      body: { 0: '@lookup', query: { 0: 'a' } },
+      body: { 0: '@lookup', key: 'a' },
     }),
   ],
   ['{ success }.0', either.makeRight('success')],
@@ -126,7 +126,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         0:@runtime
         function:{
           0:@apply
-          function:{0:@index object:{0:@lookup query:{0:object}} query:{0:lookup}}
+          function:{0:@index object:{0:@lookup key:object} query:{0:lookup}}
           argument:"key which does not exist in runtime context"
         }
       }

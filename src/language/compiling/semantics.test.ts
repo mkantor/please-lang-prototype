@@ -205,14 +205,14 @@ elaborationSuite('@lookup', [
   [
     {
       foo: 'bar',
-      bar: { 0: '@lookup', 1: { 0: 'foo' } },
+      bar: { 0: '@lookup', 1: 'foo' },
     },
     success({ foo: 'bar', bar: 'bar' }),
   ],
   [
     {
       foo: 'bar',
-      bar: { 0: '@lookup', query: { 0: 'foo' } },
+      bar: { 0: '@lookup', key: 'foo' },
     },
     success({ foo: 'bar', bar: 'bar' }),
   ],
@@ -228,7 +228,7 @@ elaborationSuite('@lookup', [
       a: 'A',
       b: {
         a: 'different A',
-        b: { 0: '@lookup', query: { 0: 'a' } },
+        b: { 0: '@lookup', key: 'a' },
       },
     },
     success({
@@ -242,21 +242,17 @@ elaborationSuite('@lookup', [
   [
     {
       foo: 'bar',
-      bar: { 0: '@lookup', 1: { 0: 'foo' } },
-      baz: { 0: '@lookup', 1: { 0: 'bar' } },
+      bar: { 0: '@lookup', 1: 'foo' },
+      baz: { 0: '@lookup', 1: 'bar' },
     },
     success({ foo: 'bar', bar: 'bar', baz: 'bar' }),
   ],
   [
-    { a: { 0: '@lookup', _: 'missing query' } },
+    { a: { 0: '@lookup', _: 'missing key' } },
     output => assert(either.isLeft(output)),
   ],
   [
-    { a: { 0: '@lookup', query: 'not a valid selector' } },
-    output => assert(either.isLeft(output)),
-  ],
-  [
-    { a: { 0: '@lookup', query: { 0: 'thisPropertyDoesNotExist' } } },
+    { a: { 0: '@lookup', key: 'thisPropertyDoesNotExist' } },
     output => assert(either.isLeft(output)),
   ],
 
@@ -265,7 +261,7 @@ elaborationSuite('@lookup', [
     {
       a: 'C',
       b: {
-        c: { 0: '@lookup', query: { 0: 'a' } },
+        c: { 0: '@lookup', key: 'a' },
       },
     },
     success({
@@ -280,7 +276,7 @@ elaborationSuite('@lookup', [
       a: 'C',
       b: {
         a: 'other C', // this `a` should be referenced
-        c: { 0: '@lookup', query: { 0: 'a' } },
+        c: { 0: '@lookup', key: 'a' },
       },
     },
     success({
@@ -294,14 +290,11 @@ elaborationSuite('@lookup', [
 ])
 
 elaborationSuite('@apply', [
-  [
-    { 0: '@apply', 1: { 0: '@lookup', query: { 0: 'identity' } }, 2: 'a' },
-    success('a'),
-  ],
+  [{ 0: '@apply', 1: { 0: '@lookup', key: 'identity' }, 2: 'a' }, success('a')],
   [
     {
       0: '@apply',
-      function: { 0: '@lookup', query: { 0: 'identity' } },
+      function: { 0: '@lookup', key: 'identity' },
       argument: 'a',
     },
     success('a'),
@@ -309,7 +302,7 @@ elaborationSuite('@apply', [
   [
     {
       0: '@apply',
-      function: { 0: '@lookup', query: { 0: 'identity' } },
+      function: { 0: '@lookup', key: 'identity' },
       argument: { foo: 'bar' },
     },
     success({ foo: 'bar' }),
@@ -338,8 +331,8 @@ elaborationSuite('@apply', [
             0: '@function',
             parameter: 'b',
             body: {
-              A: { 0: '@lookup', query: 'a' },
-              B: { 0: '@lookup', query: 'b' },
+              A: { 0: '@lookup', key: 'a' },
+              B: { 0: '@lookup', key: 'b' },
             },
           },
           argument: 'b',
@@ -359,7 +352,7 @@ elaborationSuite('@apply', [
           0: '@apply',
           function: {
             0: '@index',
-            1: { 0: '@lookup', 1: { 0: 'boolean' } },
+            1: { 0: '@lookup', 1: 'boolean' },
             2: { 0: 'not' },
           },
           argument: { 0: '@lookup', 1: 'x' },
@@ -377,7 +370,7 @@ elaborationSuite('@apply', [
         1: 'x',
         2: {
           0: '@index',
-          1: { 0: '@lookup', 1: { 0: 'x' } },
+          1: { 0: '@lookup', 1: 'x' },
           2: { 0: 'a' },
         },
       },
@@ -409,7 +402,7 @@ elaborationSuite('@apply', [
                 parameter: 'a',
                 body: {
                   0: '@lookup',
-                  query: 'a',
+                  key: 'a',
                 },
               },
               argument: 'it works',
@@ -449,9 +442,9 @@ elaborationSuite('@apply', [
               function: {
                 0: '@function',
                 parameter: 'a',
-                body: { 0: '@lookup', query: 'a' },
+                body: { 0: '@lookup', key: 'a' },
               },
-              argument: { 0: '@lookup', query: 'a' },
+              argument: { 0: '@lookup', key: 'a' },
             },
           },
         },
@@ -486,13 +479,13 @@ elaborationSuite('@apply', [
               function: {
                 0: '@function',
                 parameter: 'a',
-                body: { 0: '@lookup', query: 'a' },
+                body: { 0: '@lookup', key: 'a' },
               },
-              argument: { 0: '@lookup', query: 'a' },
+              argument: { 0: '@lookup', key: 'a' },
             },
           },
         },
-        argument: { 0: '@lookup', query: 'a' },
+        argument: { 0: '@lookup', key: 'a' },
       },
     },
     success({
@@ -524,7 +517,7 @@ elaborationSuite('@apply', [
               function: {
                 0: '@function',
                 parameter: 'b',
-                body: { 0: '@lookup', query: 'a' },
+                body: { 0: '@lookup', key: 'a' },
               },
               argument: 'unused',
             },
@@ -563,7 +556,7 @@ elaborationSuite('@apply', [
               function: {
                 0: '@function',
                 parameter: 'b',
-                body: { 0: '@lookup', query: 'a' },
+                body: { 0: '@lookup', key: 'a' },
               },
               argument: 'unused',
             },
@@ -601,7 +594,7 @@ elaborationSuite('@function', [
         either.makeRight({
           0: '@function',
           parameter: 'x',
-          body: { 0: '@lookup', query: { 0: 'x' } },
+          body: { 0: '@lookup', key: 'x' },
         }),
       )
     },
@@ -610,7 +603,7 @@ elaborationSuite('@function', [
 
 elaborationSuite('@runtime', [
   [
-    { 0: '@runtime', 1: { 0: '@lookup', query: { 0: 'identity' } } },
+    { 0: '@runtime', 1: { 0: '@lookup', key: 'identity' } },
     either.makeRight(
       withPhantomData<never>()(
         makeObjectNode({ 0: '@runtime', function: prelude['identity']! }),

@@ -65,7 +65,7 @@ testCases(
       1: {
         0: '@function',
         parameter: 'context',
-        body: { 0: '@lookup', query: 'context.program.start_time' },
+        body: { 0: '@lookup', key: 'context.program.start_time' },
       },
     },
     either.makeRight('{ @runtime, context => :context.program.start_time }'),
@@ -125,7 +125,7 @@ testCases(
       1: {
         0: '@function',
         parameter: 'context',
-        body: { 0: '@lookup', query: 'context.program.start_time' },
+        body: { 0: '@lookup', key: 'context.program.start_time' },
       },
     },
     either.makeRight(

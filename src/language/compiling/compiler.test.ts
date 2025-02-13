@@ -16,44 +16,44 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
   'compiler',
   [
     ['Hello, world!', success('Hello, world!')],
-    [['@check', true, ['@lookup', ['identity']]], success('true')],
+    [['@check', true, ['@lookup', 'identity']], success('true')],
     [
       {
-        true1: ['@check', true, ['@lookup', ['identity']]],
-        true2: ['@apply', ['@index', ['@lookup', ['boolean']], ['not']], false],
+        true1: ['@check', true, ['@lookup', 'identity']],
+        true2: ['@apply', ['@index', ['@lookup', 'boolean'], ['not']], false],
         true3: [
           '@apply',
           [
             '@apply',
-            ['@lookup', ['flow']],
+            ['@lookup', 'flow'],
             [
-              ['@index', ['@lookup', ['boolean']], ['not']],
-              ['@index', ['@lookup', ['boolean']], ['not']],
+              ['@index', ['@lookup', 'boolean'], ['not']],
+              ['@index', ['@lookup', 'boolean'], ['not']],
             ],
           ],
           true,
         ],
-        false1: ['@check', false, ['@index', ['@lookup', ['boolean']], ['is']]],
+        false1: ['@check', false, ['@index', ['@lookup', 'boolean'], ['is']]],
         false2: [
           '@apply',
-          ['@index', ['@lookup', ['boolean']], ['is']],
+          ['@index', ['@lookup', 'boolean'], ['is']],
           'not a boolean',
         ],
         false3: [
           '@apply',
           [
             '@apply',
-            ['@lookup', ['flow']],
+            ['@lookup', 'flow'],
             [
               [
                 '@apply',
-                ['@lookup', ['flow']],
+                ['@lookup', 'flow'],
                 [
-                  ['@index', ['@lookup', ['boolean']], ['not']],
-                  ['@index', ['@lookup', ['boolean']], ['not']],
+                  ['@index', ['@lookup', 'boolean'], ['not']],
+                  ['@index', ['@lookup', 'boolean'], ['not']],
                 ],
               ],
-              ['@index', ['@lookup', ['boolean']], ['not']],
+              ['@index', ['@lookup', 'boolean'], ['not']],
             ],
           ],
           true,
@@ -69,29 +69,29 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       }),
     ],
     [
-      ['@runtime', ['@lookup', ['identity']]],
+      ['@runtime', ['@lookup', 'identity']],
       success({
         0: '@runtime',
-        function: { 0: '@lookup', query: { 0: 'identity' } },
+        function: { 0: '@lookup', key: 'identity' },
       }),
     ],
     [
       [
         '@runtime',
-        ['@apply', ['@lookup', ['identity']], ['@lookup', ['identity']]],
+        ['@apply', ['@lookup', 'identity'], ['@lookup', 'identity']],
       ],
       success({
         0: '@runtime',
-        function: { 0: '@lookup', query: { 0: 'identity' } },
+        function: { 0: '@lookup', key: 'identity' },
       }),
     ],
     [
-      ['@check', 'not a boolean', ['@index', ['@lookup', ['boolean']], ['is']]],
+      ['@check', 'not a boolean', ['@index', ['@lookup', 'boolean'], ['is']]],
       output => assert(either.isLeft(output)),
     ],
-    [['@lookup', ['compose']], output => assert(either.isLeft(output))],
+    [['@lookup', 'compose'], output => assert(either.isLeft(output))],
     [
-      ['@runtime', ['@index', ['@lookup', ['boolean']], ['not']]],
+      ['@runtime', ['@index', ['@lookup', 'boolean'], ['not']]],
       output => {
         assert(either.isLeft(output))
         assert(output.value.kind === 'typeMismatch')
@@ -102,8 +102,8 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         '@runtime',
         [
           '@apply',
-          ['@lookup', ['identity']],
-          ['@index', ['@lookup', ['boolean']], ['not']],
+          ['@lookup', 'identity'],
+          ['@index', ['@lookup', 'boolean'], ['not']],
         ],
       ],
       output => {
@@ -116,10 +116,10 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         '@runtime',
         [
           '@apply',
-          ['@lookup', ['flow']],
+          ['@lookup', 'flow'],
           [
-            ['@lookup', ['identity']],
-            ['@lookup', ['identity']],
+            ['@lookup', 'identity'],
+            ['@lookup', 'identity'],
           ],
         ],
       ],
@@ -127,10 +127,10 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         0: '@runtime',
         function: {
           0: '@apply',
-          function: { 0: '@lookup', query: { 0: 'flow' } },
+          function: { 0: '@lookup', key: 'flow' },
           argument: {
-            0: { 0: '@lookup', query: { 0: 'identity' } },
-            1: { 0: '@lookup', query: { 0: 'identity' } },
+            0: { 0: '@lookup', key: 'identity' },
+            1: { 0: '@lookup', key: 'identity' },
           },
         },
       }),
@@ -140,10 +140,10 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         '@runtime',
         [
           '@apply',
-          ['@lookup', ['flow']],
+          ['@lookup', 'flow'],
           [
-            ['@index', ['@lookup', ['boolean']], ['not']],
-            ['@index', ['@lookup', ['boolean']], ['not']],
+            ['@index', ['@lookup', 'boolean'], ['not']],
+            ['@index', ['@lookup', 'boolean'], ['not']],
           ],
         ],
       ],
@@ -159,7 +159,7 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
           0: '@apply',
           function: {
             0: '@index',
-            object: { 0: '@lookup', query: { 0: 'object' } },
+            object: { 0: '@lookup', key: 'object' },
             query: { 0: 'lookup' },
           },
           argument: 'key which does not exist in runtime context',
@@ -171,7 +171,7 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
           0: '@apply',
           function: {
             0: '@index',
-            object: { 0: '@lookup', query: { 0: 'object' } },
+            object: { 0: '@lookup', key: 'object' },
             query: { 0: 'lookup' },
           },
           argument: 'key which does not exist in runtime context',

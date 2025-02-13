@@ -129,7 +129,7 @@ const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
       // Reserve `.` so that `:a.b` is parsed as a lookup followed by an index.
       atomWithAdditionalQuotationRequirements(literal('.')),
     ]),
-    ([_colon, query]) => ({ 0: '@lookup', query }),
+    ([_colon, key]) => ({ 0: '@lookup', key }),
   ),
 )
 

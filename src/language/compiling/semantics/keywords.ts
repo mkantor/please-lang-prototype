@@ -29,7 +29,7 @@ export const keywordHandlers: KeywordHandlers = {
   '@index': indexKeywordHandler,
 
   /**
-   * Given a query, resolves the value of a property within the program.
+   * Gets the value of a property with the given key (using lexical scoping).
    */
   '@lookup': lookupKeywordHandler,
 
