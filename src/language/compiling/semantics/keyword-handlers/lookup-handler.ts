@@ -1,8 +1,11 @@
 import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
+import type { Atom } from '../../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
+  asSemanticGraph,
+  isExpression,
   isObjectNode,
   keyPathFromObjectNodeOrMolecule,
   keyPathToMolecule,
@@ -14,10 +17,10 @@ import {
   stringifyKeyPathForEndUser,
   type Expression,
   type ExpressionContext,
-  type KeyPath,
   type KeywordHandler,
   type SemanticGraph,
 } from '../../../semantics.js'
+import { inlinePlz, unparse } from '../../../unparsing.js'
 
 export const lookupKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -26,12 +29,14 @@ export const lookupKeywordHandler: KeywordHandler = (
   either.flatMap(readLookupExpression(expression), ({ query }) =>
     either.flatMap(keyPathFromObjectNodeOrMolecule(query), relativePath => {
       if (isObjectNode(context.program)) {
-        return either.flatMap(
-          lookup({
-            context,
-            relativePath,
-          }),
-          possibleValue =>
+        const key = relativePath[0] // TODO: Change `LookupExpression` to only accept a single key.
+        if (key === undefined) {
+          return either.makeLeft({
+            kind: 'invalidExpression',
+            message: 'key paths cannot be empty',
+          })
+        } else {
+          return either.flatMap(lookup({ context, key }), possibleValue =>
             option.match(possibleValue, {
               none: () =>
                 either.makeLeft({
@@ -42,7 +47,8 @@ export const lookupKeywordHandler: KeywordHandler = (
                 }),
               some: either.makeRight,
             }),
-        )
+          )
+        }
       } else {
         return either.makeLeft({
           kind: 'invalidExpression',
@@ -54,101 +60,65 @@ export const lookupKeywordHandler: KeywordHandler = (
 
 const lookup = ({
   context,
-  relativePath,
+  key,
 }: {
   readonly context: ExpressionContext
-  readonly relativePath: KeyPath
+  readonly key: Atom
 }): Either<ElaborationError, Option<SemanticGraph>> => {
-  const [firstPathComponent, ...propertyPath] = relativePath
-  if (firstPathComponent === undefined) {
-    // TODO: Consider allowing empty paths, emitting a "hole" of type `nothing` (like `???` in
-    // Scala, `todo!()` in Rust, `?foo` in Idris, etc).
-    return either.makeLeft({
-      kind: 'invalidExpression',
-      message: 'key paths cannot be empty',
-    })
-  }
   if (context.location.length === 0) {
     // Check the prelude.
-    return option.match(applyKeyPathToSemanticGraph(prelude, relativePath), {
-      none: () =>
-        either.makeLeft({
+    const valueFromPrelude = prelude[key]
+    return valueFromPrelude === undefined
+      ? either.makeLeft({
           kind: 'invalidExpression',
-          message: `property \`${stringifyKeyPathForEndUser(
-            relativePath,
-          )}\` not found`,
-        }),
-      some: valueFromPrelude =>
-        either.makeRight(option.makeSome(valueFromPrelude)),
-    })
+          message: `property \`${stringifyKeyForEndUser(key)}\` not found`,
+        })
+      : either.makeRight(option.makeSome(asSemanticGraph(valueFromPrelude)))
   } else {
     const pathToCurrentScope = context.location.slice(0, -1)
 
-    const resultForCurrentScope: Either<
-      ElaborationError,
-      Option<SemanticGraph>
-    > = option.match(
+    const possibleLookedUpValue = option.flatMap(
       applyKeyPathToSemanticGraph(context.program, pathToCurrentScope),
-      {
-        none: () => either.makeRight(option.none),
-        some: scope =>
-          either.match(readFunctionExpression(scope), {
-            left: _ =>
-              option.match(
-                applyKeyPathToSemanticGraph(scope, [firstPathComponent]),
-                {
-                  none: () => either.makeRight(option.none),
-                  some: property =>
-                    option.match(
-                      applyKeyPathToSemanticGraph(property, propertyPath),
-                      {
-                        none: () =>
-                          either.makeLeft({
-                            kind: 'invalidExpression',
-                            message: `\`${stringifyKeyPathForEndUser(
-                              propertyPath,
-                            )}\` is not a property of \`${stringifyKeyPathForEndUser(
-                              [...pathToCurrentScope, firstPathComponent],
-                            )}\``,
-                          }),
-                        some: lookedUpValue =>
-                          either.makeRight(option.makeSome(lookedUpValue)),
-                      },
-                    ),
-                },
-              ),
-            right: functionExpression => {
-              if (functionExpression.parameter === firstPathComponent) {
-                // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
-                return either.makeRight(
-                  option.makeSome(
-                    makeLookupExpression(
-                      makeObjectNode(keyPathToMolecule(relativePath)),
-                    ),
+      scope =>
+        either.match(readFunctionExpression(scope), {
+          left: _ =>
+            // Lookups should not resolve to expression properties.
+            // For example the lookup expression in `a => :parameter` (which is desugared to
+            // `{@function parameter: a, body: {@lookup query: parameter}}`) should not resolve
+            // to `a`.
+            isExpression(scope)
+              ? option.none
+              : applyKeyPathToSemanticGraph(scope, [key]),
+          right: functionExpression =>
+            functionExpression.parameter === key
+              ? // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
+                option.makeSome(
+                  makeLookupExpression(
+                    makeObjectNode(keyPathToMolecule([key])),
                   ),
                 )
-              } else {
-                return either.makeRight(option.none)
-              }
-            },
-          }),
-      },
+              : option.none,
+        }),
     )
 
-    return either.flatMap(resultForCurrentScope, possibleLookedUpValue =>
-      option.match(possibleLookedUpValue, {
-        none: () =>
-          // Try the parent scope.
-          lookup({
-            relativePath,
-            context: {
-              keywordHandlers: context.keywordHandlers,
-              location: pathToCurrentScope,
-              program: context.program,
-            },
-          }),
-        some: lookedUpValue => either.makeRight(option.makeSome(lookedUpValue)),
-      }),
-    )
+    return option.match(possibleLookedUpValue, {
+      none: () =>
+        // Try the parent scope.
+        lookup({
+          key,
+          context: {
+            keywordHandlers: context.keywordHandlers,
+            location: pathToCurrentScope,
+            program: context.program,
+          },
+        }),
+      some: lookedUpValue => either.makeRight(option.makeSome(lookedUpValue)),
+    })
   }
 }
+
+const stringifyKeyForEndUser = (key: Atom): string =>
+  either.match(unparse(key, inlinePlz), {
+    right: stringifiedOutput => stringifiedOutput,
+    left: error => `(unserializable key: ${error.message})`,
+  })

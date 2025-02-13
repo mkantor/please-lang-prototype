@@ -24,7 +24,11 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
           '@apply',
           ['@lookup', ['flow']],
           [
-            ['@apply', ['@lookup', ['object', 'lookup']], 'environment'],
+            [
+              '@apply',
+              ['@index', ['@lookup', ['object']], ['lookup']],
+              'environment',
+            ],
             [
               '@apply',
               ['@lookup', ['match']],
@@ -34,7 +38,11 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
                   '@apply',
                   ['@lookup', ['flow']],
                   [
-                    ['@apply', ['@lookup', ['object', 'lookup']], 'lookup'],
+                    [
+                      '@apply',
+                      ['@index', ['@lookup', ['object']], ['lookup']],
+                      'lookup',
+                    ],
                     [
                       '@apply',
                       ['@lookup', ['match']],

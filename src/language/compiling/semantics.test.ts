@@ -241,22 +241,6 @@ elaborationSuite('@lookup', [
   ],
   [
     {
-      a: 'A',
-      b: {
-        a: { nested: 'nested A' },
-        b: { 0: '@lookup', query: { 0: 'a', 1: 'nested' } },
-      },
-    },
-    success({
-      a: 'A',
-      b: {
-        a: { nested: 'nested A' },
-        b: 'nested A',
-      },
-    }),
-  ],
-  [
-    {
       foo: 'bar',
       bar: { 0: '@lookup', 1: { 0: 'foo' } },
       baz: { 0: '@lookup', 1: { 0: 'bar' } },
@@ -279,13 +263,13 @@ elaborationSuite('@lookup', [
   // lexical scoping
   [
     {
-      a: { b: 'C' },
+      a: 'C',
       b: {
-        c: { 0: '@lookup', query: { 0: 'a', 1: 'b' } },
+        c: { 0: '@lookup', query: { 0: 'a' } },
       },
     },
     success({
-      a: { b: 'C' },
+      a: 'C',
       b: {
         c: 'C',
       },
@@ -293,13 +277,19 @@ elaborationSuite('@lookup', [
   ],
   [
     {
-      a: { b: 'C' },
+      a: 'C',
       b: {
-        a: {}, // this `a` should be referenced
-        c: { 0: '@lookup', query: { 0: 'a', 1: 'b' } },
+        a: 'other C', // this `a` should be referenced
+        c: { 0: '@lookup', query: { 0: 'a' } },
       },
     },
-    output => assert(either.isLeft(output)),
+    success({
+      a: 'C',
+      b: {
+        a: 'other C',
+        c: 'other C',
+      },
+    }),
   ],
 ])
 
@@ -367,7 +357,11 @@ elaborationSuite('@apply', [
         1: 'x',
         2: {
           0: '@apply',
-          function: { 0: '@lookup', 1: { 0: 'boolean', 1: 'not' } },
+          function: {
+            0: '@index',
+            1: { 0: '@lookup', 1: { 0: 'boolean' } },
+            2: { 0: 'not' },
+          },
           argument: { 0: '@lookup', 1: 'x' },
         },
       },
@@ -381,7 +375,11 @@ elaborationSuite('@apply', [
       function: {
         0: '@function',
         1: 'x',
-        2: { 0: '@lookup', 1: { 0: 'x', 1: 'a' } },
+        2: {
+          0: '@index',
+          1: { 0: '@lookup', 1: { 0: 'x' } },
+          2: { 0: 'a' },
+        },
       },
       argument: { a: 'it works' },
     },

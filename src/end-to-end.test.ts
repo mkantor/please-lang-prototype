@@ -28,9 +28,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{overwritten,0:a,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{@check type:true value:true}', either.makeRight('true')],
   ['{a:A b:{@lookup {a}}}', either.makeRight({ a: 'A', b: 'A' })],
-  ['{a:A b: :{a}}', either.makeRight({ a: 'A', b: 'A' })],
+  ['{a:A b: :a}', either.makeRight({ a: 'A', b: 'A' })],
   ['{a:A {@lookup {a}}}', either.makeRight({ a: 'A', 0: 'A' })],
-  ['{a:A :{a}}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{a:A :a}', either.makeRight({ a: 'A', 0: 'A' })],
   ['{ a: (a => :a)(A) }', either.makeRight({ a: 'A' })],
   ['{ a: ( a => :a )( A ) }', either.makeRight({ a: 'A' })],
   ['(a => :a)(A)', either.makeRight('A')],
@@ -116,7 +116,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight('output'),
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
-  [':{atom prepend}(a)(b)', either.makeRight('ab')],
+  [':atom.prepend(a)(b)', either.makeRight('ab')],
   [':flow({ :atom.append(a) :atom.append(b) })(z)', either.makeRight('zab')],
   [
     `{
@@ -126,7 +126,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         0:@runtime
         function:{
           0:@apply
-          function:{0:@lookup query:{0:object 1:lookup}}
+          function:{0:@index object:{0:@lookup query:{0:object}} query:{0:lookup}}
           argument:"key which does not exist in runtime context"
         }
       }
@@ -138,63 +138,17 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{@runtime
-      :{object lookup}("key which does not exist in runtime context")
+      :object.lookup("key which does not exist in runtime context")
     }`,
     either.makeRight({ tag: 'none', value: {} }),
   ],
   [
-    `{@runtime
-      {@apply
-        {@lookup { flow }}
-        {
-          {@apply
-            {@lookup { object lookup }}
-            environment
-          }
-          {@apply
-            {@lookup { match }}
-            {
-              none: "environment does not exist"
-              some: {@apply
-                {@lookup { flow }}
-                {
-                  {@apply
-                    {@lookup { object lookup }}
-                    lookup
-                  }
-                  {@apply
-                    {@lookup { match }}
-                    {
-                      none: "environment.lookup does not exist"
-                      some: {@apply
-                        {@lookup { apply }}
-                        PATH
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }`,
-    output => {
-      if (either.isLeft(output)) {
-        assert.fail(output.value.message)
-      }
-      assert(typeof output.value === 'object')
-      assert.deepEqual(output.value['tag'], 'some')
-      assert.deepEqual(typeof output.value['value'], 'string')
-    },
-  ],
-  [
     `{@runtime {@apply :flow {
-      {@apply :{object lookup} environment}
+      {@apply :object.lookup environment}
       {@apply :match {
         none: "environment does not exist"
         some: {@apply :flow {
-          {@apply :{object lookup} lookup}
+          {@apply :object.lookup lookup}
           {@apply :match {
             none: "environment.lookup does not exist"
             some: {@apply :apply PATH}
@@ -213,11 +167,11 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{@runtime :flow({
-      :{object lookup}(environment)
+      :object.lookup(environment)
       :match({
         none: "environment does not exist"
         some: :flow({
-          :{object lookup}(lookup)
+          :object.lookup(lookup)
           :match({
             none: "environment.lookup does not exist"
             some: :apply(PATH)
@@ -286,5 +240,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       :integer.subtract(2)(4)
     )`,
     either.makeRight('3'),
+  ],
+  [
+    `{
+      true: true
+      false: :boolean.not(:true)
+    }`,
+    either.makeRight({ true: 'true', false: 'false' }),
   ],
 ])
