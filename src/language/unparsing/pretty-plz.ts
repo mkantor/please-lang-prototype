@@ -2,9 +2,9 @@ import either from '@matt.kantor/either'
 import type { Atom, Molecule } from '../parsing.js'
 import {
   closeBrace,
+  moleculeAsKeyValuePairStrings,
   moleculeUnparser,
   openBrace,
-  sugarFreeMoleculeAsKeyValuePairStrings,
   unparseAtom,
 } from './plz-utilities.js'
 import { indent, type Notation } from './unparsing-utilities.js'
@@ -14,7 +14,9 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
     return either.makeRight(openBrace + closeBrace)
   } else {
     return either.map(
-      sugarFreeMoleculeAsKeyValuePairStrings(value, unparseAtomOrMolecule),
+      moleculeAsKeyValuePairStrings(value, unparseAtomOrMolecule, {
+        ordinalKeys: 'omit',
+      }),
       keyValuePairsAsStrings =>
         openBrace
           .concat('\n')

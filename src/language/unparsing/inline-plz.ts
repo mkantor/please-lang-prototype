@@ -3,9 +3,9 @@ import type { Atom, Molecule } from '../parsing.js'
 import {
   closeBrace,
   comma,
+  moleculeAsKeyValuePairStrings,
   moleculeUnparser,
   openBrace,
-  sugarFreeMoleculeAsKeyValuePairStrings,
   unparseAtom,
 } from './plz-utilities.js'
 import type { Notation } from './unparsing-utilities.js'
@@ -15,7 +15,9 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
     return either.makeRight(openBrace + closeBrace)
   } else {
     return either.map(
-      sugarFreeMoleculeAsKeyValuePairStrings(value, unparseAtomOrMolecule),
+      moleculeAsKeyValuePairStrings(value, unparseAtomOrMolecule, {
+        ordinalKeys: 'omit',
+      }),
       keyValuePairsAsStrings =>
         openBrace
           .concat(' ')

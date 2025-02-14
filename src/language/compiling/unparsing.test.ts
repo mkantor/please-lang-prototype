@@ -65,10 +65,31 @@ testCases(
       1: {
         0: '@function',
         parameter: 'context',
-        body: { 0: '@lookup', key: 'context.program.start_time' },
+        body: {
+          0: '@index',
+          object: { 0: '@lookup', key: 'context' },
+          query: { 0: 'program', 1: 'start_time' },
+        },
       },
     },
     either.makeRight('{ @runtime, context => :context.program.start_time }'),
+  ],
+  [
+    {
+      'a.b': {
+        'c "d"': {
+          'e.f': 'g',
+        },
+      },
+      test: {
+        0: '@index',
+        object: { 0: '@lookup', 1: 'a.b' },
+        query: { 0: 'c "d"', 1: 'e.f' },
+      },
+    },
+    either.makeRight(
+      '{ a.b: { "c \\"d"": { e.f: g } }, test: :"a.b"."c \\"d""."e.f" }',
+    ),
   ],
 ])
 
@@ -125,11 +146,32 @@ testCases(
       1: {
         0: '@function',
         parameter: 'context',
-        body: { 0: '@lookup', key: 'context.program.start_time' },
+        body: {
+          0: '@index',
+          object: { 0: '@lookup', key: 'context' },
+          query: { 0: 'program', 1: 'start_time' },
+        },
       },
     },
     either.makeRight(
       '{\n  @runtime\n  context => :context.program.start_time\n}',
+    ),
+  ],
+  [
+    {
+      'a.b': {
+        'c "d"': {
+          'e.f': 'g',
+        },
+      },
+      test: {
+        0: '@index',
+        object: { 0: '@lookup', 1: 'a.b' },
+        query: { 0: 'c "d"', 1: 'e.f' },
+      },
+    },
+    either.makeRight(
+      '{\n  a.b: {\n    "c \\"d"": {\n      e.f: g\n    }\n  }\n  test: :"a.b"."c \\"d""."e.f"\n}',
     ),
   ],
 ])

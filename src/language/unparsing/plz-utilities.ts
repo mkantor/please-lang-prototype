@@ -8,10 +8,13 @@ import {
   isSemanticGraph,
   readApplyExpression,
   readFunctionExpression,
+  readIndexExpression,
   readLookupExpression,
   serialize,
   type ApplyExpression,
   type FunctionExpression,
+  type IndexExpression,
+  type KeyPath,
   type LookupExpression,
   type SemanticGraph,
 } from '../semantics.js'
@@ -35,52 +38,40 @@ export const moleculeUnparser =
     ) => Either<UnserializableValueError, string>,
   ) =>
   (value: Molecule): Either<UnserializableValueError, string> => {
-    const functionExpressionResult = readFunctionExpression(value)
-    if (!either.isLeft(functionExpressionResult)) {
-      return unparseSugaredFunction(
-        functionExpressionResult.value,
-        unparseAtomOrMolecule,
-      )
-    } else {
-      const applyExpressionResult = readApplyExpression(value)
-      if (!either.isLeft(applyExpressionResult)) {
-        return unparseSugaredApply(
-          applyExpressionResult.value,
-          unparseAtomOrMolecule,
-        )
-      } else {
-        const lookupExpressionResult = readLookupExpression(value)
-        if (!either.isLeft(lookupExpressionResult)) {
-          return unparseSugaredLookup(
-            lookupExpressionResult.value,
-            unparseAtomOrMolecule,
-          )
-        } else {
-          return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
-        }
-      }
+    switch (value['0']) {
+      case '@apply':
+        return either.match(readApplyExpression(value), {
+          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          right: applyExpression =>
+            unparseSugaredApply(applyExpression, unparseAtomOrMolecule),
+        })
+      case '@function':
+        return either.match(readFunctionExpression(value), {
+          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          right: functionExpression =>
+            unparseSugaredFunction(functionExpression, unparseAtomOrMolecule),
+        })
+      case '@index':
+        return either.match(readIndexExpression(value), {
+          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          right: indexExpression =>
+            unparseSugaredIndex(indexExpression, unparseAtomOrMolecule),
+        })
+      case '@lookup':
+        return either.match(readLookupExpression(value), {
+          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          right: lookupExpression =>
+            unparseSugaredLookup(lookupExpression, unparseAtomOrMolecule),
+        })
+      default:
+        return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
     }
   }
 
-export const quoteIfNecessary = (value: string): string => {
-  const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
-  if (either.isLeft(unquotedAtomResult)) {
-    return quote.concat(escapeStringContents(value)).concat(quote)
-  } else {
-    return value
-  }
-}
-
-export const serializeIfNeeded = (
-  nodeOrMolecule: SemanticGraph | Molecule,
-): Either<UnserializableValueError, Atom | Molecule> =>
-  isSemanticGraph(nodeOrMolecule)
-    ? serialize(nodeOrMolecule)
-    : either.makeRight(nodeOrMolecule)
-
-export const sugarFreeMoleculeAsKeyValuePairStrings = (
+export const moleculeAsKeyValuePairStrings = (
   value: Molecule,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
   const entries = Object.entries(value)
 
@@ -93,13 +84,16 @@ export const sugarFreeMoleculeAsKeyValuePairStrings = (
     }
 
     // Omit ordinal property keys:
-    if (propertyKey === String(ordinalPropertyKeyCounter)) {
+    if (
+      propertyKey === String(ordinalPropertyKeyCounter) &&
+      options.ordinalKeys === 'omit'
+    ) {
       keyValuePairsAsStrings.push(valueAsStringResult.value)
       ordinalPropertyKeyCounter += 1n
     } else {
       keyValuePairsAsStrings.push(
         kleur
-          .cyan(quoteIfNecessary(propertyKey).concat(colon))
+          .cyan(quoteAtomIfNecessary(propertyKey).concat(colon))
           .concat(' ')
           .concat(valueAsStringResult.value),
       )
@@ -111,9 +105,34 @@ export const sugarFreeMoleculeAsKeyValuePairStrings = (
 export const unparseAtom = (atom: string): Right<string> =>
   either.makeRight(
     /^@[^@]/.test(atom)
-      ? kleur.bold(kleur.underline(quoteIfNecessary(atom)))
-      : quoteIfNecessary(atom),
+      ? kleur.bold(kleur.underline(quoteAtomIfNecessary(atom)))
+      : quoteAtomIfNecessary(atom),
   )
+
+const quoteAtomIfNecessary = (value: string): string => {
+  const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
+  if (either.isLeft(unquotedAtomResult)) {
+    return quote.concat(escapeStringContents(value)).concat(quote)
+  } else {
+    return value
+  }
+}
+
+const quoteKeyPathComponentIfNecessary = (value: string): string => {
+  const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
+  if (either.isLeft(unquotedAtomResult) || value.includes('.')) {
+    return quote.concat(escapeStringContents(value)).concat(quote)
+  } else {
+    return value
+  }
+}
+
+const serializeIfNeeded = (
+  nodeOrMolecule: SemanticGraph | Molecule,
+): Either<UnserializableValueError, Atom | Molecule> =>
+  isSemanticGraph(nodeOrMolecule)
+    ? serialize(nodeOrMolecule)
+    : either.makeRight(nodeOrMolecule)
 
 type UnparseAtomOrMolecule = (
   value: Atom | Molecule,
@@ -167,10 +186,54 @@ const unparseSugaredFunction = (
     ),
   )
 
+const unparseSugaredIndex = (
+  expression: IndexExpression,
+  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+) => {
+  const objectUnparseResult = either.flatMap(
+    serializeIfNeeded(expression.object),
+    unparseAtomOrMolecule,
+  )
+  if (either.isLeft(objectUnparseResult)) {
+    return objectUnparseResult
+  }
+
+  const keyPath = Object.entries(expression.query).reduce(
+    (accumulator: KeyPath | 'invalid', [key, value]) => {
+      if (accumulator === 'invalid') {
+        return accumulator
+      } else {
+        if (key === String(accumulator.length) && typeof value === 'string') {
+          return [...accumulator, value]
+        } else {
+          return 'invalid'
+        }
+      }
+    },
+    [],
+  )
+
+  if (
+    keyPath === 'invalid' ||
+    Object.keys(expression.query).length !== keyPath.length
+  ) {
+    return either.makeLeft({
+      kind: 'unserializableValue',
+      message: 'invalid key path',
+    })
+  }
+
+  return either.makeRight(
+    objectUnparseResult.value
+      .concat(dot)
+      .concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
+  )
+}
+
 const unparseSugaredLookup = (
   expression: LookupExpression,
-  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  _unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) =>
-  either.map(unparseAtomOrMolecule(expression.key), key =>
-    kleur.cyan(colon.concat(key)),
+  either.makeRight(
+    kleur.cyan(colon.concat(quoteKeyPathComponentIfNecessary(expression.key))),
   )
