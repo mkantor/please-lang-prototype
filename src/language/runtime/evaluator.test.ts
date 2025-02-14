@@ -16,31 +16,39 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
   'evaluator',
   [
     ['Hello, world!', success('Hello, world!')],
-    [['@check', true, ['@lookup', ['identity']]], success('true')],
+    [['@check', true, ['@lookup', 'identity']], success('true')],
     [
       [
         '@runtime',
         [
           '@apply',
-          ['@lookup', ['flow']],
+          ['@lookup', 'flow'],
           [
-            ['@apply', ['@lookup', ['object', 'lookup']], 'environment'],
             [
               '@apply',
-              ['@lookup', ['match']],
+              ['@index', ['@lookup', 'object'], ['lookup']],
+              'environment',
+            ],
+            [
+              '@apply',
+              ['@lookup', 'match'],
               {
                 none: 'environment does not exist!',
                 some: [
                   '@apply',
-                  ['@lookup', ['flow']],
+                  ['@lookup', 'flow'],
                   [
-                    ['@apply', ['@lookup', ['object', 'lookup']], 'lookup'],
                     [
                       '@apply',
-                      ['@lookup', ['match']],
+                      ['@index', ['@lookup', 'object'], ['lookup']],
+                      'lookup',
+                    ],
+                    [
+                      '@apply',
+                      ['@lookup', 'match'],
                       {
                         none: 'environment.lookup does not exist!',
-                        some: ['@apply', ['@lookup', ['apply']], 'PATH'],
+                        some: ['@apply', ['@lookup', 'apply'], 'PATH'],
                       },
                     ],
                   ],
@@ -58,7 +66,7 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
       },
     ],
     [
-      ['@check', 'not a boolean', ['@lookup', ['boolean', 'is']]],
+      ['@check', 'not a boolean', ['@index', ['@lookup', 'boolean'], 'is']],
       output => assert(either.isLeft(output)),
     ],
   ],

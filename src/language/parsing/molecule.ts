@@ -124,8 +124,12 @@ const sugarFreeMolecule: Parser<Molecule> = optionallySurroundedByParentheses(
 
 const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
   map(
-    sequence([literal(':'), oneOf([atomParser, sugarFreeMolecule])]),
-    ([_colon, query]) => ({ 0: '@lookup', query }),
+    sequence([
+      literal(':'),
+      // Reserve `.` so that `:a.b` is parsed as a lookup followed by an index.
+      atomWithAdditionalQuotationRequirements(literal('.')),
+    ]),
+    ([_colon, key]) => ({ 0: '@lookup', key }),
   ),
 )
 

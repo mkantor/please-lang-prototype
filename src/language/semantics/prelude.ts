@@ -2,7 +2,11 @@ import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { DependencyUnavailable, Panic } from '../errors.js'
 import type { Atom } from '../parsing.js'
-import { makeApplyExpression, makeLookupExpression } from '../semantics.js'
+import {
+  makeApplyExpression,
+  makeIndexExpression,
+  makeLookupExpression,
+} from '../semantics.js'
 import { isFunctionNode, makeFunctionNode } from './function-node.js'
 import { keyPathToMolecule, type KeyPath } from './key-path.js'
 import {
@@ -44,17 +48,32 @@ const handleUnavailableDependencies =
     }
   }
 
+type NonEmptyKeyPath = readonly [Atom, ...KeyPath]
+
+const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
+  const [initialKey, ...indexes] = keyPath
+  const initialLookup = makeLookupExpression(initialKey)
+  if (indexes.length === 0) {
+    return initialLookup
+  } else {
+    return makeIndexExpression({
+      object: initialLookup,
+      query: keyPathToMolecule(indexes),
+    })
+  }
+}
+
 const serializePartiallyAppliedFunction =
-  (keyPath: KeyPath, argument: SemanticGraph) => () =>
+  (keyPath: NonEmptyKeyPath, argument: SemanticGraph) => () =>
     either.makeRight(
       makeApplyExpression({
-        function: makeLookupExpression(keyPathToMolecule(keyPath)),
+        function: keyPathToLookupExpression(keyPath),
         argument,
       }),
     )
 
 const preludeFunction = (
-  keyPath: KeyPath,
+  keyPath: NonEmptyKeyPath,
   signature: FunctionType['signature'],
   f: (
     value: SemanticGraph,
@@ -62,7 +81,7 @@ const preludeFunction = (
 ) =>
   makeFunctionNode(
     signature,
-    () => either.makeRight(makeLookupExpression(keyPathToMolecule(keyPath))),
+    () => either.makeRight(keyPathToLookupExpression(keyPath)),
     option.none,
     handleUnavailableDependencies(f),
   )

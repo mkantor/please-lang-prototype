@@ -12,7 +12,6 @@ import {
   serialize,
   type ApplyExpression,
   type FunctionExpression,
-  type KeyPath,
   type LookupExpression,
   type SemanticGraph,
 } from '../semantics.js'
@@ -171,35 +170,7 @@ const unparseSugaredFunction = (
 const unparseSugaredLookup = (
   expression: LookupExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
-) => {
-  const keyPath = Object.entries(expression.query).reduce(
-    (accumulator: KeyPath | 'invalid', [key, value]) => {
-      if (accumulator === 'invalid') {
-        return accumulator
-      } else {
-        if (key === String(accumulator.length) && typeof value === 'string') {
-          return [...accumulator, value]
-        } else {
-          return 'invalid'
-        }
-      }
-    },
-    [],
+) =>
+  either.map(unparseAtomOrMolecule(expression.key), key =>
+    kleur.cyan(colon.concat(key)),
   )
-
-  if (
-    keyPath !== 'invalid' &&
-    Object.keys(expression.query).length === keyPath.length &&
-    keyPath.every(key => !either.isLeft(unquotedAtomParser(key)))
-  ) {
-    return either.makeRight(kleur.cyan(colon.concat(keyPath.join(dot))))
-  } else {
-    return either.flatMap(
-      serializeIfNeeded(expression.query),
-      serializedKeyPath =>
-        either.map(unparseAtomOrMolecule(serializedKeyPath), keyPathAsString =>
-          kleur.cyan(colon.concat(keyPathAsString)),
-        ),
-    )
-  }
-}

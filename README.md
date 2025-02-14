@@ -91,7 +91,7 @@ Data can be referenced from other places in the program using lookups, like
 }
 ```
 
-You can drill down into the properties of looked-up values:
+You can index into the properties of looked-up values:
 
 ```
 {
@@ -100,7 +100,7 @@ You can drill down into the properties of looked-up values:
       greeting: "Hello, World!"
     }
   }
-  greeting: :deeply.nested.greeting // or :{deeply nested greeting}
+  greeting: :deeply.nested.greeting
 }
 ```
 
