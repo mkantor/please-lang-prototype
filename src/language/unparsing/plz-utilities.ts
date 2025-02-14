@@ -78,9 +78,10 @@ export const serializeIfNeeded = (
     ? serialize(nodeOrMolecule)
     : either.makeRight(nodeOrMolecule)
 
-export const sugarFreeMoleculeAsKeyValuePairStrings = (
+export const moleculeAsKeyValuePairStrings = (
   value: Molecule,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
   const entries = Object.entries(value)
 
@@ -93,7 +94,10 @@ export const sugarFreeMoleculeAsKeyValuePairStrings = (
     }
 
     // Omit ordinal property keys:
-    if (propertyKey === String(ordinalPropertyKeyCounter)) {
+    if (
+      propertyKey === String(ordinalPropertyKeyCounter) &&
+      options.ordinalKeys === 'omit'
+    ) {
       keyValuePairsAsStrings.push(valueAsStringResult.value)
       ordinalPropertyKeyCounter += 1n
     } else {
