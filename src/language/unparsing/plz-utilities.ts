@@ -62,22 +62,6 @@ export const moleculeUnparser =
     }
   }
 
-export const quoteIfNecessary = (value: string): string => {
-  const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
-  if (either.isLeft(unquotedAtomResult)) {
-    return quote.concat(escapeStringContents(value)).concat(quote)
-  } else {
-    return value
-  }
-}
-
-export const serializeIfNeeded = (
-  nodeOrMolecule: SemanticGraph | Molecule,
-): Either<UnserializableValueError, Atom | Molecule> =>
-  isSemanticGraph(nodeOrMolecule)
-    ? serialize(nodeOrMolecule)
-    : either.makeRight(nodeOrMolecule)
-
 export const moleculeAsKeyValuePairStrings = (
   value: Molecule,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
@@ -118,6 +102,22 @@ export const unparseAtom = (atom: string): Right<string> =>
       ? kleur.bold(kleur.underline(quoteIfNecessary(atom)))
       : quoteIfNecessary(atom),
   )
+
+const quoteIfNecessary = (value: string): string => {
+  const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
+  if (either.isLeft(unquotedAtomResult)) {
+    return quote.concat(escapeStringContents(value)).concat(quote)
+  } else {
+    return value
+  }
+}
+
+const serializeIfNeeded = (
+  nodeOrMolecule: SemanticGraph | Molecule,
+): Either<UnserializableValueError, Atom | Molecule> =>
+  isSemanticGraph(nodeOrMolecule)
+    ? serialize(nodeOrMolecule)
+    : either.makeRight(nodeOrMolecule)
 
 type UnparseAtomOrMolecule = (
   value: Atom | Molecule,
