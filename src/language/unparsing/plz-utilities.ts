@@ -35,30 +35,27 @@ export const moleculeUnparser =
     ) => Either<UnserializableValueError, string>,
   ) =>
   (value: Molecule): Either<UnserializableValueError, string> => {
-    const functionExpressionResult = readFunctionExpression(value)
-    if (!either.isLeft(functionExpressionResult)) {
-      return unparseSugaredFunction(
-        functionExpressionResult.value,
-        unparseAtomOrMolecule,
-      )
-    } else {
-      const applyExpressionResult = readApplyExpression(value)
-      if (!either.isLeft(applyExpressionResult)) {
-        return unparseSugaredApply(
-          applyExpressionResult.value,
-          unparseAtomOrMolecule,
-        )
-      } else {
-        const lookupExpressionResult = readLookupExpression(value)
-        if (!either.isLeft(lookupExpressionResult)) {
-          return unparseSugaredLookup(
-            lookupExpressionResult.value,
-            unparseAtomOrMolecule,
-          )
-        } else {
-          return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
-        }
-      }
+    switch (value['0']) {
+      case '@apply':
+        return either.match(readApplyExpression(value), {
+          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          right: applyExpression =>
+            unparseSugaredApply(applyExpression, unparseAtomOrMolecule),
+        })
+      case '@function':
+        return either.match(readFunctionExpression(value), {
+          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          right: functionExpression =>
+            unparseSugaredFunction(functionExpression, unparseAtomOrMolecule),
+        })
+      case '@lookup':
+        return either.match(readLookupExpression(value), {
+          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          right: lookupExpression =>
+            unparseSugaredLookup(lookupExpression, unparseAtomOrMolecule),
+        })
+      default:
+        return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
     }
   }
 
