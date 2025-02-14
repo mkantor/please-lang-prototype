@@ -49,7 +49,7 @@ data representation implied by the fact that a value is an atom (e.g. the atom
 `2` may be an integer in memory).
 
 Bare words not containing any
-[reserved character sequences](./src/language/parsing/atom.ts#L24-L46) are
+[reserved character sequences](./src/language/parsing/atom.ts#L19-L41) are
 atoms:
 
 ```
@@ -210,8 +210,8 @@ languages:
 
 `plz` has a specific textual representation, but `plo` & `plt` could be encoded
 in any format in which hierarchial key/value pairs of strings are representable
-(currently only JSON is implemented, but YAML, TOML, HOCON, BSON, MessagePack,
-etc could be supported).
+(currently only JSON is implemented, but YAML, TOML, HOCON, BSON, S-expressions,
+MessagePack, CBOR, etc could be supported).
 
 Take this example `plz` program:
 

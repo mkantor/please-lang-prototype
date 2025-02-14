@@ -7,6 +7,7 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom } from '../parsing.js'
+import type { ObjectNode } from './object-node.js'
 import {
   nodeTag,
   serialize,
@@ -21,7 +22,7 @@ export type FunctionNode = ((
   readonly [nodeTag]: 'function'
   readonly parameterName: Option<Atom>
   readonly signature: FunctionType['signature']
-  readonly serialize: () => Either<UnserializableValueError, SemanticGraph>
+  readonly serialize: () => Either<UnserializableValueError, ObjectNode>
 }
 
 export const isFunctionNode = (node: SemanticGraph) =>
