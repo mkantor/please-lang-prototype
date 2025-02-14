@@ -6,6 +6,7 @@ import type { Notation } from './unparsing/unparsing-utilities.js'
 export { inlinePlz } from './unparsing/inline-plz.js'
 export { prettyJson } from './unparsing/pretty-json.js'
 export { prettyPlz } from './unparsing/pretty-plz.js'
+export { sugarFreePrettyPlz } from './unparsing/sugar-free-pretty-plz.js'
 export type { Notation } from './unparsing/unparsing-utilities.js'
 
 export const unparse = (
