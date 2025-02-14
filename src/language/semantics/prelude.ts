@@ -63,7 +63,7 @@ const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
   }
 }
 
-const serializePartiallyAppliedFunction =
+const serializeOnceAppliedFunction =
   (keyPath: NonEmptyKeyPath, argument: SemanticGraph) => () =>
     either.makeRight(
       makeApplyExpression({
@@ -108,7 +108,7 @@ export const prelude: ObjectNode = makeObjectNode({
             parameter: types.functionType,
             return: types.something,
           },
-          serializePartiallyAppliedFunction(['apply'], argument),
+          serializeOnceAppliedFunction(['apply'], argument),
           option.none,
           functionToApply => {
             if (!isFunctionNode(functionToApply)) {
@@ -175,7 +175,7 @@ export const prelude: ObjectNode = makeObjectNode({
                 parameter: function0.signature.parameter,
                 return: function1.signature.parameter,
               },
-              serializePartiallyAppliedFunction(
+              serializeOnceAppliedFunction(
                 ['flow'],
                 makeObjectNode({ 0: function0, 1: function1 }),
               ),
@@ -205,7 +205,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.integer,
               return: types.integer,
             },
-            serializePartiallyAppliedFunction(['integer', 'add'], number2),
+            serializeOnceAppliedFunction(['integer', 'add'], number2),
             option.none,
             number1 => {
               if (
@@ -262,10 +262,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.integer,
               return: types.boolean,
             },
-            serializePartiallyAppliedFunction(
-              ['integer', 'less_than'],
-              number2,
-            ),
+            serializeOnceAppliedFunction(['integer', 'less_than'], number2),
             option.none,
             number1 => {
               if (
@@ -304,7 +301,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.integer,
               return: types.integer,
             },
-            serializePartiallyAppliedFunction(['integer', 'subtract'], number2),
+            serializeOnceAppliedFunction(['integer', 'subtract'], number2),
             option.none,
             number1 => {
               if (
@@ -384,7 +381,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.something,
               return: types.something,
             },
-            serializePartiallyAppliedFunction(['match'], cases),
+            serializeOnceAppliedFunction(['match'], cases),
             option.none,
             argument => {
               if (!nodeIsTagged(argument)) {
@@ -432,10 +429,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.naturalNumber,
               return: types.naturalNumber,
             },
-            serializePartiallyAppliedFunction(
-              ['natural_number', 'add'],
-              number2,
-            ),
+            serializeOnceAppliedFunction(['natural_number', 'add'], number2),
             option.none,
             number1 => {
               if (
@@ -509,7 +503,7 @@ export const prelude: ObjectNode = makeObjectNode({
                 parameter: types.something,
                 return: types.something,
               },
-              serializePartiallyAppliedFunction(['object', 'lookup'], key),
+              serializeOnceAppliedFunction(['object', 'lookup'], key),
               option.none,
               argument => {
                 if (!isObjectNode(argument)) {
@@ -560,7 +554,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.atom,
               return: types.atom,
             },
-            serializePartiallyAppliedFunction(['atom', 'append'], atomToAppend),
+            serializeOnceAppliedFunction(['atom', 'append'], atomToAppend),
             option.none,
             atomToAppendTo => {
               if (
@@ -594,10 +588,7 @@ export const prelude: ObjectNode = makeObjectNode({
               parameter: types.atom,
               return: types.atom,
             },
-            serializePartiallyAppliedFunction(
-              ['atom', 'prepend'],
-              atomToPrepend,
-            ),
+            serializeOnceAppliedFunction(['atom', 'prepend'], atomToPrepend),
             option.none,
             atomToPrependTo => {
               if (
