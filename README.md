@@ -151,11 +151,12 @@ expressions_. Most of the interesting stuff that Please does involves evaluating
 keyword expressions.
 
 Under the hood, keyword expressions are modeled as objects. For example, `:foo`
-desugars to `{@lookup query: foo}`. All such expressions have a key `0`
-referring to a value that is an `@`-prefixed atom (the keyword). Keywords
-include `@function`, `@lookup`, `@apply`, `@check`, `@index`, and `@runtime`.
+desugars to `{@lookup key: foo}`. All such expressions have a key `0` referring
+to a value that is an `@`-prefixed atom (the keyword). Keywords include
+`@function`, `@lookup`, `@apply`, `@check`, `@index`, and `@runtime`.
 
-Currently only `@function`, `@lookup`, and `@apply` have syntax sugars.
+Currently only `@function`, `@lookup`, `@index`, and `@apply` have syntax
+sugars.
 
 ### Semantics
 
@@ -233,14 +234,20 @@ It desugars to the following `plo` program:
     function: {
       0: @apply
       function: {
-        0: @lookup
-        query: atom.prepend
+        0: @index
+        object: {
+          0: @lookup
+          key: atom
+        }
+        query: {
+          0: prepend
+        }
       }
       argument: "Welcome to "
     }
     argument: {
       0: @lookup
-      query: language
+      key: language
     }
   }
   now: {
@@ -249,8 +256,15 @@ It desugars to the following `plo` program:
       0: @function
       parameter: context
       body: {
-        0: @lookup
-        query: context.program.start_time
+        0: @index
+        object: {
+          0: @lookup
+          key: context
+        }
+        query: {
+          0: program
+          1: start_time
+        }
       }
     }
   }
@@ -269,8 +283,15 @@ Which in turn compiles to the following `plt` program:
       0: @function
       parameter: context
       body: {
-        0: @lookup
-        query: context.program.start_time
+        0: @index
+        object: {
+          0: @lookup
+          key: context
+        }
+        query: {
+          0: program
+          1: start_time
+        }
       }
     }
   }
@@ -283,7 +304,7 @@ Which produces the following runtime output:
 {
   language: Please
   message: "Welcome to Please"
-  now: "2025-01-27T16:06:55.802Z"
+  now: "2025-02-14T18:45:14.168Z"
 }
 ```
 
