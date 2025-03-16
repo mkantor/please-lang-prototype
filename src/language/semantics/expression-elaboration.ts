@@ -4,12 +4,14 @@ import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
-import type { Expression } from './expression.js'
+import { asSemanticGraph } from '../semantics.js'
+import { isExpression, type Expression } from './expression.js'
 import type { KeyPath } from './key-path.js'
 import { isKeyword, type Keyword } from './keyword.js'
 import { makeObjectNode, type ObjectNode } from './object-node.js'
 import {
   extractStringValueIfPossible,
+  serialize,
   updateValueAtKeyPathInSemanticGraph,
   type SemanticGraph,
 } from './semantic-graph.js'
@@ -58,92 +60,105 @@ const elaborateWithinMolecule = (
   molecule: Molecule,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
-  const possibleExpressionAsObjectNode: Writable<ObjectNode> = makeObjectNode(
-    {},
-  )
-  let updatedProgram = context.program
-
-  for (let [key, value] of Object.entries(molecule)) {
-    const keyUpdateResult = handleAtomWhichMayNotBeAKeyword(key)
-    if (either.isLeft(keyUpdateResult)) {
-      // Immediately bail on error.
-      return keyUpdateResult
-    } else {
-      const updatedKey = keyUpdateResult.value
-      if (typeof value === 'string') {
-        possibleExpressionAsObjectNode[updatedKey] = value
-      } else {
-        const elaborationResult = elaborateWithinMolecule(value, {
-          keywordHandlers: context.keywordHandlers,
-          location: [...context.location, key],
-          program: updatedProgram,
-        })
-        if (either.isLeft(elaborationResult)) {
-          // Immediately bail on error.
-          return elaborationResult
-        }
-
-        const programUpdateResult = updateValueAtKeyPathInSemanticGraph(
-          updatedProgram,
-          [...context.location, key],
-          _ => elaborationResult.value,
-        )
-        if (either.isLeft(programUpdateResult)) {
-          // Immediately bail on error.
-          return elaborationResult
-        }
-        updatedProgram = programUpdateResult.value
-        possibleExpressionAsObjectNode[updatedKey] = elaborationResult.value
-      }
-    }
-  }
-
-  const { 0: possibleKeywordAsNode, ...propertiesInNeedOfFinalizationAsNodes } =
-    possibleExpressionAsObjectNode
-
-  // At this point `possibleExpressionAsObjectNode` may still have raw escape sequences at the top
-  // level (whether it is an expression or not).
-  for (let [key, value] of Object.entries(
-    propertiesInNeedOfFinalizationAsNodes,
-  )) {
-    const cannotBeKeyword = extractStringValueIfPossible(value)
-    if (!option.isNone(cannotBeKeyword)) {
-      const valueUpdateResult = handleAtomWhichMayNotBeAKeyword(
-        cannotBeKeyword.value,
-      )
-      if (either.isLeft(valueUpdateResult)) {
-        // Immediately bail on error.
-        return valueUpdateResult
-      } else {
-        const updatedValue = valueUpdateResult.value
-        possibleExpressionAsObjectNode[key] = updatedValue
-      }
-    }
-  }
-
-  const possibleKeyword = possibleExpressionAsObjectNode['0']
-  if (possibleKeyword === undefined) {
-    // The input didn't have a `0` property, so it's not an expression.
-    return either.makeRight(possibleExpressionAsObjectNode)
+  // `@if` needs to be eagerly expanded to avoid evaluating the falsy branch.
+  // TODO: Handle keywords in a generalized way, without hardcoding specific
+  // keywords here.
+  if (isExpression(molecule) && molecule['0'] === '@if') {
+    const expandedResult = either.flatMap(
+      handleObjectNodeWhichMayBeAExpression(makeObjectNode(molecule), context),
+      serialize,
+    )
+    return either.map(expandedResult, asSemanticGraph)
   } else {
-    return option.match(extractStringValueIfPossible(possibleKeyword), {
-      none: () => {
-        // The `0` property was not a string, so it's not an expression.
-        return either.makeRight(possibleExpressionAsObjectNode)
-      },
-      some: possibleKeywordAsString =>
-        handleObjectNodeWhichMayBeAExpression(
-          {
-            ...possibleExpressionAsObjectNode,
-            0: possibleKeywordAsString,
-          },
-          {
+    const possibleExpressionAsObjectNode: Writable<ObjectNode> = makeObjectNode(
+      {},
+    )
+    let updatedProgram = context.program
+
+    for (let [key, value] of Object.entries(molecule)) {
+      const keyUpdateResult = handleAtomWhichMayNotBeAKeyword(key)
+      if (either.isLeft(keyUpdateResult)) {
+        // Immediately bail on error.
+        return keyUpdateResult
+      } else {
+        const updatedKey = keyUpdateResult.value
+        if (typeof value === 'string') {
+          possibleExpressionAsObjectNode[updatedKey] = value
+        } else {
+          const elaborationResult = elaborateWithinMolecule(value, {
             keywordHandlers: context.keywordHandlers,
+            location: [...context.location, key],
             program: updatedProgram,
-            location: context.location,
-          },
-        ),
-    })
+          })
+          if (either.isLeft(elaborationResult)) {
+            // Immediately bail on error.
+            return elaborationResult
+          }
+
+          const programUpdateResult = updateValueAtKeyPathInSemanticGraph(
+            updatedProgram,
+            [...context.location, key],
+            _ => elaborationResult.value,
+          )
+          if (either.isLeft(programUpdateResult)) {
+            // Immediately bail on error.
+            return elaborationResult
+          }
+          updatedProgram = programUpdateResult.value
+          possibleExpressionAsObjectNode[updatedKey] = elaborationResult.value
+        }
+      }
+    }
+
+    const {
+      0: possibleKeywordAsNode,
+      ...propertiesInNeedOfFinalizationAsNodes
+    } = possibleExpressionAsObjectNode
+
+    // At this point `possibleExpressionAsObjectNode` may still have raw escape sequences at the top
+    // level (whether it is an expression or not).
+    for (let [key, value] of Object.entries(
+      propertiesInNeedOfFinalizationAsNodes,
+    )) {
+      const cannotBeKeyword = extractStringValueIfPossible(value)
+      if (!option.isNone(cannotBeKeyword)) {
+        const valueUpdateResult = handleAtomWhichMayNotBeAKeyword(
+          cannotBeKeyword.value,
+        )
+        if (either.isLeft(valueUpdateResult)) {
+          // Immediately bail on error.
+          return valueUpdateResult
+        } else {
+          const updatedValue = valueUpdateResult.value
+          possibleExpressionAsObjectNode[key] = updatedValue
+        }
+      }
+    }
+
+    const possibleKeyword = possibleExpressionAsObjectNode['0']
+    if (possibleKeyword === undefined) {
+      // The input didn't have a `0` property, so it's not an expression.
+      return either.makeRight(possibleExpressionAsObjectNode)
+    } else {
+      return option.match(extractStringValueIfPossible(possibleKeyword), {
+        none: () => {
+          // The `0` property was not a string, so it's not an expression.
+          return either.makeRight(possibleExpressionAsObjectNode)
+        },
+        some: possibleKeywordAsString =>
+          handleObjectNodeWhichMayBeAExpression(
+            {
+              ...possibleExpressionAsObjectNode,
+              0: possibleKeywordAsString,
+            },
+            {
+              keywordHandlers: context.keywordHandlers,
+              program: updatedProgram,
+              location: context.location,
+            },
+          ),
+      })
+    }
   }
 }
 
