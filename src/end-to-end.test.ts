@@ -27,6 +27,22 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{a,1:overwritten,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{overwritten,0:a,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{@check type:true value:true}', either.makeRight('true')],
+  [
+    '{@panic}',
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'panic')
+    },
+  ],
+  [
+    '{@runtime _ => {@panic}}',
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'panic')
+    },
+  ],
   ['{a:A b:{@lookup a}}', either.makeRight({ a: 'A', b: 'A' })],
   ['{a:A b: :a}', either.makeRight({ a: 'A', b: 'A' })],
   ['{a:A {@lookup a}}', either.makeRight({ a: 'A', 0: 'A' })],

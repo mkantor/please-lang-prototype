@@ -4,6 +4,7 @@ import { checkKeywordHandler } from './keyword-handlers/check-handler.js'
 import { functionKeywordHandler } from './keyword-handlers/function-handler.js'
 import { indexKeywordHandler } from './keyword-handlers/index-handler.js'
 import { lookupKeywordHandler } from './keyword-handlers/lookup-handler.js'
+import { panicKeywordHandler } from './keyword-handlers/panic-handler.js'
 import { runtimeKeywordHandler } from './keyword-handlers/runtime-handler.js'
 import { todoKeywordHandler } from './keyword-handlers/todo-handler.js'
 
@@ -32,6 +33,11 @@ export const keywordHandlers: KeywordHandlers = {
    * Gets the value of a property with the given key (using lexical scoping).
    */
   '@lookup': lookupKeywordHandler,
+
+  /**
+   * Immediately terminates the process when evaluated.
+   */
+  '@panic': panicKeywordHandler,
 
   /**
    * Defers evaluation until runtime.
