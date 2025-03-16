@@ -1,5 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
-import { parseArgs } from 'util'
+import { parseArgs } from 'node:util'
 import { type JsonValueForbiddingSymbolicKeys } from '../parsing.js'
 
 export type InvalidJsonError = {
