@@ -4,6 +4,7 @@ export const isKeyword = (input: string) =>
   input === '@function' ||
   input === '@index' ||
   input === '@lookup' ||
+  input === '@panic' ||
   input === '@runtime' ||
   input === '@todo'
 
