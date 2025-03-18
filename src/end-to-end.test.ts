@@ -273,4 +273,18 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }`,
     either.makeRight('it works!'),
   ],
+  [
+    `{
+      fibonacci: n => {@if :integer.less_than(2)(:n)
+        then: :n
+        else: :integer.add(
+          :fibonacci(:integer.subtract(2)(:n))
+        )(
+          :fibonacci(:integer.subtract(1)(:n))
+        )
+      }
+      result: :fibonacci(10)
+    }.result`,
+    either.makeRight('55'),
+  ],
 ])

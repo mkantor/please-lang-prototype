@@ -43,9 +43,17 @@ const apply = (
   const parameter = expression.parameter
   const body = asSemanticGraph(expression.body)
 
+  const ownKey = context.location[context.location.length - 1]
+  if (ownKey === undefined) {
+    return either.makeLeft({
+      kind: 'panic',
+      message: 'function had no location',
+    })
+  }
+
   // TODO: Make this foolproof.
   const returnKey =
-    parameter === 'return'
+    parameter === 'return' || ownKey === 'return'
       ? 'return with a different key to avoid collision with a stupidly-named parameter'
       : 'return'
 
@@ -56,6 +64,17 @@ const apply = (
         context.location,
         _ =>
           makeObjectNode({
+            // Include the function itself to allow recursion.
+            [ownKey]: makeFunctionNode(
+              {
+                // TODO
+                parameter: types.something,
+                return: types.something,
+              },
+              () => either.makeRight(expression),
+              option.makeSome(parameter),
+              argument => apply(expression, argument, context),
+            ),
             // Put the argument in scope.
             [expression.parameter]: argument,
             [returnKey]: body,
