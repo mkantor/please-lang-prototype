@@ -153,7 +153,8 @@ keyword expressions.
 Under the hood, keyword expressions are modeled as objects. For example, `:foo`
 desugars to `{@lookup key: foo}`. All such expressions have a key `0` referring
 to a value that is an `@`-prefixed atom (the keyword). Keywords include
-`@function`, `@lookup`, `@apply`, `@check`, `@index`, `@panic`, and `@runtime`.
+`@function`, `@lookup`, `@apply`, `@check`, `@index`, `@if`, `@panic`, and
+`@runtime`.
 
 Currently only `@function`, `@lookup`, `@index`, and `@apply` have syntax
 sugars.
