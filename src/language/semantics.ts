@@ -28,6 +28,11 @@ export {
   type FunctionExpression,
 } from './semantics/expressions/function-expression.js'
 export {
+  makeIfExpression,
+  readIfExpression,
+  type IfExpression,
+} from './semantics/expressions/if-expression.js'
+export {
   makeIndexExpression,
   readIndexExpression,
   type IndexExpression,

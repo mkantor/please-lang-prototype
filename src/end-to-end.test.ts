@@ -264,4 +264,13 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }`,
     either.makeRight({ true: 'true', false: 'false' }),
   ],
+  [
+    `{@runtime context =>
+      {@if :boolean.not(:boolean.is(:context))
+        "it works!"
+        {@panic}
+      }
+    }`,
+    either.makeRight('it works!'),
+  ],
 ])

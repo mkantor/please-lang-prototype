@@ -2,6 +2,7 @@ import { type KeywordHandlers } from '../../semantics.js'
 import { applyKeywordHandler } from './keyword-handlers/apply-handler.js'
 import { checkKeywordHandler } from './keyword-handlers/check-handler.js'
 import { functionKeywordHandler } from './keyword-handlers/function-handler.js'
+import { ifKeywordHandler } from './keyword-handlers/if-handler.js'
 import { indexKeywordHandler } from './keyword-handlers/index-handler.js'
 import { lookupKeywordHandler } from './keyword-handlers/lookup-handler.js'
 import { panicKeywordHandler } from './keyword-handlers/panic-handler.js'
@@ -23,6 +24,11 @@ export const keywordHandlers: KeywordHandlers = {
    * Creates a function.
    */
   '@function': functionKeywordHandler,
+
+  /**
+   * Conditionally evaluates one of two expressions based on a boolean value.
+   */
+  '@if': ifKeywordHandler,
 
   /**
    * Returns the value of a property within an object.
