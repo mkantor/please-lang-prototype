@@ -70,10 +70,22 @@ Objects are maps of key/value pairs ("properties"), where keys must be atoms:
 { greeting: "Hello, World!" }
 ```
 
-Object properties without explicitly-written keys are automatically enumerated:
+Properties are delimited by whitespace and/or commas:
 
 ```
-{ Hello World } // is the same as { 0: Hello, 1: World }
+// These all mean the same thing:
+{
+  a: 1
+  b: 2
+}
+{ a: 1, b: 2 }
+{ a: 1 b: 2 }
+```
+
+Properties without explicitly-written keys are automatically enumerated:
+
+```
+{ a b } // is the same as { 0: a, 1: b }
 ```
 
 #### Lookups
