@@ -12,6 +12,8 @@ npm run build
 echo '{@runtime context => :context.program.start_time}' | ./please --output-format=json
 ```
 
+There are more example programs in [`./examples`](./examples).
+
 ## What This Repository Is
 
 **This implementation of Please is a proof of concept**. There are bugs and

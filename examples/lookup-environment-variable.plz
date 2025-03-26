@@ -1,0 +1,15 @@
+{@runtime context =>
+  :flow({
+    :context.arguments.lookup
+    :match({
+      none: {}
+      some: :flow({
+        :context.environment.lookup
+        :match({
+          none: {}
+          some: :identity
+        })
+      })
+    })
+  })(variable)
+}

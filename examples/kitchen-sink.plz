@@ -1,0 +1,13 @@
+{
+  // a comment
+  foo: bar
+  bar: :foo
+  sky_is_blue: :boolean.not(false)
+  colors: { red green blue }
+  two: :integer.add(1)(1)
+  add_one: :integer.add(1)
+  three: :add_one(:two)
+  function: x => { value: :x }
+  conditional_value: :function({ @if :sky_is_blue :two :three })
+  side_effect: { @runtime context => :context.log("this goes to stderr") }
+}
