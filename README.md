@@ -70,10 +70,22 @@ Objects are maps of key/value pairs ("properties"), where keys must be atoms:
 { greeting: "Hello, World!" }
 ```
 
-Object properties without explicitly-written keys are automatically enumerated:
+Properties are delimited by whitespace and/or commas:
 
 ```
-{ Hello World } // is the same as { 0: Hello, 1: World }
+// These all mean the same thing:
+{
+  a: 1
+  b: 2
+}
+{ a: 1, b: 2 }
+{ a: 1 b: 2 }
+```
+
+Properties without explicitly-written keys are automatically enumerated:
+
+```
+{ a b } // is the same as { 0: a, 1: b }
 ```
 
 #### Lookups
@@ -153,7 +165,7 @@ keyword expressions.
 Under the hood, keyword expressions are modeled as objects. For example, `:foo`
 desugars to `{@lookup key: foo}`. All such expressions have a key `0` referring
 to a value that is an `@`-prefixed atom (the keyword). Keywords include
-`@function`, `@lookup`, `@apply`, `@check`, `@index`, `@if`, `@panic`, and
+`@apply`, `@check`, `@function`, `@if`, `@index`, `@lookup`, `@panic`, and
 `@runtime`.
 
 Currently only `@function`, `@lookup`, `@index`, and `@apply` have syntax
