@@ -1,16 +1,15 @@
 import either from '@matt.kantor/either'
+import kleur from 'kleur'
 import type { Atom, Molecule } from '../parsing.js'
 import {
-  closeBrace,
-  comma,
   moleculeAsKeyValuePairStrings,
   moleculeUnparser,
-  openBrace,
   unparseAtom,
 } from './plz-utilities.js'
-import type { Notation } from './unparsing-utilities.js'
+import { punctuation, type Notation } from './unparsing-utilities.js'
 
 const unparseSugarFreeMolecule = (value: Molecule) => {
+  const { comma, closeBrace, openBrace } = punctuation(kleur)
   if (Object.keys(value).length === 0) {
     return either.makeRight(openBrace + closeBrace)
   } else {
