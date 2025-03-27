@@ -1,4 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
+import kleur from 'kleur'
 import { parseArgs } from 'node:util'
 import { type SyntaxTree } from '../parsing/syntax-tree.js'
 import {
@@ -17,9 +18,17 @@ export const handleOutput = async (
     args: process.argv.slice(2), // remove `execPath` and `filename`
     strict: false,
     options: {
+      'no-color': { type: 'boolean' },
       'output-format': { type: 'string' },
     },
   })
+
+  const noColorArg = args.values['no-color'] ?? false
+  if (typeof noColorArg !== 'boolean') {
+    throw new Error('Unsupported value for --no-color')
+  } else if (noColorArg === true) {
+    kleur.enabled = false
+  }
 
   const outputFormatArg = args.values['output-format']
   let notation: Notation
