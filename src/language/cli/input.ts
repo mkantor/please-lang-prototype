@@ -18,6 +18,10 @@ export const handleInput = async <Result>(
       'input-format': { type: 'string' },
     },
   })
+
+  // Only JSON is supported currently. `--input-format` isn't really necessary
+  // right now, but requiring it ensures forwards-compatibility of scripts when
+  // other formats are added.
   if (args.values['input-format'] === undefined) {
     throw new Error('Missing required option: --input-format')
   } else if (args.values['input-format'] !== 'json') {
