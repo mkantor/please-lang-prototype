@@ -228,6 +228,24 @@ export const prelude: ObjectNode = makeObjectNode({
           ),
         ),
     ),
+    is: preludeFunction(
+      ['integer', 'is'],
+      {
+        parameter: types.something,
+        return: types.boolean,
+      },
+      argument =>
+        either.makeRight(
+          typeof argument === 'string' &&
+            types.integer.isAssignableFrom({
+              name: '',
+              kind: 'union',
+              members: new Set([argument]),
+            })
+            ? 'true'
+            : 'false',
+        ),
+    ),
     less_than: preludeFunction(
       ['integer', 'less_than'],
       {
