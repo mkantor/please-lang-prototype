@@ -12,7 +12,10 @@ const pleasePath = path.join(
 )
 
 suite('examples', async () => {
-  for (const exampleFileName of await fs.readdir(exampleDirectoryPath)) {
+  const exampleFileNames = (await fs.readdir(exampleDirectoryPath)).filter(
+    fileName => fileName.endsWith('.plz'),
+  )
+  for (const exampleFileName of exampleFileNames) {
     const exampleFilePath = path.join(exampleDirectoryPath, exampleFileName)
     // TODO: Use snapshot testing instead of merely checking for errors.
     test(
