@@ -467,6 +467,24 @@ export const prelude: ObjectNode = makeObjectNode({
           ),
         ),
     ),
+    is: preludeFunction(
+      ['natural_number', 'is'],
+      {
+        parameter: types.something,
+        return: types.boolean,
+      },
+      argument =>
+        either.makeRight(
+          typeof argument === 'string' &&
+            types.naturalNumber.isAssignableFrom({
+              name: '',
+              kind: 'union',
+              members: new Set([argument]),
+            })
+            ? 'true'
+            : 'false',
+        ),
+    ),
   }),
 
   object: makeObjectNode({
