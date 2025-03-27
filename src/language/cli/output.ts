@@ -1,4 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
+import kleur from 'kleur'
 import { parseArgs } from 'node:util'
 import { type SyntaxTree } from '../parsing/syntax-tree.js'
 import {
@@ -17,35 +18,42 @@ export const handleOutput = async (
     args: process.argv.slice(2), // remove `execPath` and `filename`
     strict: false,
     options: {
+      'no-color': { type: 'boolean' },
       'output-format': { type: 'string' },
     },
   })
-  const outputFormat = args.values['output-format']
-  if (outputFormat === undefined) {
-    throw new Error('Missing required option: --output-format')
-  } else {
-    let notation: Notation
-    if (outputFormat === 'json') {
-      notation = prettyJson
-    } else if (outputFormat === 'plz') {
-      notation = prettyPlz
-    } else if (outputFormat === 'sugar-free-plz') {
-      notation = sugarFreePrettyPlz
-    } else {
-      throw new Error(`Unsupported output format: "${outputFormat}"`)
-    }
 
-    const result = await command()
-    return either.match(result, {
-      left: error => {
-        throw new Error(error.message) // TODO: Improve error reporting.
-      },
-      right: output => {
-        writeOutput(process.stdout, notation, output)
-        return undefined
-      },
-    })
+  const noColorArg = args.values['no-color'] ?? false
+  if (typeof noColorArg !== 'boolean') {
+    throw new Error('Unsupported value for --no-color')
+  } else if (noColorArg === true) {
+    kleur.enabled = false
   }
+
+  const outputFormatArg = args.values['output-format']
+  let notation: Notation
+  if (outputFormatArg === undefined) {
+    throw new Error('Missing required option: --output-format')
+  } else if (outputFormatArg === 'json') {
+    notation = prettyJson
+  } else if (outputFormatArg === 'plz') {
+    notation = prettyPlz
+  } else if (outputFormatArg === 'sugar-free-plz') {
+    notation = sugarFreePrettyPlz
+  } else {
+    throw new Error(`Unsupported output format: "${outputFormatArg}"`)
+  }
+
+  const result = await command()
+  return either.match(result, {
+    left: error => {
+      throw new Error(error.message) // TODO: Improve error reporting.
+    },
+    right: output => {
+      writeOutput(process.stdout, notation, output)
+      return undefined
+    },
+  })
 }
 
 export const writeOutput = (

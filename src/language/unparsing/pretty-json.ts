@@ -2,22 +2,19 @@ import type { Right } from '@matt.kantor/either'
 import either from '@matt.kantor/either'
 import kleur from 'kleur'
 import type { Atom, Molecule } from '../parsing.js'
-import { indent, type Notation } from './unparsing-utilities.js'
-
-const quote = kleur.dim('"')
-const colon = kleur.dim(':')
-const comma = kleur.dim(',')
-const openBrace = kleur.dim('{')
-const closeBrace = kleur.dim('}')
+import { indent, punctuation, type Notation } from './unparsing-utilities.js'
 
 const escapeStringContents = (value: string) =>
   value.replace('\\', '\\\\').replace('"', '\\"')
 
-const key = (value: Atom): string =>
-  quote.concat(kleur.bold(escapeStringContents(value))).concat(quote)
+const key = (value: Atom): string => {
+  const { quote } = punctuation(kleur)
+  return quote.concat(kleur.bold(escapeStringContents(value))).concat(quote)
+}
 
-const unparseAtom = (value: Atom): Right<string> =>
-  either.makeRight(
+const unparseAtom = (value: Atom): Right<string> => {
+  const { quote } = punctuation(kleur)
+  return either.makeRight(
     quote.concat(
       escapeStringContents(
         /^@[^@]/.test(value) ? kleur.bold(kleur.underline(value)) : value,
@@ -25,8 +22,10 @@ const unparseAtom = (value: Atom): Right<string> =>
       quote,
     ),
   )
+}
 
 const unparseMolecule = (value: Molecule): Right<string> => {
+  const { closeBrace, colon, comma, openBrace } = punctuation(kleur)
   const entries = Object.entries(value)
   if (entries.length === 0) {
     return either.makeRight(openBrace.concat(closeBrace))

@@ -18,16 +18,7 @@ import {
   type LookupExpression,
   type SemanticGraph,
 } from '../semantics.js'
-
-export const dot = kleur.dim('.')
-export const quote = kleur.dim('"')
-export const colon = kleur.dim(':')
-export const comma = kleur.dim(',')
-export const openBrace = kleur.dim('{')
-export const closeBrace = kleur.dim('}')
-export const openParenthesis = kleur.dim('(')
-export const closeParenthesis = kleur.dim(')')
-export const arrow = kleur.dim('=>')
+import { punctuation } from './unparsing-utilities.js'
 
 export const moleculeUnparser =
   (
@@ -73,6 +64,7 @@ export const moleculeAsKeyValuePairStrings = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
   options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
+  const { colon } = punctuation(kleur)
   const entries = Object.entries(value)
 
   const keyValuePairsAsStrings: string[] = []
@@ -110,6 +102,7 @@ export const unparseAtom = (atom: string): Right<string> =>
   )
 
 const quoteAtomIfNecessary = (value: string): string => {
+  const { quote } = punctuation(kleur)
   const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
   if (either.isLeft(unquotedAtomResult)) {
     return quote.concat(escapeStringContents(value)).concat(quote)
@@ -119,6 +112,7 @@ const quoteAtomIfNecessary = (value: string): string => {
 }
 
 const quoteKeyPathComponentIfNecessary = (value: string): string => {
+  const { quote } = punctuation(kleur)
   const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
   if (either.isLeft(unquotedAtomResult) || value.includes('.')) {
     return quote.concat(escapeStringContents(value)).concat(quote)
@@ -145,6 +139,7 @@ const unparseSugaredApply = (
   expression: ApplyExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
+  const { closeParenthesis, openParenthesis } = punctuation(kleur)
   const functionUnparseResult = either.map(
     either.flatMap(
       serializeIfNeeded(expression.function),
@@ -182,7 +177,11 @@ const unparseSugaredFunction = (
 ) =>
   either.flatMap(serializeIfNeeded(expression.body), serializedBody =>
     either.map(unparseAtomOrMolecule(serializedBody), bodyAsString =>
-      [kleur.cyan(expression.parameter), arrow, bodyAsString].join(' '),
+      [
+        kleur.cyan(expression.parameter),
+        punctuation(kleur).arrow,
+        bodyAsString,
+      ].join(' '),
     ),
   )
 
@@ -223,6 +222,8 @@ const unparseSugaredIndex = (
     })
   }
 
+  const { dot } = punctuation(kleur)
+
   return either.makeRight(
     objectUnparseResult.value
       .concat(dot)
@@ -235,5 +236,9 @@ const unparseSugaredLookup = (
   _unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) =>
   either.makeRight(
-    kleur.cyan(colon.concat(quoteKeyPathComponentIfNecessary(expression.key))),
+    kleur.cyan(
+      punctuation(kleur).colon.concat(
+        quoteKeyPathComponentIfNecessary(expression.key),
+      ),
+    ),
   )
