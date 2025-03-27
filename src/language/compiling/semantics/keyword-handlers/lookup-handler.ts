@@ -68,7 +68,7 @@ const lookup = ({
           left: _ =>
             // Lookups should not resolve to expression properties.
             // For example the value of the lookup expression in `a => :parameter` (which desugars
-            // to `{@function parameter: a, body: {@lookup key: parameter}}`) should not be `a`.
+            // to `{@function, parameter: a, body: {@lookup, key: parameter}}`) should not be `a`.
             isExpression(scope)
               ? option.none
               : applyKeyPathToSemanticGraph(scope, [key]),

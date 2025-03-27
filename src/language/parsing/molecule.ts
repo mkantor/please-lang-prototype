@@ -21,11 +21,12 @@ import {
   colon,
   comma,
   dot,
+  newline,
   openingBrace,
   openingParenthesis,
 } from './literals.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
-import { optionalTrivia, trivia } from './trivia.js'
+import { optionalTrivia, trivia, triviaExceptNewlines } from './trivia.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
@@ -66,7 +67,7 @@ const property = (index: Indexer) =>
 
 const propertyDelimiter = oneOf([
   sequence([optionalTrivia, comma, optionalTrivia]),
-  trivia,
+  sequence([optional(triviaExceptNewlines), newline, optionalTrivia]),
 ])
 
 const argument = map(
@@ -97,6 +98,7 @@ const moleculeAsEntries = (
   map(
     sequence([
       openingBrace,
+      optional(trivia),
       // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
       optional(property(index)),
       zeroOrMore(
@@ -106,13 +108,16 @@ const moleculeAsEntries = (
         ),
       ),
       optional(propertyDelimiter),
+      optional(trivia),
       closingBrace,
     ]),
     ([
       _openingBrace,
+      _optionalLeadingTrivia,
       optionalInitialProperty,
       remainingProperties,
-      _delimiter,
+      _optionalDelimiter,
+      _optionalTrailingTrivia,
       _closingBrace,
     ]) =>
       optionalInitialProperty === undefined

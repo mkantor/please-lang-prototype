@@ -1,6 +1,6 @@
 {
   fibonacci: n => {
-    @if :integer.less_than(2)(:n)
+    @if, :integer.less_than(2)(:n)
     then: :n
     else: :integer.add(
       :fibonacci(:integer.subtract(2)(:n))
@@ -9,13 +9,13 @@
     )
   }
 
-  input: { @runtime context => :context.arguments.lookup(input) }
+  input: { @runtime, context => :context.arguments.lookup(input) }
 
   output: :apply(:input)(
     :match({
       none: _ => "missing input argument"
       some: input => {
-        @if :natural_number.is(:input)
+        @if, :natural_number.is(:input)
         then: :fibonacci(:input)
         else: "input must be a natural number"
       }
