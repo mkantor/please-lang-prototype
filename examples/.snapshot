@@ -1,0 +1,100 @@
+exports[`examples > fibonacci.plz --input="not a number" > stderr 1`] = `
+
+`;
+
+exports[`examples > fibonacci.plz --input="not a number" > stdout 1`] = `
+"input must be a natural number"
+
+`;
+
+exports[`examples > fibonacci.plz --input=-1 > stderr 1`] = `
+
+`;
+
+exports[`examples > fibonacci.plz --input=-1 > stdout 1`] = `
+"input must be a natural number"
+
+`;
+
+exports[`examples > fibonacci.plz --input=0 > stderr 1`] = `
+
+`;
+
+exports[`examples > fibonacci.plz --input=0 > stdout 1`] = `
+0
+
+`;
+
+exports[`examples > fibonacci.plz --input=1 > stderr 1`] = `
+
+`;
+
+exports[`examples > fibonacci.plz --input=1 > stdout 1`] = `
+1
+
+`;
+
+exports[`examples > fibonacci.plz --input=10 > stderr 1`] = `
+
+`;
+
+exports[`examples > fibonacci.plz --input=10 > stdout 1`] = `
+55
+
+`;
+
+exports[`examples > fibonacci.plz --input=2 > stderr 1`] = `
+
+`;
+
+exports[`examples > fibonacci.plz --input=2 > stdout 1`] = `
+1
+
+`;
+
+exports[`examples > fibonacci.plz > stderr 1`] = `
+
+`;
+
+exports[`examples > fibonacci.plz > stdout 1`] = `
+"missing input argument"
+
+`;
+
+exports[`examples > kitchen-sink.plz > stderr 1`] = `
+"this goes to stderr"
+
+`;
+
+exports[`examples > kitchen-sink.plz > stdout 1`] = `
+{
+  foo: bar
+  bar: bar
+  sky_is_blue: true
+  colors: {
+    red
+    green
+    blue
+  }
+  two: 2
+  add_one: :integer.add(1)
+  three: 3
+  function: x => {
+    value: :x
+  }
+  conditional_value: {
+    value: 2
+  }
+  side_effect: "this goes to stderr"
+}
+
+`;
+
+exports[`examples > lookup-environment-variable.plz > stderr 1`] = `
+
+`;
+
+exports[`examples > lookup-environment-variable.plz > stdout 1`] = `
+{}
+
+`;
