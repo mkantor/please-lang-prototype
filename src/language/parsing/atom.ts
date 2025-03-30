@@ -48,24 +48,22 @@ export const atomWithAdditionalQuotationRequirements = (
   additionalQuoteRequiringComponent: Parser<unknown>,
 ) =>
   optionallySurroundedByParentheses(
-    lazy(() =>
-      oneOf([
-        map(
-          oneOrMore(
-            butNot(
-              anySingleCharacter,
-              oneOf([
-                ...atomComponentsRequiringQuotation,
-                additionalQuoteRequiringComponent,
-              ]),
-              'a character sequence requiring quotation',
-            ),
+    oneOf([
+      map(
+        oneOrMore(
+          butNot(
+            anySingleCharacter,
+            oneOf([
+              ...atomComponentsRequiringQuotation,
+              additionalQuoteRequiringComponent,
+            ]),
+            'a character sequence requiring quotation',
           ),
-          characters => characters.join(''),
         ),
-        quotedAtomParser,
-      ]),
-    ),
+        characters => characters.join(''),
+      ),
+      quotedAtomParser,
+    ]),
   )
 
 export const unquotedAtomParser = map(
