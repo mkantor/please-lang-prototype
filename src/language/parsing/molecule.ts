@@ -20,10 +20,6 @@ import { trivia } from './trivia.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
-export const moleculeParser: Parser<Molecule> = lazy(
-  () => potentiallySugaredMolecule,
-)
-
 // Keyless properties are automatically assigned numeric indexes, which uses some mutable state.
 type Indexer = () => string
 const makeIncrementingIndexer = (): Indexer => {
@@ -210,3 +206,5 @@ const potentiallySugaredMolecule: Parser<Molecule> = (() => {
     potentiallySugaredNonApply,
   ])
 })()
+
+export const moleculeParser: Parser<Molecule> = potentiallySugaredMolecule

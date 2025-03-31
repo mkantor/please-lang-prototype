@@ -3,13 +3,12 @@ import {
   anySingleCharacter,
   as,
   butNot,
-  lazy,
   literal,
   map,
   oneOf,
   oneOrMore,
   sequence,
-  zeroOrMore,
+  zeroOrMore
 } from '@matt.kantor/parsing'
 import { optionallySurroundedByParentheses } from './parentheses.js'
 import { whitespace } from './trivia.js'
@@ -40,9 +39,6 @@ const atomComponentsRequiringQuotation = [
   literal('*/'),
 ] as const
 
-export const atomParser: Parser<Atom> = optionallySurroundedByParentheses(
-  lazy(() => oneOf([unquotedAtomParser, quotedAtomParser])),
-)
 
 export const atomWithAdditionalQuotationRequirements = (
   additionalQuoteRequiringComponent: Parser<unknown>,
@@ -98,4 +94,8 @@ const quotedAtomParser = map(
     literal('"'),
   ]),
   ([_1, contents, _2]) => contents,
+)
+
+export const atomParser: Parser<Atom> = optionallySurroundedByParentheses(
+  oneOf([unquotedAtomParser, quotedAtomParser]),
 )
