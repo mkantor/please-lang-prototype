@@ -26,7 +26,7 @@ const singleLineComment = sequence([
   zeroOrMore(butNot(anySingleCharacter, literal('\n'), 'newline')),
 ])
 
-export const whitespace = regularExpression(/\s+/)
+export const whitespace = regularExpression(/^\s+/)
 
 export const trivia = oneOrMore(
   oneOf([whitespace, singleLineComment, blockComment]),
