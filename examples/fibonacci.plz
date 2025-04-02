@@ -1,24 +1,23 @@
 {
   fibonacci: n => {
-    @if, :integer.less_than(2)(:n)
+    @if
+    condition: :n < 2
     then: :n
-    else: :integer.add(
-      :fibonacci(:integer.subtract(2)(:n))
-    )(
-      :fibonacci(:integer.subtract(1)(:n))
-    )
+    else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
   }
 
-  input: { @runtime, context => :context.arguments.lookup(input) }
+  input: {
+    @runtime
+    context => :context.arguments.lookup(input)
+  }
 
-  output: :apply(:input)(
-    :match({
-      none: _ => "missing input argument"
-      some: input => {
-        @if, :natural_number.is(:input)
-        then: :fibonacci(:input)
-        else: "input must be a natural number"
-      }
-    })
-  )
+  output: :input match {
+    none: _ => "missing input argument"
+    some: input => {
+      @if
+      condition: :natural_number.is(:input)
+      then: :fibonacci(:input)
+      else: "input must be a natural number"
+    }
+  }
 }.output

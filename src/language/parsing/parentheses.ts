@@ -20,3 +20,18 @@ export const optionallySurroundedByParentheses = <Output>(
     theParser,
     sequence([optionalTrivia, closingParenthesis]),
   )
+
+export const surroundedByParentheses = <Output>(
+  theParser: Parser<Output>,
+): Parser<Output> =>
+  map(
+    sequence([
+      openingParenthesis,
+      optionalTrivia,
+      theParser,
+      optionalTrivia,
+      closingParenthesis,
+    ]),
+    ([_openParenthesis, _trivia1, output, _trivia2, _closeParenthesis]) =>
+      output,
+  )

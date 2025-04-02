@@ -1,11 +1,5 @@
 import option, { type Option } from '@matt.kantor/option'
-import {
-  map,
-  oneOf,
-  sequence,
-  zeroOrMore,
-  type Parser,
-} from '@matt.kantor/parsing'
+import { map, nothing, oneOf, sequence, type Parser } from '@matt.kantor/parsing'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type {
   JsonArray,
@@ -82,11 +76,9 @@ type JsonRecordForbiddingSymbolicKeys = {
   readonly [key: symbol]: undefined
 }>
 
+const optionalTrivia = oneOf([trivia, nothing])
+
 export const syntaxTreeParser: Parser<SyntaxTree> = map(
-  sequence([
-    zeroOrMore(trivia),
-    oneOf([atomParser, moleculeParser]),
-    zeroOrMore(trivia),
-  ]),
+  sequence([optionalTrivia, oneOf([moleculeParser, atomParser]), optionalTrivia]),
   ([_leadingTrivia, syntaxTree, _trailingTrivia]) => canonicalize(syntaxTree),
 )
