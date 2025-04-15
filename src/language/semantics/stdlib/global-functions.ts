@@ -5,19 +5,18 @@ import { isFunctionNode, makeFunctionNode } from '../function-node.js'
 import {
   isObjectNode,
   lookupPropertyOfObjectNode,
-  makeObjectNode,
   type ObjectNode,
 } from '../object-node.js'
 import { isSemanticGraph, type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import {
   makeFunctionType,
-  makeObjectType,
   makeTypeParameter,
 } from '../type-system/type-formats.js'
 import {
   preludeFunction,
   serializeOnceAppliedFunction,
+  serializeTwiceAppliedFunction,
 } from './stdlib-utilities.js'
 
 const A = makeTypeParameter('a', { assignableTo: types.something })
@@ -75,66 +74,58 @@ export const globalFunctions = {
       ),
   ),
 
-  // { 0: a => b, 1: b => c } => (a => c)
+  // (b => c) => (a => b) => (a => c)
   flow: preludeFunction(
     ['flow'],
     {
-      parameter: makeObjectType('', {
-        0: makeFunctionType('', {
-          parameter: A,
-          return: B,
-        }),
-        1: makeFunctionType('', {
-          parameter: B,
-          return: C,
-        }),
-      }),
-      return: makeFunctionType('', {
-        parameter: A,
-        return: C,
-      }),
+      // TODO
+      parameter: types.something,
+      return: types.something,
     },
-    argument => {
-      if (!isObjectNode(argument)) {
+    secondFunction => {
+      if (!isFunctionNode(secondFunction)) {
         return either.makeLeft({
           kind: 'panic',
-          message: '`flow` must be given an object',
+          message: 'argument must be a function',
         })
       } else {
-        const argument0 = lookupPropertyOfObjectNode('0', argument)
-        const argument1 = lookupPropertyOfObjectNode('1', argument)
-        if (option.isNone(argument0) || option.isNone(argument1)) {
-          return either.makeLeft({
-            kind: 'panic',
-            message:
-              "`flow`'s argument must contain properties named '0' and '1'",
-          })
-        } else if (
-          !isFunctionNode(argument0.value) ||
-          !isFunctionNode(argument1.value)
-        ) {
-          return either.makeLeft({
-            kind: 'panic',
-            message: "`flow`'s argument must contain functions",
-          })
-        } else {
-          const function0 = argument0.value
-          const function1 = argument1.value
-          return either.makeRight(
-            makeFunctionNode(
-              {
-                parameter: function0.signature.parameter,
-                return: function1.signature.parameter,
-              },
-              serializeOnceAppliedFunction(
-                ['flow'],
-                makeObjectNode({ 0: function0, 1: function1 }),
-              ),
-              option.none,
-              argument => either.flatMap(function0(argument), function1),
-            ),
-          )
-        }
+        return either.makeRight(
+          makeFunctionNode(
+            {
+              // TODO
+              parameter: types.something,
+              return: types.something,
+            },
+            serializeOnceAppliedFunction(['flow'], secondFunction),
+            option.none,
+            firstFunction => {
+              if (!isFunctionNode(firstFunction)) {
+                return either.makeLeft({
+                  kind: 'panic',
+                  message: 'argument must be a function',
+                })
+              } else {
+                return either.makeRight(
+                  makeFunctionNode(
+                    {
+                      // TODO
+                      parameter: types.something,
+                      return: types.something,
+                    },
+                    serializeTwiceAppliedFunction(
+                      ['flow'],
+                      secondFunction,
+                      firstFunction,
+                    ),
+                    option.none,
+                    argument =>
+                      either.flatMap(firstFunction(argument), secondFunction),
+                  ),
+                )
+              }
+            },
+          ),
+        )
       }
     },
   ),
