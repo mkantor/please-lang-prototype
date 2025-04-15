@@ -8,37 +8,53 @@ import {
   oneOf,
   oneOrMore,
   sequence,
-  zeroOrMore
+  zeroOrMore,
 } from '@matt.kantor/parsing'
+import {
+  backslash,
+  closingBlockCommentDelimiter,
+  closingBrace,
+  closingParenthesis,
+  colon,
+  comma,
+  escapedBackslash,
+  escapedQuote,
+  openingBlockCommentDelimiter,
+  openingBrace,
+  openingParenthesis,
+  quote,
+  singleLineCommentDelimiter,
+} from './literals.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
 import { whitespace } from './trivia.js'
 
 export type Atom = string
 
 const atomComponentsRequiringQuotation = [
+  backslash,
+  closingBlockCommentDelimiter,
+  closingBrace,
+  closingParenthesis,
+  colon,
+  comma,
+  openingBlockCommentDelimiter,
+  openingBrace,
+  openingParenthesis,
+  quote,
+  singleLineCommentDelimiter,
   whitespace,
-  literal('"'),
-  literal('{'),
-  literal('}'),
+
+  // Reserved for future use:
   literal('['),
   literal(']'),
-  literal('('),
-  literal(')'),
   literal('<'),
   literal('>'),
   literal('#'),
   literal('&'),
   literal('|'),
-  literal('\\'),
   literal('='),
-  literal(':'),
   literal(';'),
-  literal(','),
-  literal('//'),
-  literal('/*'),
-  literal('*/'),
 ] as const
-
 
 export const atomWithAdditionalQuotationRequirements = (
   additionalQuoteRequiringComponent: Parser<unknown>,
@@ -75,23 +91,19 @@ export const unquotedAtomParser = map(
 
 const quotedAtomParser = map(
   sequence([
-    literal('"'),
+    quote,
     map(
       zeroOrMore(
         oneOf([
           // `"` and `\` need to be escaped
-          butNot(
-            anySingleCharacter,
-            oneOf([literal('"'), literal('\\')]),
-            '`"` or `\\`',
-          ),
-          as(literal('\\"'), '"'),
-          as(literal('\\\\'), '\\'),
+          butNot(anySingleCharacter, oneOf([quote, backslash]), '`"` or `\\`'),
+          as(escapedQuote, '"'),
+          as(escapedBackslash, '\\'),
         ]),
       ),
       output => output.join(''),
     ),
-    literal('"'),
+    quote,
   ]),
   ([_1, contents, _2]) => contents,
 )
