@@ -195,40 +195,50 @@ const unparseSugaredIndex = (
   )
   if (either.isLeft(objectUnparseResult)) {
     return objectUnparseResult
-  }
+  } else {
+    if (typeof expression.query !== 'object') {
+      // TODO: It would be nice if this were provably impossible.
+      return either.makeLeft({
+        kind: 'unserializableValue',
+        message: 'Invalid index expression',
+      })
+    } else {
+      const keyPath = Object.entries(expression.query).reduce(
+        (accumulator: KeyPath | 'invalid', [key, value]) => {
+          if (accumulator === 'invalid') {
+            return accumulator
+          } else {
+            if (
+              key === String(accumulator.length) &&
+              typeof value === 'string'
+            ) {
+              return [...accumulator, value]
+            } else {
+              return 'invalid'
+            }
+          }
+        },
+        [],
+      )
 
-  const keyPath = Object.entries(expression.query).reduce(
-    (accumulator: KeyPath | 'invalid', [key, value]) => {
-      if (accumulator === 'invalid') {
-        return accumulator
+      if (
+        keyPath === 'invalid' ||
+        Object.keys(expression.query).length !== keyPath.length
+      ) {
+        return either.makeLeft({
+          kind: 'unserializableValue',
+          message: 'invalid key path',
+        })
       } else {
-        if (key === String(accumulator.length) && typeof value === 'string') {
-          return [...accumulator, value]
-        } else {
-          return 'invalid'
-        }
+        const { dot } = punctuation(kleur)
+        return either.makeRight(
+          objectUnparseResult.value
+            .concat(dot)
+            .concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
+        )
       }
-    },
-    [],
-  )
-
-  if (
-    keyPath === 'invalid' ||
-    Object.keys(expression.query).length !== keyPath.length
-  ) {
-    return either.makeLeft({
-      kind: 'unserializableValue',
-      message: 'invalid key path',
-    })
+    }
   }
-
-  const { dot } = punctuation(kleur)
-
-  return either.makeRight(
-    objectUnparseResult.value
-      .concat(dot)
-      .concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
-  )
 }
 
 const unparseSugaredLookup = (
