@@ -125,22 +125,9 @@ Lookups are lexically scoped:
   greeting: "Hello, World!"
   scope: {
     greeting: "Hi, Moon!"
-    a: :greeting
+    a: :greeting // "Hi, Moon!"
   }
-  b: :greeting
-}
-```
-
-Output:
-
-```
-{
-  greeting: "Hello, World!"
-  scope: {
-    greeting: "Hi, Moon!"
-    a: "Hi, Moon!"
-  }
-  b: "Hello, World!"
+  b: :greeting // "Hello, World!"
 }
 ```
 
@@ -149,13 +136,18 @@ Output:
 Functions take exactly one parameter and their body is exactly one expression:
 
 ```
-a => "Hello, World!"
+{
+  make_pair: a => { :a, :a }
+}
 ```
 
 Functions can be applied:
 
 ```
-(a => :a)("Hello, World!")
+{
+  f: a => :a
+  greeting: :f("Hello, World!")
+}
 ```
 
 #### Keywords
