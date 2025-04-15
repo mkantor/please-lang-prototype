@@ -25,7 +25,7 @@ import {
   openingParenthesis,
 } from './literals.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
-import { trivia } from './trivia.js'
+import { optionalTrivia, trivia } from './trivia.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
@@ -52,7 +52,7 @@ const propertyValue = oneOf([
 ])
 
 const namedProperty = map(
-  sequence([propertyKey, colon, optional(trivia), propertyValue]),
+  sequence([propertyKey, colon, optionalTrivia, propertyValue]),
   ([key, _colon, _trivia, value]) => [key, value] as const,
 )
 
@@ -65,16 +65,16 @@ const property = (index: Indexer) =>
   )
 
 const propertyDelimiter = oneOf([
-  sequence([optional(trivia), comma, optional(trivia)]),
+  sequence([optionalTrivia, comma, optionalTrivia]),
   trivia,
 ])
 
 const argument = map(
   sequence([
     openingParenthesis,
-    optional(trivia),
+    optionalTrivia,
     propertyValue,
-    optional(trivia),
+    optionalTrivia,
     closingParenthesis,
   ]),
   ([_openingParenthesis, _trivia1, argument, _trivia2, _closingParenthesis]) =>
@@ -83,9 +83,9 @@ const argument = map(
 
 const dottedKeyPathComponent = map(
   sequence([
-    optional(trivia),
+    optionalTrivia,
     dot,
-    optional(trivia),
+    optionalTrivia,
     atomWithAdditionalQuotationRequirements(dot),
   ]),
   ([_trivia1, _dot, _trivia2, key]) => key,

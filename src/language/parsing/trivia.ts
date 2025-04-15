@@ -2,6 +2,7 @@ import {
   anySingleCharacter,
   butNot,
   lookaheadNot,
+  nothing,
   oneOf,
   oneOrMore,
   regularExpression,
@@ -38,3 +39,5 @@ export const whitespace = regularExpression(/^\s+/)
 export const trivia = oneOrMore(
   oneOf([whitespace, singleLineComment, blockComment]),
 )
+
+export const optionalTrivia = oneOf([trivia, nothing])
