@@ -44,15 +44,13 @@ const atomComponentsRequiringQuotation = [
   singleLineCommentDelimiter,
   whitespace,
 
+  // Reserved to allow symbols like `=>` to not be conflated with atoms:
+  literal('='),
+
   // Reserved for future use:
   literal('['),
   literal(']'),
-  literal('<'),
-  literal('>'),
   literal('#'),
-  literal('&'),
-  literal('|'),
-  literal('='),
   literal(';'),
 ] as const
 
