@@ -1,33 +1,43 @@
 import {
   anySingleCharacter,
   butNot,
-  literal,
   lookaheadNot,
+  nothing,
   oneOf,
   oneOrMore,
   regularExpression,
   sequence,
   zeroOrMore,
 } from '@matt.kantor/parsing'
+import {
+  asterisk,
+  closingBlockCommentDelimiter,
+  newline,
+  openingBlockCommentDelimiter,
+  singleLineCommentDelimiter,
+  slash,
+} from './literals.js'
 
 const blockComment = sequence([
-  literal('/*'),
+  openingBlockCommentDelimiter,
   zeroOrMore(
     oneOf([
-      butNot(anySingleCharacter, literal('*'), '*'),
-      lookaheadNot(literal('*'), literal('/'), '/'),
+      butNot(anySingleCharacter, asterisk, '*'),
+      lookaheadNot(asterisk, slash, '/'),
     ]),
   ),
-  literal('*/'),
+  closingBlockCommentDelimiter,
 ])
 
 const singleLineComment = sequence([
-  literal('//'),
-  zeroOrMore(butNot(anySingleCharacter, literal('\n'), 'newline')),
+  singleLineCommentDelimiter,
+  zeroOrMore(butNot(anySingleCharacter, newline, 'newline')),
 ])
 
-export const whitespace = regularExpression(/\s+/)
+export const whitespace = regularExpression(/^\s+/)
 
 export const trivia = oneOrMore(
   oneOf([whitespace, singleLineComment, blockComment]),
 )
+
+export const optionalTrivia = oneOf([trivia, nothing])

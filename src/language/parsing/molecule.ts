@@ -1,6 +1,5 @@
 import {
   lazy,
-  literal,
   map,
   nothing,
   oneOf,
@@ -15,14 +14,20 @@ import {
   atomWithAdditionalQuotationRequirements,
   type Atom,
 } from './atom.js'
+import {
+  arrow,
+  closingBrace,
+  closingParenthesis,
+  colon,
+  comma,
+  dot,
+  openingBrace,
+  openingParenthesis,
+} from './literals.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
-import { trivia } from './trivia.js'
+import { optionalTrivia, trivia } from './trivia.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
-
-export const moleculeParser: Parser<Molecule> = lazy(
-  () => potentiallySugaredMolecule,
-)
 
 // Keyless properties are automatically assigned numeric indexes, which uses some mutable state.
 type Indexer = () => string
@@ -47,7 +52,7 @@ const propertyValue = oneOf([
 ])
 
 const namedProperty = map(
-  sequence([propertyKey, literal(':'), optional(trivia), propertyValue]),
+  sequence([propertyKey, colon, optionalTrivia, propertyValue]),
   ([key, _colon, _trivia, value]) => [key, value] as const,
 )
 
@@ -60,17 +65,17 @@ const property = (index: Indexer) =>
   )
 
 const propertyDelimiter = oneOf([
-  sequence([optional(trivia), literal(','), optional(trivia)]),
+  sequence([optionalTrivia, comma, optionalTrivia]),
   trivia,
 ])
 
 const argument = map(
   sequence([
-    literal('('),
-    optional(trivia),
+    openingParenthesis,
+    optionalTrivia,
     propertyValue,
-    optional(trivia),
-    literal(')'),
+    optionalTrivia,
+    closingParenthesis,
   ]),
   ([_openingParenthesis, _trivia1, argument, _trivia2, _closingParenthesis]) =>
     argument,
@@ -78,10 +83,10 @@ const argument = map(
 
 const dottedKeyPathComponent = map(
   sequence([
-    optional(trivia),
-    literal('.'),
-    optional(trivia),
-    atomWithAdditionalQuotationRequirements(literal('.')),
+    optionalTrivia,
+    dot,
+    optionalTrivia,
+    atomWithAdditionalQuotationRequirements(dot),
   ]),
   ([_trivia1, _dot, _trivia2, key]) => key,
 )
@@ -91,7 +96,7 @@ const moleculeAsEntries = (
 ): Parser<readonly (readonly [string, string | Molecule])[]> =>
   map(
     sequence([
-      literal('{'),
+      openingBrace,
       // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
       optional(property(index)),
       zeroOrMore(
@@ -101,7 +106,7 @@ const moleculeAsEntries = (
         ),
       ),
       optional(propertyDelimiter),
-      literal('}'),
+      closingBrace,
     ]),
     ([
       _openingBrace,
@@ -125,9 +130,9 @@ const sugarFreeMolecule: Parser<Molecule> = optionallySurroundedByParentheses(
 const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
   map(
     sequence([
-      literal(':'),
+      colon,
       // Reserve `.` so that `:a.b` is parsed as a lookup followed by an index.
-      atomWithAdditionalQuotationRequirements(literal('.')),
+      atomWithAdditionalQuotationRequirements(dot),
     ]),
     ([_colon, key]) => ({ 0: '@lookup', key }),
   ),
@@ -135,7 +140,7 @@ const sugaredLookup: Parser<Molecule> = optionallySurroundedByParentheses(
 
 const sugaredFunction: Parser<Molecule> = optionallySurroundedByParentheses(
   map(
-    sequence([atomParser, trivia, literal('=>'), trivia, propertyValue]),
+    sequence([atomParser, trivia, arrow, trivia, propertyValue]),
     ([parameter, _trivia1, _arrow, _trivia2, body]) => ({
       0: '@function',
       parameter,
@@ -210,3 +215,5 @@ const potentiallySugaredMolecule: Parser<Molecule> = (() => {
     potentiallySugaredNonApply,
   ])
 })()
+
+export const moleculeParser: Parser<Molecule> = potentiallySugaredMolecule
