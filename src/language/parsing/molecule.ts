@@ -8,6 +8,7 @@ import {
   zeroOrMore,
   type Parser,
 } from '@matt.kantor/parsing'
+import type { Writable } from '../../utility-types.js'
 import { keyPathToMolecule } from '../semantics.js'
 import {
   atomParser,
@@ -57,13 +58,12 @@ const namedProperty = map(
   ([key, _colon, _trivia, value]) => [key, value] as const,
 )
 
-const numberedProperty = (index: Indexer) =>
-  map(propertyValue, value => [index(), value] as const)
-
-const property = (index: Indexer) =>
-  optionallySurroundedByParentheses(
-    oneOf([namedProperty, numberedProperty(index)]),
-  )
+const propertyWithOptionalKey = optionallySurroundedByParentheses(
+  oneOf([
+    namedProperty,
+    map(propertyValue, value => [undefined, value] as const),
+  ]),
+)
 
 const propertyDelimiter = oneOf([
   sequence([optionalTrivia, comma, optionalTrivia]),
@@ -92,43 +92,48 @@ const dottedKeyPathComponent = map(
   ([_trivia1, _dot, _trivia2, key]) => key,
 )
 
-const moleculeAsEntries = (
-  index: Indexer,
-): Parser<readonly (readonly [string, string | Molecule])[]> =>
+const sugarFreeMolecule: Parser<Molecule> = optionallySurroundedByParentheses(
   map(
     sequence([
       openingBrace,
-      optional(trivia),
-      // Allow initial property not preceded by a delimiter (e.g. `{a b}`).
-      optional(property(index)),
-      zeroOrMore(
-        map(
-          sequence([propertyDelimiter, property(index)]),
-          ([_delimiter, property]) => property,
+      optionalTrivia,
+      sequence([
+        // Allow initial property not preceded by a delimiter (e.g. `{a, b}`).
+        optional(propertyWithOptionalKey),
+        zeroOrMore(
+          map(
+            sequence([propertyDelimiter, propertyWithOptionalKey]),
+            ([_delimiter, property]) => property,
+          ),
         ),
-      ),
+      ]),
       optional(propertyDelimiter),
-      optional(trivia),
+      optionalTrivia,
       closingBrace,
     ]),
     ([
       _openingBrace,
-      _optionalLeadingTrivia,
-      optionalInitialProperty,
-      remainingProperties,
-      _optionalDelimiter,
-      _optionalTrailingTrivia,
+      _trivia1,
+      [optionalInitialProperty, remainingProperties],
+      _trailingDelimiter,
+      _trivia2,
       _closingBrace,
-    ]) =>
-      optionalInitialProperty === undefined
-        ? remainingProperties
-        : [optionalInitialProperty, ...remainingProperties],
-  )
-
-const sugarFreeMolecule: Parser<Molecule> = optionallySurroundedByParentheses(
-  map(
-    lazy(() => moleculeAsEntries(makeIncrementingIndexer())),
-    Object.fromEntries,
+    ]) => {
+      const properties =
+        optionalInitialProperty === undefined
+          ? remainingProperties
+          : [optionalInitialProperty, ...remainingProperties]
+      const enumerate = makeIncrementingIndexer()
+      return properties.reduce((molecule: Writable<Molecule>, [key, value]) => {
+        if (key === undefined) {
+          // Note that `enumerate()` increments its internal counter as a side effect.
+          molecule[enumerate()] = value
+        } else {
+          molecule[key] = value
+        }
+        return molecule
+      }, {})
+    },
   ),
 )
 
