@@ -1,12 +1,6 @@
-import {
-  map,
-  oneOf,
-  sequence,
-  zeroOrMore,
-  type Parser,
-} from '@matt.kantor/parsing'
+import { map, oneOf, sequence, type Parser } from '@matt.kantor/parsing'
 import { closingParenthesis, openingParenthesis } from './literals.js'
-import { trivia } from './trivia.js'
+import { optionalTrivia } from './trivia.js'
 
 const optionallySurroundedBy = <Output>(
   parser1: Parser<unknown>,
@@ -21,16 +15,8 @@ const optionallySurroundedBy = <Output>(
 export const optionallySurroundedByParentheses = <Output>(
   theParser: Parser<Output>,
 ): Parser<Output> =>
-  oneOf([
-    // This allows `theParser` to greedily consume trivia.
-    optionallySurroundedBy(
-      openingParenthesis,
-      theParser,
-      sequence([zeroOrMore(trivia), closingParenthesis]),
-    ),
-    optionallySurroundedBy(
-      sequence([openingParenthesis, zeroOrMore(trivia)]),
-      theParser,
-      sequence([zeroOrMore(trivia), closingParenthesis]),
-    ),
-  ])
+  optionallySurroundedBy(
+    sequence([openingParenthesis, optionalTrivia]),
+    theParser,
+    sequence([optionalTrivia, closingParenthesis]),
+  )
