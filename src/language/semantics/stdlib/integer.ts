@@ -66,6 +66,45 @@ export const integer = {
           : 'false',
       ),
   ),
+  greater_than: preludeFunction(
+    ['integer', 'greater_than'],
+    {
+      parameter: types.integer,
+      return: makeFunctionType('', {
+        parameter: types.integer,
+        return: types.integer,
+      }),
+    },
+    number2 =>
+      either.makeRight(
+        makeFunctionNode(
+          {
+            parameter: types.integer,
+            return: types.boolean,
+          },
+          serializeOnceAppliedFunction(['integer', 'greater_than'], number2),
+          option.none,
+          number1 => {
+            if (
+              typeof number1 !== 'string' ||
+              !types.integer.isAssignableFrom(makeUnionType('', [number1])) ||
+              typeof number2 !== 'string' ||
+              !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+            ) {
+              return either.makeLeft({
+                kind: 'panic',
+                message: 'numbers must be atoms',
+              })
+            } else {
+              return either.makeRight(
+                // TODO: See comment in `natural_number.add`.
+                String(BigInt(number1) > BigInt(number2)),
+              )
+            }
+          },
+        ),
+      ),
+  ),
   less_than: preludeFunction(
     ['integer', 'less_than'],
     {
