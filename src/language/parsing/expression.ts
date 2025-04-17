@@ -11,7 +11,7 @@ import {
 import type { Writable } from '../../utility-types.js'
 import { keyPathToMolecule, type KeyPath } from '../semantics.js'
 import {
-  atomParser,
+  atom,
   atomWithAdditionalQuotationRequirements,
   type Atom,
 } from './atom.js'
@@ -49,7 +49,7 @@ const optional = <Output>(
 ): Parser<Output | undefined> => oneOf([parser, nothing])
 
 const trailingIndexesAndArgumentsToExpression = (
-  root: Molecule,
+  root: Atom | Molecule,
   trailingIndexesAndArguments: readonly TrailingIndexOrArgument[],
 ) =>
   trailingIndexesAndArguments.reduce((expression, indexOrArgument) => {
@@ -69,73 +69,93 @@ const trailingIndexesAndArgumentsToExpression = (
     }
   }, root)
 
-const infixOperationToExpression = (
-  initialExpression: Atom | Molecule,
-  tokens: readonly [InfixToken, ...InfixToken[]],
-): Molecule => {
-  const [
-    [
-      [firstOperatorLookupKey, firstOperatorTrailingIndexesAndArguments],
-      firstArgument,
-    ],
-    ...additionalTokens
-  ] = tokens
+type InfixOperator = readonly [Atom, readonly TrailingIndexOrArgument[]]
+type InfixOperand = Atom | Molecule
+type InfixToken = InfixOperator | InfixOperand
 
-  const firstFunction = trailingIndexesAndArgumentsToExpression(
-    { 0: '@lookup', key: firstOperatorLookupKey },
-    firstOperatorTrailingIndexesAndArguments,
-  )
+/**
+ * Infix operations should be of the following form:
+ * ```
+ * [InfixOperand, InfixOperator, InfixOperand, InfixOperator, …, InfixOperand]
+ * ```
+ * However this can't be directly modeled in TypeScript.
+ */
+type InfixOperation = readonly [InfixToken, ...InfixToken[]]
 
-  const initialApplication: Molecule = {
-    0: '@apply',
-    function: {
-      0: '@apply',
-      function: firstFunction,
-      argument: firstArgument,
-    },
-    argument: initialExpression,
-  }
+const isOperand = (value: InfixToken | undefined): value is InfixOperand =>
+  !Array.isArray(value)
+const isOperator = (value: InfixToken | undefined): value is InfixOperator =>
+  Array.isArray(value)
 
-  return additionalTokens.reduce(
-    (
-      expression,
-      [[operatorLookupKey, operatorTrailingIndexesAndArguments], nextArgument],
-    ) => {
-      const nextFunction = trailingIndexesAndArgumentsToExpression(
-        { 0: '@lookup', key: operatorLookupKey },
-        operatorTrailingIndexesAndArguments,
+const appendToArray = <A>(b: A, init: readonly A[]): readonly [A, ...A[]] =>
+  // Unfortunately TypeScript can't reason through this on its own:
+  [...init, b] as readonly A[] as readonly [A, ...A[]]
+
+const infixTokensToExpression = (
+  operation: InfixOperation,
+): Molecule | Atom => {
+  const firstToken = operation[0]
+  if (operation.length === 1 && isOperand(firstToken)) {
+    return firstToken
+  } else {
+    const rightmostOperationRHS = operation[operation.length - 1]
+    if (rightmostOperationRHS === undefined) {
+      throw new Error('Infix operation was empty. This is a bug!')
+    }
+    if (!isOperand(rightmostOperationRHS)) {
+      throw new Error(
+        'Rightmost token in infix operation was not an operand. This is a bug!',
       )
-      return {
+    }
+    const rightmostOperator = operation[operation.length - 2]
+    if (!isOperator(rightmostOperator)) {
+      throw new Error(
+        'Could not find rightmost operator in infix operation. This is a bug!',
+      )
+    }
+
+    const rightmostOperationLHS = operation[operation.length - 3]
+    if (!isOperand(rightmostOperationLHS)) {
+      throw new Error(
+        'Missing left-hand side of infix operation. This is a bug!',
+      )
+    }
+
+    const rightmostFunction = trailingIndexesAndArgumentsToExpression(
+      { 0: '@lookup', key: rightmostOperator[0] },
+      rightmostOperator[1],
+    )
+
+    const reducedRightmostOperation: Molecule = {
+      0: '@apply',
+      function: {
         0: '@apply',
-        function: {
-          0: '@apply',
-          function: nextFunction,
-          argument: nextArgument,
-        },
-        argument: expression,
-      }
-    },
-    initialApplication,
-  )
+        function: rightmostFunction,
+        argument: rightmostOperationRHS,
+      },
+      argument: rightmostOperationLHS,
+    }
+
+    return infixTokensToExpression(
+      appendToArray(reducedRightmostOperation, operation.slice(0, -3)),
+    )
+  }
 }
 
 const atomRequiringDotQuotation = atomWithAdditionalQuotationRequirements(dot)
 
-const propertyKey: Parser<Atom> = atomParser
-const propertyValue: Parser<Molecule | Atom> = oneOf([
-  lazy(() => moleculeParser),
-  optionallySurroundedByParentheses(atomParser),
-])
-
 const namedProperty = map(
-  sequence([propertyKey, colon, optionalTrivia, propertyValue]),
+  sequence([atom, colon, optionalTrivia, lazy(() => expression)]),
   ([key, _colon, _trivia, value]) => [key, value] as const,
 )
 
 const propertyWithOptionalKey = optionallySurroundedByParentheses(
   oneOf([
     namedProperty,
-    map(propertyValue, value => [undefined, value] as const),
+    map(
+      lazy(() => expression),
+      value => [undefined, value] as const,
+    ),
   ]),
 )
 
@@ -144,7 +164,7 @@ const propertyDelimiter = oneOf([
   sequence([optional(triviaExceptNewlines), newline, optionalTrivia]),
 ])
 
-const argument = surroundedByParentheses(propertyValue)
+const argument = surroundedByParentheses(lazy(() => expression))
 
 const compactDottedKeyPathComponent = map(
   sequence([dot, atomRequiringDotQuotation]),
@@ -272,12 +292,10 @@ const compactExpression: Parser<Molecule | Atom> = oneOf([
   // {}
   lazy(() => precededByOpeningBrace),
   // 1
-  atomParser,
+  atom,
 ])
 
-const trailingInfixTokens: Parser<
-  readonly [InfixToken, ...(readonly InfixToken[])]
-> = oneOrMore(
+const trailingInfixTokens = oneOrMore(
   map(
     sequence([
       trivia,
@@ -301,9 +319,9 @@ const trailingInfixTokens: Parser<
   ),
 )
 
-type InfixToken = readonly [
-  readonly [Atom, readonly TrailingIndexOrArgument[]],
-  Molecule | Atom,
+type TrailingInfixToken = readonly [
+  operator: readonly [Atom, readonly TrailingIndexOrArgument[]],
+  operand: Molecule | Atom,
 ]
 type TrailingFunctionBodyOrInfixTokens =
   | {
@@ -313,11 +331,15 @@ type TrailingFunctionBodyOrInfixTokens =
     }
   | {
       readonly kind: 'infixTokens'
-      readonly tokens: readonly [InfixToken, ...(readonly InfixToken[])]
+      readonly tokens: readonly [
+        TrailingInfixToken,
+        ...(readonly TrailingInfixToken[]),
+      ]
     }
+
 const precededByAtomThenTrivia = map(
   sequence([
-    atomParser,
+    atom,
     oneOf([
       // a => :b
       // a => {}
@@ -331,11 +353,11 @@ const precededByAtomThenTrivia = map(
           trivia,
           zeroOrMore(
             map(
-              sequence([atomParser, trivia, arrow, trivia]),
+              sequence([atom, trivia, arrow, trivia]),
               ([parameter, _trivia1, _arrow, _trivia2]) => parameter,
             ),
           ),
-          propertyValue,
+          lazy(() => expression),
         ]),
         ([
           _trivia1,
@@ -381,10 +403,10 @@ const precededByAtomThenTrivia = map(
           initialFunction,
         )
       case 'infixTokens':
-        return infixOperationToExpression(
+        return infixTokensToExpression([
           initialAtom,
-          trailingFunctionBodyOrInfixTokens.tokens,
-        )
+          ...trailingFunctionBodyOrInfixTokens.tokens.flat(),
+        ])
     }
   },
 )
@@ -425,9 +447,10 @@ const precededByColonThenAtom = map(
     if (firstToken === undefined) {
       return initialExpression
     } else {
-      return infixOperationToExpression(initialExpression, [
-        firstToken,
-        ...additionalTokens,
+      return infixTokensToExpression([
+        initialExpression,
+        ...firstToken,
+        ...additionalTokens.flat(),
       ])
     }
   },
@@ -444,15 +467,18 @@ const precededByColonThenAtom = map(
 const precededByOpeningParenthesis = oneOf([
   map(
     sequence([
-      surroundedByParentheses(lazy(() => moleculeParser)),
+      surroundedByParentheses(lazy(() => expression)),
       trailingInfixTokens,
     ]),
     ([initialExpression, trailingInfixTokens]) =>
-      infixOperationToExpression(initialExpression, trailingInfixTokens),
+      infixTokensToExpression([
+        initialExpression,
+        ...trailingInfixTokens.flat(),
+      ]),
   ),
   map(
     sequence([
-      surroundedByParentheses(lazy(() => moleculeParser)),
+      surroundedByParentheses(lazy(() => expression)),
       trailingIndexesAndArguments,
     ]),
     ([expression, trailingIndexesAndArguments]) =>
@@ -476,9 +502,10 @@ const precededByOpeningBrace = map(
     ),
 )
 
-export const moleculeParser: Parser<Molecule> = oneOf([
+export const expression: Parser<Atom | Molecule> = oneOf([
   precededByOpeningParenthesis,
   precededByOpeningBrace,
   precededByColonThenAtom,
   precededByAtomThenTrivia,
+  atom,
 ])

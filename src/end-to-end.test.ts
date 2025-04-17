@@ -168,6 +168,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`:integer.subtract(-1)(-1)`, either.makeRight('0')],
   [`-1 - -1`, either.makeRight('0')],
   [`2 - 1`, either.makeRight('1')],
+  [
+    `1 - 2 - 3`,
+    either.makeRight(
+      '2', // with traditional operator associativity this would be `-4`
+    ),
+  ],
+  [`1 - (2 - 3)`, either.makeRight('2')],
+  [`(1 - 2) - 3`, either.makeRight('-4')],
   [':flow(:atom.append(b))(:atom.append(a))(z)', either.makeRight('zab')],
   [
     `{@runtime
@@ -314,7 +322,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`(a => (1 + :a))(1)`, either.makeRight('2')],
   [`2 |> (a => :a)`, either.makeRight('2')],
   [`a atom.append b atom.append c`, either.makeRight('abc')],
-  [`b atom.append c atom.prepend a`, either.makeRight('abc')],
+  [`a atom.append c atom.prepend b`, either.makeRight('abc')],
+  [`(b atom.append c) atom.prepend a`, either.makeRight('abc')],
   [`a atom.append (c atom.prepend b)`, either.makeRight('abc')],
   [
     `1
@@ -336,7 +345,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       (
         PATH
           |> :context.environment.lookup
-          |> :match({
+          >> :match({
             none: _ => "$PATH not set"
             some: :atom.prepend("PATH=")
           })
@@ -376,13 +385,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     )(0)`,
     either.makeRight('10'),
   ],
-  [`a |> :atom.append(b) |> :atom.append(c)`, either.makeRight('abc')],
-  [`a |> (:atom.append(b) >> :atom.append(c))`, either.makeRight('abc')],
+  [`a |> :atom.append(b) >> :atom.append(c)`, either.makeRight('abc')],
+  [`(a |> :atom.append(b)) |> :atom.append(c)`, either.makeRight('abc')],
   [`:|>(:>>(:atom.append(c))(:atom.append(b)))(a)`, either.makeRight('abc')],
   [
     `{
       |>: f => a => :f(:a)
-      abc: a |> :atom.append(b) |> :atom.append(c)
+      ab: a |> :atom.append(b)
+      abc: :ab |> :atom.append(c)
     }.abc`,
     either.makeRight('abc'),
   ],

@@ -156,23 +156,28 @@ Here's another example:
 ```
 {
   cons: b => a => { :a, :b }
-  list: 1 cons (2 cons 3) // evaluates to `{ 1, { 2, 3 } }`
+  list: 1 cons 2 cons 3 // evaluates to `{ 1, { 2, 3 } }`
 }
 ```
 
 The standard library contains symbolically-named functions for arithmetic and
-other familiar binary operations. For example, `1 + 2 - 3` is `0`. Also
-included in the standard library are the functions`|>` (pipe) and `>>` (flow):
+other familiar binary operations. For example, `1 + 2 - 3` is `0`. Also included
+in the standard library are the functions`|>` (pipe) and `>>` (flow):
 
 ```
 {
-  // `>>` composes functions from left to right
+  // `>>` composes functions
   append_bc: :atom.append(b) >> :atom.append(c)
 
   // `|>` pipes an argument into a function
   abc: a |> :append_bc
 }
 ```
+
+All binary operations are currently right-associative and there is no operator
+precedence. This means some arithmetic expressions may not behave the way you're
+used to; for example `1 - 2 - 3` means `1 - (2 - 3)` (2), not `(1 - 2) - 3`
+(-4). Use of parentheses is encouraged.
 
 #### Keywords
 

@@ -1,5 +1,5 @@
 import option, { type Option } from '@matt.kantor/option'
-import { map, nothing, oneOf, sequence, type Parser } from '@matt.kantor/parsing'
+import { map, sequence, type Parser } from '@matt.kantor/parsing'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type {
   JsonArray,
@@ -8,9 +8,9 @@ import type {
   Writable,
 } from '../../utility-types.js'
 import type { KeyPath } from '../semantics.js'
-import { atomParser, type Atom } from './atom.js'
-import { moleculeParser, type Molecule } from './molecule.js'
-import { trivia } from './trivia.js'
+import { type Atom } from './atom.js'
+import { expression, type Molecule } from './expression.js'
+import { optionalTrivia } from './trivia.js'
 
 declare const _canonicalized: unique symbol
 export type Canonicalized = { readonly [_canonicalized]: true }
@@ -76,9 +76,7 @@ type JsonRecordForbiddingSymbolicKeys = {
   readonly [key: symbol]: undefined
 }>
 
-const optionalTrivia = oneOf([trivia, nothing])
-
 export const syntaxTreeParser: Parser<SyntaxTree> = map(
-  sequence([optionalTrivia, oneOf([moleculeParser, atomParser]), optionalTrivia]),
+  sequence([optionalTrivia, expression, optionalTrivia]),
   ([_leadingTrivia, syntaxTree, _trailingTrivia]) => canonicalize(syntaxTree),
 )
