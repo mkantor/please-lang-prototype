@@ -21,51 +21,18 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       {
         true1: ['@check', true, ['@lookup', 'identity']],
         true2: ['@apply', ['@index', ['@lookup', 'boolean'], ['not']], false],
-        true3: [
-          '@apply',
-          [
-            '@apply',
-            ['@lookup', 'flow'],
-            [
-              ['@index', ['@lookup', 'boolean'], ['not']],
-              ['@index', ['@lookup', 'boolean'], ['not']],
-            ],
-          ],
-          true,
-        ],
         false1: ['@check', false, ['@index', ['@lookup', 'boolean'], ['is']]],
         false2: [
           '@apply',
           ['@index', ['@lookup', 'boolean'], ['is']],
           'not a boolean',
         ],
-        false3: [
-          '@apply',
-          [
-            '@apply',
-            ['@lookup', 'flow'],
-            [
-              [
-                '@apply',
-                ['@lookup', 'flow'],
-                [
-                  ['@index', ['@lookup', 'boolean'], ['not']],
-                  ['@index', ['@lookup', 'boolean'], ['not']],
-                ],
-              ],
-              ['@index', ['@lookup', 'boolean'], ['not']],
-            ],
-          ],
-          true,
-        ],
       },
       success({
         true1: 'true',
         true2: 'true',
-        true3: 'true',
         false1: 'false',
         false2: 'false',
-        false3: 'false',
       }),
     ],
     [
@@ -116,37 +83,25 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         '@runtime',
         [
           '@apply',
-          ['@lookup', 'flow'],
-          [
-            ['@lookup', 'identity'],
-            ['@lookup', 'identity'],
-          ],
+          ['@apply', ['@lookup', 'flow'], ['@lookup', 'identity']],
+          ['@lookup', 'identity'],
         ],
       ],
       success({
         0: '@runtime',
         function: {
           0: '@apply',
-          function: { 0: '@lookup', key: 'flow' },
-          argument: {
-            0: { 0: '@lookup', key: 'identity' },
-            1: { 0: '@lookup', key: 'identity' },
+          function: {
+            0: '@apply',
+            function: { 0: '@lookup', key: 'flow' },
+            argument: { 0: '@lookup', key: 'identity' },
           },
+          argument: { 0: '@lookup', key: 'identity' },
         },
       }),
     ],
     [
-      [
-        '@runtime',
-        [
-          '@apply',
-          ['@lookup', 'flow'],
-          [
-            ['@index', ['@lookup', 'boolean'], ['not']],
-            ['@index', ['@lookup', 'boolean'], ['not']],
-          ],
-        ],
-      ],
+      ['@runtime', ['@index', ['@lookup', 'boolean'], ['not']]],
       output => {
         assert(either.isLeft(output))
         assert(output.value.kind === 'typeMismatch')

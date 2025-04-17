@@ -18,56 +18,6 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
     ['Hello, world!', success('Hello, world!')],
     [['@check', true, ['@lookup', 'identity']], success('true')],
     [
-      [
-        '@runtime',
-        [
-          '@apply',
-          ['@lookup', 'flow'],
-          [
-            [
-              '@apply',
-              ['@index', ['@lookup', 'object'], ['lookup']],
-              'environment',
-            ],
-            [
-              '@apply',
-              ['@lookup', 'match'],
-              {
-                none: 'environment does not exist!',
-                some: [
-                  '@apply',
-                  ['@lookup', 'flow'],
-                  [
-                    [
-                      '@apply',
-                      ['@index', ['@lookup', 'object'], ['lookup']],
-                      'lookup',
-                    ],
-                    [
-                      '@apply',
-                      ['@lookup', 'match'],
-                      {
-                        none: 'environment.lookup does not exist!',
-                        some: ['@apply', ['@lookup', 'apply'], 'PATH'],
-                      },
-                    ],
-                  ],
-                ],
-              },
-            ],
-          ],
-        ],
-      ],
-      output => {
-        if (either.isLeft(output)) {
-          assert.fail(output.value.message)
-        }
-        assert(typeof output.value === 'object')
-        assert(output.value['tag'] === 'some')
-        assert(typeof output.value['value'] === 'string')
-      },
-    ],
-    [
       ['@check', 'not a boolean', ['@index', ['@lookup', 'boolean'], 'is']],
       output => assert(either.isLeft(output)),
     ],

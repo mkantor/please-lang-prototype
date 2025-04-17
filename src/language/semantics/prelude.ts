@@ -13,4 +13,12 @@ export const prelude = makeObjectNode({
   integer: makeObjectNode(integer),
   atom: makeObjectNode(atom),
   object: makeObjectNode(object),
+
+  // Aliases:
+  '>>': globalFunctions.flow,
+  '|>': globalFunctions.identity,
+  '+': integer.add,
+  '-': integer.subtract,
+  '<': integer.less_than,
+  '>': integer.greater_than,
 })

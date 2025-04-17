@@ -133,7 +133,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':atom.prepend(a)(b)', either.makeRight('ab')],
-  [':flow({ :atom.append(a), :atom.append(b) })(z)', either.makeRight('zab')],
+  [':flow(:atom.append(b))(:atom.append(a))(z)', either.makeRight('zab')],
   [
     `{
       // foo: bar
@@ -159,42 +159,21 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({ tag: 'none', value: {} }),
   ],
   [
-    `{@runtime, {@apply, :flow, {
-      {@apply, :object.lookup, environment}
-      {@apply, :match, {
-        none: "environment does not exist"
-        some: {@apply, :flow, {
-          {@apply, :object.lookup, lookup}
-          {@apply, :match, {
-            none: "environment.lookup does not exist"
-            some: {@apply, :apply, PATH}
-          }}
-        }}
-      }}
-    }}}`,
-    output => {
-      if (either.isLeft(output)) {
-        assert.fail(output.value.message)
-      }
-      assert(typeof output.value === 'object')
-      assert.deepEqual(output.value['tag'], 'some')
-      assert.deepEqual(typeof output.value['value'], 'string')
-    },
-  ],
-  [
-    `{@runtime, :flow({
-      :object.lookup(environment)
-      :match({
-        none: "environment does not exist"
-        some: :flow({
-          :object.lookup(lookup)
-          :match({
-            none: "environment.lookup does not exist"
-            some: :apply(PATH)
-          })
+    `{@runtime, :flow(
+        :match({
+          none: "environment does not exist"
+          some: :flow(
+            :match({
+              none: "environment.lookup does not exist"
+              some: :apply(PATH)
+            })
+          )(
+            :object.lookup(lookup)
+          )
         })
-      })
-    })}`,
+      )(
+        :object.lookup(environment)
+      )}`,
     output => {
       if (either.isLeft(output)) {
         assert.fail(output.value.message)
