@@ -22,11 +22,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{{{}}}', either.makeRight({ 0: { 0: {} } })],
   ['"hello world"', either.makeRight('hello world')],
   ['{foo:bar}', either.makeRight({ foo: 'bar' })],
+  ['{hi}', either.makeRight({ 0: 'hi' })],
   ['{a,b,c}', either.makeRight({ 0: 'a', 1: 'b', 2: 'c' })],
   ['{,a,b,c,}', either.makeRight({ 0: 'a', 1: 'b', 2: 'c' })],
   ['{a,1:overwritten,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{overwritten,0:a,c}', either.makeRight({ 0: 'a', 1: 'c' })],
-  ['{@check type:true value:true}', either.makeRight('true')],
+  ['{@check, type:true, value:true}', either.makeRight('true')],
   [
     '{@panic}',
     result => {
@@ -36,17 +37,17 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [
-    '{@runtime _ => {@panic}}',
+    '{@runtime, _ => {@panic}}',
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
       assert.deepEqual(result.value.kind, 'panic')
     },
   ],
-  ['{a:A b:{@lookup a}}', either.makeRight({ a: 'A', b: 'A' })],
-  ['{a:A b: :a}', either.makeRight({ a: 'A', b: 'A' })],
-  ['{a:A {@lookup a}}', either.makeRight({ a: 'A', 0: 'A' })],
-  ['{a:A :a}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{a:A, b:{@lookup, a}}', either.makeRight({ a: 'A', b: 'A' })],
+  ['{a:A, b: :a}', either.makeRight({ a: 'A', b: 'A' })],
+  ['{a:A, {@lookup, a}}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{a:A, :a}', either.makeRight({ a: 'A', 0: 'A' })],
   ['{ a: (a => :a)(A) }', either.makeRight({ a: 'A' })],
   ['{ a: ( a => :a )( A ) }', either.makeRight({ a: 'A' })],
   ['(a => :a)(A)', either.makeRight('A')],
@@ -101,7 +102,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
           c: z => {
             d: y => x => {
               e: {
-                f: w => { g: { :z :y :x :w } }
+                f: w => { g: { :z, :y, :x, :w, } }
               }
             }
           }
@@ -116,13 +117,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{ ("a"): A }', either.makeRight({ a: 'A' })],
   ['{ a: :(b), b: B }', either.makeRight({ a: 'B', b: 'B' })],
   ['{ a: :("b"), b: B }', either.makeRight({ a: 'B', b: 'B' })],
-  ['{ (a: A) (b: B) }', either.makeRight({ a: 'A', b: 'B' })],
-  ['( { ((a): :(b)) ( ( b ): B ) } )', either.makeRight({ a: 'B', b: 'B' })],
+  ['{ (a: A), (b: B) }', either.makeRight({ a: 'A', b: 'B' })],
+  ['( { ((a): :(b)), ( ( b ): B ) } )', either.makeRight({ a: 'B', b: 'B' })],
   ['{ (a: :(")")), (")": (B)) }', either.makeRight({ a: 'B', ')': 'B' })],
   [`/**/a/**/`, either.makeRight('a')],
   ['hello//world', either.makeRight('hello')],
   [`"hello//world"`, either.makeRight('hello//world')],
-  [`{a/* this works as a delimiter */b}`, either.makeRight({ 0: 'a', 1: 'b' })],
   [
     `/**/{/**/a:/**/b/**/,/**/c:/**/d/**/}/**/`,
     either.makeRight({ a: 'b', c: 'd' }),
@@ -133,7 +133,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':atom.prepend(a)(b)', either.makeRight('ab')],
-  [':flow({ :atom.append(a) :atom.append(b) })(z)', either.makeRight('zab')],
+  [':flow({ :atom.append(a), :atom.append(b) })(z)', either.makeRight('zab')],
   [
     `{
       // foo: bar
@@ -142,7 +142,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         0:@runtime
         function:{
           0:@apply
-          function:{0:@index object:{0:@lookup key:object} query:{0:lookup}}
+          function:{0:@index, object:{0:@lookup, key:object}, query:{0:lookup}}
           argument:"key which does not exist in runtime context"
         }
       }
@@ -159,15 +159,15 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({ tag: 'none', value: {} }),
   ],
   [
-    `{@runtime {@apply :flow {
-      {@apply :object.lookup environment}
-      {@apply :match {
+    `{@runtime, {@apply, :flow, {
+      {@apply, :object.lookup, environment}
+      {@apply, :match, {
         none: "environment does not exist"
-        some: {@apply :flow {
-          {@apply :object.lookup lookup}
-          {@apply :match {
+        some: {@apply, :flow, {
+          {@apply, :object.lookup, lookup}
+          {@apply, :match, {
             none: "environment.lookup does not exist"
-            some: {@apply :apply PATH}
+            some: {@apply, :apply, PATH}
           }}
         }}
       }}
@@ -182,7 +182,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [
-    `{@runtime :flow({
+    `{@runtime, :flow({
       :object.lookup(environment)
       :match({
         none: "environment does not exist"
@@ -205,7 +205,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [
-    `{@runtime context =>
+    `{@runtime, context =>
       :identity(:context).program.start_time
     }`,
     output => {
@@ -216,7 +216,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [
-    `{@runtime context =>
+    `{@runtime, context =>
       :context.environment.lookup(PATH)
     }`,
     output => {
@@ -265,8 +265,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({ true: 'true', false: 'false' }),
   ],
   [
-    `{@runtime context =>
-      {@if :boolean.not(:boolean.is(:context))
+    `{@runtime, context =>
+      {@if, :boolean.not(:boolean.is(:context))
         "it works!"
         {@panic}
       }
@@ -275,7 +275,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{
-      fibonacci: n => {@if :integer.less_than(2)(:n)
+      fibonacci: n => {
+        @if, :integer.less_than(2)(:n)
         then: :n
         else: :integer.add(
           :fibonacci(:integer.subtract(2)(:n))

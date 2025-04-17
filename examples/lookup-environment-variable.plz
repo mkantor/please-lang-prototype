@@ -1,4 +1,4 @@
-{@runtime context =>
+{@runtime, context =>
   :flow({
     :context.arguments.lookup
     :match({

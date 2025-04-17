@@ -41,3 +41,9 @@ export const trivia = oneOrMore(
 )
 
 export const optionalTrivia = oneOf([trivia, nothing])
+
+export const whitespaceExceptNewlines = regularExpression(/[^\S\n]+/)
+
+export const triviaExceptNewlines = oneOrMore(
+  oneOf([whitespaceExceptNewlines, singleLineComment, blockComment]),
+)

@@ -9,7 +9,7 @@ git clone git@github.com:mkantor/please-lang-prototype.git
 cd please-lang-prototype
 npm install
 npm run build
-echo '{@runtime context => :context.program.start_time}' | ./please --output-format=json
+echo '{@runtime, context => :context.program.start_time}' | ./please --output-format=json
 ```
 
 There are more example programs in [`./examples`](./examples).
@@ -72,22 +72,21 @@ Objects are maps of key/value pairs ("properties"), where keys must be atoms:
 { greeting: "Hello, World!" }
 ```
 
-Properties are delimited by whitespace and/or commas:
+Properties are delimited by newlines or commas:
 
 ```
-// These all mean the same thing:
+// These mean the same thing:
 {
   a: 1
   b: 2
 }
 { a: 1, b: 2 }
-{ a: 1 b: 2 }
 ```
 
 Properties without explicitly-written keys are automatically enumerated:
 
 ```
-{ a b } // is the same as { 0: a, 1: b }
+{ a, b } // is the same as { 0: a, 1: b }
 ```
 
 #### Lookups
@@ -157,10 +156,10 @@ expressions_. Most of the interesting stuff that Please does involves evaluating
 keyword expressions.
 
 Under the hood, keyword expressions are modeled as objects. For example, `:foo`
-desugars to `{@lookup key: foo}`. All such expressions have a key `0` referring
-to a value that is an `@`-prefixed atom (the keyword). Keywords include
-`@apply`, `@check`, `@function`, `@if`, `@index`, `@lookup`, `@panic`, and
-`@runtime`.
+desugars to `{ @lookup, key: foo }`. All such expressions have a key `0`
+referring to a value that is an `@`-prefixed atom (the keyword). Keywords
+include `@apply`, `@check`, `@function`, `@if`, `@index`, `@lookup`, `@panic`,
+and `@runtime`.
 
 Currently only `@function`, `@lookup`, `@index`, and `@apply` have syntax
 sugars.
@@ -188,7 +187,7 @@ function from other programming languages, except there can be any number of
 `@runtime` expressions in a given program. Here's an example:
 
 ```
-{@runtime context => :context.program.start_time}
+{@runtime, context => :context.program.start_time}
 ```
 
 Unsurprisingly, this program outputs the current time when run.
@@ -227,7 +226,7 @@ Take this example `plz` program:
 {
   language: Please
   message: :atom.prepend("Welcome to ")(:language)
-  now: {@runtime context => :context.program.start_time}
+  now: {@runtime, context => :context.program.start_time}
 }
 ```
 
