@@ -87,10 +87,6 @@ const isOperand = (value: InfixToken | undefined): value is InfixOperand =>
 const isOperator = (value: InfixToken | undefined): value is InfixOperator =>
   Array.isArray(value)
 
-const appendToArray = <A>(b: A, init: readonly A[]): readonly [A, ...A[]] =>
-  // Unfortunately TypeScript can't reason through this on its own:
-  [...init, b] as readonly A[] as readonly [A, ...A[]]
-
 const infixTokensToExpression = (
   operation: InfixOperation,
 ): Molecule | Atom => {
@@ -98,47 +94,49 @@ const infixTokensToExpression = (
   if (operation.length === 1 && isOperand(firstToken)) {
     return firstToken
   } else {
-    const rightmostOperationRHS = operation[operation.length - 1]
-    if (rightmostOperationRHS === undefined) {
+    const leftmostOperationLHS = operation[0]
+    if (leftmostOperationLHS === undefined) {
       throw new Error('Infix operation was empty. This is a bug!')
     }
-    if (!isOperand(rightmostOperationRHS)) {
+    if (!isOperand(leftmostOperationLHS)) {
       throw new Error(
-        'Rightmost token in infix operation was not an operand. This is a bug!',
-      )
-    }
-    const rightmostOperator = operation[operation.length - 2]
-    if (!isOperator(rightmostOperator)) {
-      throw new Error(
-        'Could not find rightmost operator in infix operation. This is a bug!',
+        'Leftmost token in infix operation was not an operand. This is a bug!',
       )
     }
 
-    const rightmostOperationLHS = operation[operation.length - 3]
-    if (!isOperand(rightmostOperationLHS)) {
+    const leftmostOperator = operation[1]
+    if (!isOperator(leftmostOperator)) {
       throw new Error(
-        'Missing left-hand side of infix operation. This is a bug!',
+        'Could not find leftmost operator in infix operation. This is a bug!',
       )
     }
 
-    const rightmostFunction = trailingIndexesAndArgumentsToExpression(
-      { 0: '@lookup', key: rightmostOperator[0] },
-      rightmostOperator[1],
+    const leftmostOperationRHS = operation[2]
+    if (!isOperand(leftmostOperationRHS)) {
+      throw new Error(
+        'Missing right-hand side of infix operation. This is a bug!',
+      )
+    }
+
+    const leftmostFunction = trailingIndexesAndArgumentsToExpression(
+      { 0: '@lookup', key: leftmostOperator[0] },
+      leftmostOperator[1],
     )
 
-    const reducedRightmostOperation: Molecule = {
+    const reducedLeftmostOperation: Molecule = {
       0: '@apply',
       function: {
         0: '@apply',
-        function: rightmostFunction,
-        argument: rightmostOperationRHS,
+        function: leftmostFunction,
+        argument: leftmostOperationRHS,
       },
-      argument: rightmostOperationLHS,
+      argument: leftmostOperationLHS,
     }
 
-    return infixTokensToExpression(
-      appendToArray(reducedRightmostOperation, operation.slice(0, -3)),
-    )
+    return infixTokensToExpression([
+      reducedLeftmostOperation,
+      ...operation.slice(3),
+    ])
   }
 }
 

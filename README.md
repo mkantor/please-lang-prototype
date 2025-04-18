@@ -156,7 +156,7 @@ Here's another example:
 ```
 {
   cons: b => a => { :a, :b }
-  list: 1 cons 2 cons 3 // evaluates to `{ 1, { 2, 3 } }`
+  list: 1 cons (2 cons 3) // evaluates to `{ 1, { 2, 3 } }`
 }
 ```
 
@@ -174,10 +174,8 @@ in the standard library are the functions`|>` (pipe) and `>>` (flow):
 }
 ```
 
-All binary operations are currently right-associative and there is no operator
-precedence. This means some arithmetic expressions may not behave the way you're
-used to; for example `1 - 2 - 3` means `1 - (2 - 3)` (2), not `(1 - 2) - 3`
-(-4). Use of parentheses is encouraged.
+All binary operations are currently left-associative and there is no operator
+precedence. Use of parentheses is encouraged.
 
 #### Keywords
 
