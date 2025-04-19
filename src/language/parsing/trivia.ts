@@ -35,14 +35,13 @@ const singleLineComment = sequence([
 ])
 
 export const whitespace = regularExpression(/^\s+/)
+export const whitespaceExceptNewlines = regularExpression(/[^\S\n]+/)
 
 export const trivia = oneOrMore(
   oneOf([whitespace, singleLineComment, blockComment]),
 )
 
 export const optionalTrivia = oneOf([trivia, nothing])
-
-export const whitespaceExceptNewlines = regularExpression(/[^\S\n]+/)
 
 export const triviaExceptNewlines = oneOrMore(
   oneOf([whitespaceExceptNewlines, singleLineComment, blockComment]),

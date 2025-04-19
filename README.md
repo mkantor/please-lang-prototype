@@ -149,6 +149,34 @@ Functions can be applied:
 }
 ```
 
+Infix notation can be used to apply binary functions (those which look like
+`b => a => …`). For example, the expression `x f y` desugars to `:f(y)(x)`.
+Here's another example:
+
+```
+{
+  cons: b => a => { :a, :b }
+  list: 1 cons (2 cons 3) // evaluates to `{ 1, { 2, 3 } }`
+}
+```
+
+The standard library contains symbolically-named functions for arithmetic and
+other familiar binary operations. For example, `1 + 2 - 3` is `0`. Also included
+in the standard library are the functions`|>` (pipe) and `>>` (flow):
+
+```
+{
+  // `>>` composes functions
+  append_bc: :atom.append(b) >> :atom.append(c)
+
+  // `|>` pipes an argument into a function
+  abc: a |> :append_bc
+}
+```
+
+All binary operations are currently left-associative and there is no operator
+precedence. Use of parentheses is encouraged.
+
 #### Keywords
 
 The functions and lookups shown above are syntax sugar for _keyword
@@ -197,7 +225,7 @@ possible. For example, this program compiles to the literal value `2` (no
 computation will occur at runtime):
 
 ```
-:integer.add(1)(1)
+1 + 1
 ```
 
 There's currently no module system and all Please programs are single files, but

@@ -106,6 +106,6 @@ const quotedAtomParser = map(
   ([_1, contents, _2]) => contents,
 )
 
-export const atomParser: Parser<Atom> = optionallySurroundedByParentheses(
+export const atom: Parser<Atom> = optionallySurroundedByParentheses(
   oneOf([unquotedAtomParser, quotedAtomParser]),
 )
