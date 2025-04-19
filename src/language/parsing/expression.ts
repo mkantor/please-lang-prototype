@@ -295,12 +295,10 @@ const compactExpression: Parser<Molecule | Atom> = oneOf([
 
 const trailingInfixTokens = oneOrMore(
   map(
-    sequence([
-      trivia,
-      infixOperator,
-      // Allowing newlines here could lead to ambiguity. The following object could either
-      // have three enumerated atom-valued properties, or a single enumerated property
-      // whose value is the result of an infix expression:
+    oneOf([
+      // Allowing newlines both before and after operators could lead to
+      // ambiguity between three enumerated object properties, or a single
+      // enumerated property whose value is the result of an infix expression:
       // ```
       // {
       //   1
@@ -308,10 +306,21 @@ const trailingInfixTokens = oneOrMore(
       //   1
       // }
       // ```
-      // TODO: This could be made context-dependent, only forbidding newlines when between
-      // curly braces. Currently this forbids the above formatting even within parentheses.
-      triviaExceptNewlines,
-      compactExpression,
+      // TODO: This could be made context-dependent, only forbidding newlines
+      // when between curly braces. Currently this forbids the above formatting
+      // even within parentheses, where there would be no ambiguity.
+      sequence([
+        trivia,
+        infixOperator,
+        triviaExceptNewlines,
+        compactExpression,
+      ]),
+      sequence([
+        triviaExceptNewlines,
+        infixOperator,
+        trivia,
+        compactExpression,
+      ]),
     ]),
     ([_trivia1, operator, _trivia2, operand]) => [operator, operand] as const,
   ),
@@ -425,11 +434,20 @@ const precededByColonThenAtom = map(
     trailingIndexesAndArguments,
     zeroOrMore(
       map(
-        sequence([
-          trivia,
-          infixOperator,
-          triviaExceptNewlines, // See note in `precededByAtomThenTrivia`.
-          compactExpression,
+        // See note in `trailingInfixTokens` about newlines.
+        oneOf([
+          sequence([
+            trivia,
+            infixOperator,
+            triviaExceptNewlines,
+            compactExpression,
+          ]),
+          sequence([
+            triviaExceptNewlines,
+            infixOperator,
+            trivia,
+            compactExpression,
+          ]),
         ]),
         ([_trivia1, operator, _trivia2, operand]) =>
           [operator, operand] as const,

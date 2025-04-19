@@ -327,6 +327,13 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       + 4`,
     either.makeRight('10'),
   ],
+  [
+    `1 +
+     2 +
+     3 +
+     4`,
+    either.makeRight('10'),
+  ],
   [`{ f: _ => 1 + 1 }.f(whatever)`, either.makeRight('2')],
   [
     `{
@@ -377,6 +384,16 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         >> :+(2)
         >> :+(3)
         >> :+(4)
+    )(0)`,
+    either.makeRight('10'),
+  ],
+
+  [
+    `(
+      :+(1) >>
+      :+(2) >>
+      :+(3) >>
+      :+(4)
     )(0)`,
     either.makeRight('10'),
   ],
