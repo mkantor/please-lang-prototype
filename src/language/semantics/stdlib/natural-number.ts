@@ -75,4 +75,44 @@ export const natural_number = {
           : 'false',
       ),
   ),
+  modulus: preludeFunction(
+    ['natural_number', 'modulus'],
+    {
+      parameter: types.naturalNumber,
+      return: makeFunctionType('', {
+        parameter: types.naturalNumber,
+        return: types.naturalNumber,
+      }),
+    },
+    number2 =>
+      either.makeRight(
+        makeFunctionNode(
+          {
+            parameter: types.naturalNumber,
+            return: types.naturalNumber,
+          },
+          serializeOnceAppliedFunction(['natural_number', 'modulus'], number2),
+          option.none,
+          number1 => {
+            if (
+              typeof number1 !== 'string' ||
+              !types.naturalNumber.isAssignableFrom(
+                makeUnionType('', [number1]),
+              ) ||
+              typeof number2 !== 'string' ||
+              !types.naturalNumber.isAssignableFrom(
+                makeUnionType('', [number2]),
+              )
+            ) {
+              return either.makeLeft({
+                kind: 'panic',
+                message: 'numbers must be atoms',
+              })
+            } else {
+              return either.makeRight(String(BigInt(number1) % BigInt(number2)))
+            }
+          },
+        ),
+      ),
+  ),
 }
