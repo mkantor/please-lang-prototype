@@ -339,7 +339,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
      4`,
     either.makeRight('10'),
   ],
-  [`{ f: _ => 1 + 1 }.f(whatever)`, either.makeRight('2')],
+  [`{ f: _ => 5 % 3 }.f(whatever)`, either.makeRight('2')],
   [
     `{
       one: 1
