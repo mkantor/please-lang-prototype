@@ -31,12 +31,6 @@ compile time. The standard library is anemic and documentation is lacking.
 The current runtime is an interpreter, but the plan is to eventually add one or
 more backends to allow building native executables.
 
-### What's Next?
-
-I'm focused on squashing compiler bugs and establishing solid foundations to
-build atop. Along the way I've been slowly fleshing out the type system and
-standard library.
-
 ## Language Design
 
 ### Syntax
@@ -203,7 +197,8 @@ data in the same sense as in Lisp, though without a macro system there's not
 much you can do with this right now.
 
 Before a Please program terminates, it prints the fully-resolved version of
-itself to standard output. That means Hello World can be as simple as this:
+itself to standard output. That means `hello-world.plz` can be as simple as
+this:
 
 ```
 "Hello, World!"
