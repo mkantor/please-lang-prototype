@@ -253,16 +253,13 @@ const infixOperator = sequence([
 ])
 
 const compactExpression: Parser<Molecule | Atom> = oneOf([
-  // (a => :b).c(d)
+  // (a)
   // (1 + 1)
+  // (a => :b)(c)
+  // ({ a: 1 } |> :identity).a
   map(
     sequence([
-      surroundedByParentheses(
-        oneOf([
-          lazy(() => precededByAtomThenTrivia),
-          lazy(() => precededByColonThenAtom),
-        ]),
-      ),
+      surroundedByParentheses(lazy(() => expression)),
       compactTrailingIndexesAndArguments,
     ]),
     ([expression, trailingIndexesAndArguments]) =>
@@ -275,18 +272,7 @@ const compactExpression: Parser<Molecule | Atom> = oneOf([
   // :a.b(1).c
   // :f(x)
   // :a.b(1)(2)
-  map(
-    sequence([
-      colon,
-      atomRequiringDotQuotation,
-      compactTrailingIndexesAndArguments,
-    ]),
-    ([_colon, key, trailingIndexesAndArguments]) =>
-      trailingIndexesAndArgumentsToExpression(
-        { 0: '@lookup', key },
-        trailingIndexesAndArguments,
-      ),
-  ),
+  lazy(() => precededByColonThenAtom),
   // {}
   lazy(() => precededByOpeningBrace),
   // 1
@@ -326,95 +312,50 @@ const trailingInfixTokens = oneOrMore(
   ),
 )
 
-type TrailingInfixToken = readonly [
-  operator: readonly [Atom, readonly TrailingIndexOrArgument[]],
-  operand: Molecule | Atom,
-]
-type TrailingFunctionBodyOrInfixTokens =
-  | {
-      readonly kind: 'functionBody'
-      readonly additionalParameters: readonly Atom[]
-      readonly body: Molecule | Atom
-    }
-  | {
-      readonly kind: 'infixTokens'
-      readonly tokens: readonly [
-        TrailingInfixToken,
-        ...(readonly TrailingInfixToken[]),
-      ]
-    }
-
-const precededByAtomThenTrivia = map(
+const precededByAtomThenArrow = map(
   sequence([
     atom,
-    oneOf([
-      // a => :b
-      // a => {}
-      // a => (b => c => :d)
-      // a => b => c => d
-      // a => 1 + 1
+    // a => :b
+    // a => {}
+    // a => (b => c => :d)
+    // a => b => c => d
+    // a => 1 + 1
+    trivia,
+    arrow,
+    trivia,
+    zeroOrMore(
       map(
-        sequence([
-          trivia,
-          arrow,
-          trivia,
-          zeroOrMore(
-            map(
-              sequence([atom, trivia, arrow, trivia]),
-              ([parameter, _trivia1, _arrow, _trivia2]) => parameter,
-            ),
-          ),
-          lazy(() => expression),
-        ]),
-        ([
-          _trivia1,
-          _arrow,
-          _trivia2,
-          additionalParameters,
-          body,
-        ]): TrailingFunctionBodyOrInfixTokens => ({
-          kind: 'functionBody',
-          additionalParameters,
-          body,
-        }),
+        sequence([atom, trivia, arrow, trivia]),
+        ([parameter, _trivia1, _arrow, _trivia2]) => parameter,
       ),
-      // 1 + 2 + 3 + 4
-      // 1 + (2 + 3 + 4)
-      map(
-        trailingInfixTokens,
-        (tokens): TrailingFunctionBodyOrInfixTokens => ({
-          kind: 'infixTokens',
-          tokens,
-        }),
-      ),
-    ]),
+    ),
+    lazy(() => expression),
   ]),
-  ([initialAtom, trailingFunctionBodyOrInfixTokens]) => {
-    switch (trailingFunctionBodyOrInfixTokens.kind) {
-      case 'functionBody':
-        const [lastParameter, ...additionalParameters] = [
-          ...trailingFunctionBodyOrInfixTokens.additionalParameters.toReversed(),
-          initialAtom,
-        ]
-        const initialFunction = {
-          0: '@function',
-          parameter: lastParameter,
-          body: trailingFunctionBodyOrInfixTokens.body,
-        }
-        return additionalParameters.reduce(
-          (expression, additionalParameter) => ({
-            0: '@function',
-            parameter: additionalParameter,
-            body: expression,
-          }),
-          initialFunction,
-        )
-      case 'infixTokens':
-        return infixTokensToExpression([
-          initialAtom,
-          ...trailingFunctionBodyOrInfixTokens.tokens.flat(),
-        ])
+  ([
+    initialParameter,
+    _trivia1,
+    _arrow,
+    _trivia2,
+    trailingParameters,
+    body,
+  ]) => {
+    const [lastParameter, ...additionalParameters] = [
+      ...trailingParameters.toReversed(),
+      initialParameter,
+    ]
+    const initialFunction = {
+      0: '@function',
+      parameter: lastParameter,
+      body: body,
     }
+    return additionalParameters.reduce(
+      (expression, additionalParameter) => ({
+        0: '@function',
+        parameter: additionalParameter,
+        body: expression,
+      }),
+      initialFunction,
+    )
   },
 )
 
@@ -423,53 +364,13 @@ const precededByAtomThenTrivia = map(
 // :a.b(1).c
 // :f(x)
 // :a.b(1)(2)
-// :a b.c :z
-// :a b.c z
-// :f(g) + b
-// :a + :b + :c + :d
 const precededByColonThenAtom = map(
-  sequence([
-    colon,
-    atomRequiringDotQuotation,
-    trailingIndexesAndArguments,
-    zeroOrMore(
-      map(
-        // See note in `trailingInfixTokens` about newlines.
-        oneOf([
-          sequence([
-            trivia,
-            infixOperator,
-            triviaExceptNewlines,
-            compactExpression,
-          ]),
-          sequence([
-            triviaExceptNewlines,
-            infixOperator,
-            trivia,
-            compactExpression,
-          ]),
-        ]),
-        ([_trivia1, operator, _trivia2, operand]) =>
-          [operator, operand] as const,
-      ),
-    ),
-  ]),
-  ([_colon, key, trailingIndexesAndArguments, infixOperationTokens]) => {
-    const initialExpression = trailingIndexesAndArgumentsToExpression(
+  sequence([colon, atomRequiringDotQuotation, trailingIndexesAndArguments]),
+  ([_colon, key, trailingIndexesAndArguments]) =>
+    trailingIndexesAndArgumentsToExpression(
       { 0: '@lookup', key },
       trailingIndexesAndArguments,
-    )
-    const [firstToken, ...additionalTokens] = infixOperationTokens
-    if (firstToken === undefined) {
-      return initialExpression
-    } else {
-      return infixTokensToExpression([
-        initialExpression,
-        ...firstToken,
-        ...additionalTokens.flat(),
-      ])
-    }
-  },
+    ),
 )
 
 // (1 + 1)
@@ -479,36 +380,21 @@ const precededByColonThenAtom = map(
 // (1 + 1).b
 // (:x => x)(1)
 // (:f >> :g)(1)
-// (1 + 1) - (1 + 1)
-const precededByOpeningParenthesis = oneOf([
-  map(
-    sequence([
-      surroundedByParentheses(lazy(() => expression)),
-      trailingInfixTokens,
-    ]),
-    ([initialExpression, trailingInfixTokens]) =>
-      infixTokensToExpression([
-        initialExpression,
-        ...trailingInfixTokens.flat(),
-      ]),
-  ),
-  map(
-    sequence([
-      surroundedByParentheses(lazy(() => expression)),
+const precededByOpeningParenthesis = map(
+  sequence([
+    surroundedByParentheses(lazy(() => expression)),
+    trailingIndexesAndArguments,
+  ]),
+  ([expression, trailingIndexesAndArguments]) =>
+    trailingIndexesAndArgumentsToExpression(
+      expression,
       trailingIndexesAndArguments,
-    ]),
-    ([expression, trailingIndexesAndArguments]) =>
-      trailingIndexesAndArgumentsToExpression(
-        expression,
-        trailingIndexesAndArguments,
-      ),
-  ),
-])
+    ),
+)
 
 // {}
 // { a: b }
 // { 1, 2, 3 }
-// {a::f}.a(1) + 1
 const precededByOpeningBrace = map(
   sequence([sugarFreeMolecule, trailingIndexesAndArguments]),
   ([expression, trailingIndexesAndArguments]) =>
@@ -518,10 +404,25 @@ const precededByOpeningBrace = map(
     ),
 )
 
-export const expression: Parser<Atom | Molecule> = oneOf([
-  precededByOpeningParenthesis,
-  precededByOpeningBrace,
-  precededByColonThenAtom,
-  precededByAtomThenTrivia,
-  atom,
-])
+export const expression: Parser<Atom | Molecule> = map(
+  sequence([
+    oneOf([
+      precededByOpeningParenthesis,
+      precededByOpeningBrace,
+      precededByColonThenAtom,
+      precededByAtomThenArrow,
+      atom,
+    ]),
+    optional(trailingInfixTokens),
+  ]),
+  ([initialExpression, trailingInfixTokens]) => {
+    if (trailingInfixTokens === undefined) {
+      return initialExpression
+    } else {
+      return infixTokensToExpression([
+        initialExpression,
+        ...trailingInfixTokens.flat(),
+      ])
+    }
+  },
+)

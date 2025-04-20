@@ -321,6 +321,11 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`(b atom.append c) atom.prepend a`, either.makeRight('abc')],
   [`a atom.append (c atom.prepend b)`, either.makeRight('abc')],
   [
+    `{ a: "it works!" } object.lookup a`,
+    either.makeRight({ tag: 'some', value: 'it works!' }),
+  ],
+  [`{ a: :identity }.a(1) + 1`, either.makeRight('2')],
+  [
     `1
       + 2
       + 3
