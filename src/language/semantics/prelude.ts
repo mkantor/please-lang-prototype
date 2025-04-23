@@ -21,4 +21,5 @@ export const prelude = makeObjectNode({
   '-': integer.subtract,
   '<': integer.less_than,
   '>': integer.greater_than,
+  '%': natural_number.modulo,
 })
