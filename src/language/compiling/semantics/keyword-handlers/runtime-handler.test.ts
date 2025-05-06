@@ -6,15 +6,18 @@ import { elaborationSuite } from '../test-utilities.test.js'
 
 elaborationSuite('@runtime', [
   [
-    { 0: '@runtime', 1: { 0: '@lookup', key: 'identity' } },
+    { 0: '@runtime', 1: { 0: { 0: '@lookup', 1: { key: 'identity' } } } },
     either.makeRight(
       withPhantomData<never>()(
-        makeObjectNode({ 0: '@runtime', function: prelude['identity']! }),
+        makeObjectNode({
+          0: '@runtime',
+          1: makeObjectNode({ function: prelude['identity']! }),
+        }),
       ),
     ),
   ],
   [
-    { 0: '@runtime', 1: 'not a function' },
+    { 0: '@runtime', 1: { 0: 'not a function' } },
     output => assert(either.isLeft(output)),
   ],
 ])

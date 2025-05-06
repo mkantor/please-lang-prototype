@@ -30,7 +30,7 @@ export const functionKeywordHandler: KeywordHandler = (
         return: types.something,
       },
       () => either.makeRight(functionExpression),
-      option.makeSome(functionExpression.parameter),
+      option.makeSome(functionExpression[1].parameter),
       argument => apply(functionExpression, argument, context),
     ),
   )
@@ -40,8 +40,8 @@ const apply = (
   argument: SemanticGraph,
   context: ExpressionContext,
 ): ReturnType<FunctionNode> => {
-  const parameter = expression.parameter
-  const body = asSemanticGraph(expression.body)
+  const parameter = expression[1].parameter
+  const body = asSemanticGraph(expression[1].body)
 
   const ownKey = context.location[context.location.length - 1]
   if (ownKey === undefined) {
@@ -76,7 +76,7 @@ const apply = (
               argument => apply(expression, argument, context),
             ),
             // Put the argument in scope.
-            [expression.parameter]: argument,
+            [parameter]: argument,
             [returnKey]: body,
           }),
       ),

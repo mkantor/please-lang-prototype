@@ -1,20 +1,17 @@
 import either from '@matt.kantor/either'
-import option, { type Option } from '@matt.kantor/option'
+import option from '@matt.kantor/option'
 import { parseArgs } from 'node:util'
 import { writeOutput } from '../cli/output.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
-import type { Atom } from '../parsing.js'
 import {
   isFunctionNode,
   makeFunctionNode,
   makeObjectNode,
+  readRuntimeExpression,
   serialize,
   types,
-  type Expression,
   type KeywordHandlers,
-  type SemanticGraph,
 } from '../semantics.js'
-import { lookupPropertyOfObjectNode } from '../semantics/object-node.js'
 import { prettyJson } from '../unparsing.js'
 
 const unserializableFunction = () =>
@@ -131,45 +128,29 @@ export const keywordHandlers: KeywordHandlers = {
   /**
    * Evaluates the given function, passing runtime context captured in `world`.
    */
-  '@runtime': expression => {
-    const runtimeFunction = lookupWithinExpression(
-      ['function', '1'],
-      expression,
-    )
-    if (
-      option.isNone(runtimeFunction) ||
-      !isFunctionNode(runtimeFunction.value)
-    ) {
-      return either.makeLeft({
-        kind: 'invalidExpression',
-        message:
-          'a function must be provided via the property `function` or `1`',
-      })
-    } else {
-      const result = runtimeFunction.value(runtimeContext)
-      if (either.isLeft(result)) {
-        // The runtime function panicked or had an unavailable dependency (which results in a panic
-        // anyway in this context).
-        return either.makeLeft({
-          kind: 'panic',
-          message: result.value.message,
-        })
-      } else {
-        return result
-      }
-    }
-  },
-}
-
-const lookupWithinExpression = (
-  keyAliases: [Atom, ...(readonly Atom[])],
-  expression: Expression,
-): Option<SemanticGraph> => {
-  for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(key, makeObjectNode(expression))
-    if (!option.isNone(result)) {
-      return result
-    }
-  }
-  return option.none
+  '@runtime': expression =>
+    either.flatMap(
+      readRuntimeExpression(expression),
+      ({ 1: { function: runtimeFunction } }) => {
+        if (!isFunctionNode(runtimeFunction)) {
+          return either.makeLeft({
+            kind: 'panic',
+            message:
+              'a function must be provided via the property `function` or `0`',
+          })
+        } else {
+          const result = runtimeFunction(runtimeContext)
+          if (either.isLeft(result)) {
+            // The runtime function panicked or had an unavailable dependency (which results in a panic
+            // anyway in this context).
+            return either.makeLeft({
+              kind: 'panic',
+              message: result.value.message,
+            })
+          } else {
+            return result
+          }
+        }
+      },
+    ),
 }

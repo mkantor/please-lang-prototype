@@ -20,15 +20,15 @@ export const indexKeywordHandler: KeywordHandler = (
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readIndexExpression(expression), indexExpression =>
     either.flatMap(
-      keyPathFromObjectNodeOrMolecule(indexExpression.query),
+      keyPathFromObjectNodeOrMolecule(indexExpression[1].query),
       keyPath => {
-        if (containsAnyUnelaboratedNodes(indexExpression.object)) {
+        if (containsAnyUnelaboratedNodes(indexExpression[1].object)) {
           // The object isn't ready, so keep the @index unelaborated.
           return either.makeRight(indexExpression)
         } else {
           return option.match(
             applyKeyPathToSemanticGraph(
-              asSemanticGraph(indexExpression.object),
+              asSemanticGraph(indexExpression[1].object),
               keyPath,
             ),
             {

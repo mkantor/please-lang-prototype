@@ -17,7 +17,7 @@ export const checkKeywordHandler: KeywordHandler = (
   expression: Expression,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
-  either.flatMap(readCheckExpression(expression), ({ value, type }) =>
+  either.flatMap(readCheckExpression(expression), ({ 1: { value, type } }) =>
     check({
       value: asSemanticGraph(value),
       type: asSemanticGraph(type),

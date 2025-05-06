@@ -16,16 +16,21 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
   'compiler',
   [
     ['Hello, world!', success('Hello, world!')],
-    [['@check', true, ['@lookup', 'identity']], success('true')],
+    [['@check', [true, ['@lookup', ['identity']]]], success('true')],
     [
       {
-        true1: ['@check', true, ['@lookup', 'identity']],
-        true2: ['@apply', ['@index', ['@lookup', 'boolean'], ['not']], false],
-        false1: ['@check', false, ['@index', ['@lookup', 'boolean'], ['is']]],
+        true1: ['@check', [true, ['@lookup', ['identity']]]],
+        true2: [
+          '@apply',
+          [['@index', [['@lookup', ['boolean']], ['not']]], false],
+        ],
+        false1: [
+          '@check',
+          [false, ['@index', [['@lookup', ['boolean']], ['is']]]],
+        ],
         false2: [
           '@apply',
-          ['@index', ['@lookup', 'boolean'], ['is']],
-          'not a boolean',
+          [['@index', [['@lookup', ['boolean']], ['is']]], 'not a boolean'],
         ],
       },
       success({
@@ -36,29 +41,40 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       }),
     ],
     [
-      ['@runtime', ['@lookup', 'identity']],
+      ['@runtime', [['@lookup', ['identity']]]],
       success({
         0: '@runtime',
-        function: { 0: '@lookup', key: 'identity' },
+        1: { function: { 0: '@lookup', 1: { key: 'identity' } } },
       }),
     ],
     [
       [
         '@runtime',
-        ['@apply', ['@lookup', 'identity'], ['@lookup', 'identity']],
+        [
+          [
+            '@apply',
+            [
+              ['@lookup', ['identity']],
+              ['@lookup', ['identity']],
+            ],
+          ],
+        ],
       ],
       success({
         0: '@runtime',
-        function: { 0: '@lookup', key: 'identity' },
+        1: { function: { 0: '@lookup', 1: { key: 'identity' } } },
       }),
     ],
     [
-      ['@check', 'not a boolean', ['@index', ['@lookup', 'boolean'], ['is']]],
+      [
+        '@check',
+        ['not a boolean', ['@index', [['@lookup', ['boolean']], ['is']]]],
+      ],
       output => assert(either.isLeft(output)),
     ],
-    [['@lookup', 'compose'], output => assert(either.isLeft(output))],
+    [[['@lookup', ['compose']]], output => assert(either.isLeft(output))],
     [
-      ['@runtime', ['@index', ['@lookup', 'boolean'], ['not']]],
+      ['@runtime', [['@index', [['@lookup', ['boolean']], ['not']]]]],
       output => {
         assert(either.isLeft(output))
         assert(output.value.kind === 'typeMismatch')
@@ -68,9 +84,13 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       [
         '@runtime',
         [
-          '@apply',
-          ['@lookup', 'identity'],
-          ['@index', ['@lookup', 'boolean'], ['not']],
+          [
+            '@apply',
+            [
+              ['@lookup', ['identity']],
+              ['@index', [['@lookup', ['boolean']], ['not']]],
+            ],
+          ],
         ],
       ],
       output => {
@@ -82,26 +102,42 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
       [
         '@runtime',
         [
-          '@apply',
-          ['@apply', ['@lookup', 'flow'], ['@lookup', 'identity']],
-          ['@lookup', 'identity'],
+          [
+            '@apply',
+            [
+              [
+                '@apply',
+                [
+                  ['@lookup', ['flow']],
+                  ['@lookup', ['identity']],
+                ],
+              ],
+              ['@lookup', ['identity']],
+            ],
+          ],
         ],
       ],
       success({
         0: '@runtime',
-        function: {
-          0: '@apply',
+        1: {
           function: {
             0: '@apply',
-            function: { 0: '@lookup', key: 'flow' },
-            argument: { 0: '@lookup', key: 'identity' },
+            1: {
+              function: {
+                0: '@apply',
+                1: {
+                  function: { 0: '@lookup', 1: { key: 'flow' } },
+                  argument: { 0: '@lookup', 1: { key: 'identity' } },
+                },
+              },
+              argument: { 0: '@lookup', 1: { key: 'identity' } },
+            },
           },
-          argument: { 0: '@lookup', key: 'identity' },
         },
       }),
     ],
     [
-      ['@runtime', ['@index', ['@lookup', 'boolean'], ['not']]],
+      ['@runtime', [['@index', [['@lookup', ['boolean']], ['not']]]]],
       output => {
         assert(either.isLeft(output))
         assert(output.value.kind === 'typeMismatch')
@@ -110,26 +146,38 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
     [
       {
         0: '@runtime',
-        function: {
-          0: '@apply',
+        1: {
           function: {
-            0: '@index',
-            object: { 0: '@lookup', key: 'object' },
-            query: { 0: 'lookup' },
+            0: '@apply',
+            1: {
+              function: {
+                0: '@index',
+                1: {
+                  object: { 0: '@lookup', 1: { key: 'object' } },
+                  query: { 0: 'lookup' },
+                },
+              },
+              argument: 'key which does not exist in runtime context',
+            },
           },
-          argument: 'key which does not exist in runtime context',
         },
       },
       success({
         0: '@runtime',
-        function: {
-          0: '@apply',
+        1: {
           function: {
-            0: '@index',
-            object: { 0: '@lookup', key: 'object' },
-            query: { 0: 'lookup' },
+            0: '@apply',
+            1: {
+              function: {
+                0: '@index',
+                1: {
+                  object: { 0: '@lookup', 1: { key: 'object' } },
+                  query: { 0: 'lookup' },
+                },
+              },
+              argument: 'key which does not exist in runtime context',
+            },
           },
-          argument: 'key which does not exist in runtime context',
         },
       }),
     ],

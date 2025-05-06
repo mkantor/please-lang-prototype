@@ -1,7 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
-import { isSpecificExpression } from '../expression.js'
+import { isExpressionWithArgument } from '../expression.js'
 import { keyPathFromObjectNodeOrMolecule } from '../key-path.js'
 import {
   isObjectNode,
@@ -16,19 +16,18 @@ import {
 
 export type IndexExpression = ObjectNode & {
   readonly 0: '@index'
-  readonly object: ObjectNode | Molecule
-  readonly query: ObjectNode | Molecule
+  readonly 1: {
+    readonly object: ObjectNode | Molecule
+    readonly query: ObjectNode | Molecule
+  }
 }
 
 export const readIndexExpression = (
   node: SemanticGraph | Molecule,
 ): Either<ElaborationError, IndexExpression> =>
-  isSpecificExpression('@index', node)
+  isExpressionWithArgument('@index', node)
     ? either.flatMap(
-        readArgumentsFromExpression(node, [
-          ['object', '1'],
-          ['query', '2'],
-        ]),
+        readArgumentsFromExpression(node, ['object', 'query']),
         ([o, q]) => {
           const object = asSemanticGraph(o)
           const query = asSemanticGraph(q)
@@ -64,6 +63,8 @@ export const makeIndexExpression = ({
 }): IndexExpression =>
   makeObjectNode({
     0: '@index',
-    object,
-    query,
+    1: makeObjectNode({
+      object,
+      query,
+    }),
   })

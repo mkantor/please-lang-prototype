@@ -28,7 +28,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ['{,a,b,c,}', either.makeRight({ 0: 'a', 1: 'b', 2: 'c' })],
   ['{a,1:overwritten,c}', either.makeRight({ 0: 'a', 1: 'c' })],
   ['{overwritten,0:a,c}', either.makeRight({ 0: 'a', 1: 'c' })],
-  ['{@check, type:true, value:true}', either.makeRight('true')],
+  ['{@check, {type:true, value:true}}', either.makeRight('true')],
   [
     '{@panic}',
     result => {
@@ -37,12 +37,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert.deepEqual(result.value.kind, 'panic')
     },
   ],
-  ['{a:A, b:{@lookup, a}}', either.makeRight({ a: 'A', b: 'A' })],
-  ['{a:A, {@lookup, a}}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{a:A, b:{@lookup, {a}}}', either.makeRight({ a: 'A', b: 'A' })],
+  ['{a:A, {@lookup, {a}}}', either.makeRight({ a: 'A', 0: 'A' })],
   ['{a:A, b: :a}', either.makeRight({ a: 'A', b: 'A' })],
   ['{a:A, :a}', either.makeRight({ a: 'A', 0: 'A' })],
   [
-    '{@runtime, _ => {@panic}}',
+    '{@runtime, {_ => {@panic}}}',
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
@@ -53,16 +53,20 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     'a => :a',
     either.makeRight({
       0: '@function',
-      parameter: 'a',
-      body: { 0: '@lookup', key: 'a' },
+      1: {
+        parameter: 'a',
+        body: { 0: '@lookup', 1: { key: 'a' } },
+      },
     }),
   ],
   [
     '(a => :a)',
     either.makeRight({
       0: '@function',
-      parameter: 'a',
-      body: { 0: '@lookup', key: 'a' },
+      1: {
+        parameter: 'a',
+        body: { 0: '@lookup', 1: { key: 'a' } },
+      },
     }),
   ],
   ['{ a: ({ A }) }', either.makeRight({ a: { 0: 'A' } })],
@@ -87,10 +91,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       "static data":"blah blah blah"
       "evaluated data": {
         0:@runtime
-        function:{
-          0:@apply
-          function:{0:@index, object:{0:@lookup, key:object}, query:{0:lookup}}
-          argument:"key which does not exist in runtime context"
+        1:{
+          function:{
+            0:@apply
+            1:{
+              function:{0:@index, 1:{object:{0:@lookup, 1:{key:object}}, query:{0:lookup}}}
+              argument:"key which does not exist in runtime context"
+            }
+          }
         }
       }
     }`,
@@ -145,9 +153,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [
-    `{@runtime, context =>
+    `{@runtime, { context =>
       :identity(:context).program.start_time
-    }`,
+    }}`,
     output => {
       if (either.isLeft(output)) {
         assert.fail(output.value.message)
@@ -174,7 +182,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [':flow(:atom.append(b))(:atom.append(a))(z)', either.makeRight('zab')],
   [
     `{@runtime
-      :object.lookup("key which does not exist in runtime context")
+      { :object.lookup("key which does not exist in runtime context") }
     }`,
     either.makeRight({ tag: 'none', value: {} }),
   ],
@@ -205,21 +213,23 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({ true: 'true', false: 'false' }),
   ],
   [
-    `{@runtime, :flow(
-      :match({
-        none: "environment does not exist"
-        some: :flow(
-          :match({
-            none: "environment.lookup does not exist"
-            some: :apply(PATH)
-          })
-        )(
-          :object.lookup(lookup)
-        )
-      })
-    )(
-      :object.lookup(environment)
-    )}`,
+    `{@runtime, {
+      :flow(
+        :match({
+          none: "environment does not exist"
+          some: :flow(
+            :match({
+              none: "environment.lookup does not exist"
+              some: :apply(PATH)
+            })
+          )(
+            :object.lookup(lookup)
+          )
+        })
+      )(
+        :object.lookup(environment)
+      )}
+    }`,
     output => {
       if (either.isLeft(output)) {
         assert.fail(output.value.message)
@@ -250,9 +260,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({ 0: 'a', 1: 'b', 2: 'c', 3: 'd' }),
   ],
   [
-    `{@runtime, context =>
+    `{@runtime, { context =>
       :context.environment.lookup(PATH)
-    }`,
+    }}`,
     output => {
       if (either.isLeft(output)) {
         assert.fail(output.value.message)
@@ -263,10 +273,11 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [
-    `{@if, true
+    `{@if, {
+      true
       "it works!"
       {@panic}
-    }`,
+    }}`,
     either.makeRight('it works!'),
   ],
   [
@@ -278,20 +289,23 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({ 0: 'a', 1: 'b', 2: 'c' }),
   ],
   [
-    `{@runtime, context =>
-      {@if, :boolean.not(:boolean.is(:context))
+    `{@runtime, { context =>
+      {@if, {
+        :boolean.not(:boolean.is(:context))
         "it works!"
         {@panic}
-      }
-    }`,
+      }}
+    }}`,
     either.makeRight('it works!'),
   ],
   [
     `{
       fibonacci: n => {
-        @if, :integer.less_than(2)(:n)
-        then: :n
-        else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
+        @if, {
+          :integer.less_than(2)(:n)
+          then: :n
+          else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
+        }
       }
       result: :fibonacci(10)
     }.result`,
@@ -348,7 +362,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight('2'),
   ],
   [
-    `{@runtime, context =>
+    `{@runtime, { context =>
       (
         PATH
           |> :context.environment.lookup
@@ -357,7 +371,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
             some: :atom.prepend("PATH=")
           })
       )
-    }`,
+    }}`,
     result => {
       if (either.isLeft(result)) {
         assert.fail(result.value.message)

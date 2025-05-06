@@ -16,9 +16,12 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
   'evaluator',
   [
     ['Hello, world!', success('Hello, world!')],
-    [['@check', true, ['@lookup', 'identity']], success('true')],
+    [['@check', [true, ['@lookup', ['identity']]]], success('true')],
     [
-      ['@check', 'not a boolean', ['@index', ['@lookup', 'boolean'], 'is']],
+      [
+        '@check',
+        ['not a boolean', ['@index', [['@lookup', ['boolean']], 'is']]],
+      ],
       output => assert(either.isLeft(output)),
     ],
   ],

@@ -4,12 +4,14 @@
   */
 {
   @runtime
-  context =>
-    :context.arguments.lookup(variable) match {
-      none: {}
-      some: :context.environment.lookup >> :match({
+  {
+    context =>
+      :context.arguments.lookup(variable) match {
         none: {}
-        some: :identity
-      })
-    }
+        some: :context.environment.lookup >> :match({
+          none: {}
+          some: :identity
+        })
+      }
+  }
 }

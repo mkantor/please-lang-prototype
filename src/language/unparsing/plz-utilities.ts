@@ -142,11 +142,11 @@ const unparseSugaredApply = (
   const { closeParenthesis, openParenthesis } = punctuation(kleur)
   const functionUnparseResult = either.map(
     either.flatMap(
-      serializeIfNeeded(expression.function),
+      serializeIfNeeded(expression[1].function),
       unparseAtomOrMolecule,
     ),
     unparsedFunction =>
-      either.isRight(readFunctionExpression(expression.function))
+      either.isRight(readFunctionExpression(expression[1].function))
         ? // Immediately-applied function expressions need parentheses.
           openParenthesis.concat(unparsedFunction).concat(closeParenthesis)
         : unparsedFunction,
@@ -156,7 +156,7 @@ const unparseSugaredApply = (
   }
 
   const argumentUnparseResult = either.flatMap(
-    serializeIfNeeded(expression.argument),
+    serializeIfNeeded(expression[1].argument),
     unparseAtomOrMolecule,
   )
   if (either.isLeft(argumentUnparseResult)) {
@@ -175,10 +175,10 @@ const unparseSugaredFunction = (
   expression: FunctionExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) =>
-  either.flatMap(serializeIfNeeded(expression.body), serializedBody =>
+  either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
     either.map(unparseAtomOrMolecule(serializedBody), bodyAsString =>
       [
-        kleur.cyan(expression.parameter),
+        kleur.cyan(expression[1].parameter),
         punctuation(kleur).arrow,
         bodyAsString,
       ].join(' '),
@@ -190,20 +190,20 @@ const unparseSugaredIndex = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
   const objectUnparseResult = either.flatMap(
-    serializeIfNeeded(expression.object),
+    serializeIfNeeded(expression[1].object),
     unparseAtomOrMolecule,
   )
   if (either.isLeft(objectUnparseResult)) {
     return objectUnparseResult
   } else {
-    if (typeof expression.query !== 'object') {
+    if (typeof expression[1].query !== 'object') {
       // TODO: It would be nice if this were provably impossible.
       return either.makeLeft({
         kind: 'unserializableValue',
         message: 'Invalid index expression',
       })
     } else {
-      const keyPath = Object.entries(expression.query).reduce(
+      const keyPath = Object.entries(expression[1].query).reduce(
         (accumulator: KeyPath | 'invalid', [key, value]) => {
           if (accumulator === 'invalid') {
             return accumulator
@@ -223,7 +223,7 @@ const unparseSugaredIndex = (
 
       if (
         keyPath === 'invalid' ||
-        Object.keys(expression.query).length !== keyPath.length
+        Object.keys(expression[1].query).length !== keyPath.length
       ) {
         return either.makeLeft({
           kind: 'unserializableValue',
@@ -248,7 +248,7 @@ const unparseSugaredLookup = (
   either.makeRight(
     kleur.cyan(
       punctuation(kleur).colon.concat(
-        quoteKeyPathComponentIfNecessary(expression.key),
+        quoteKeyPathComponentIfNecessary(expression[1].key),
       ),
     ),
   )
