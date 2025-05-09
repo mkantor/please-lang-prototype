@@ -35,6 +35,7 @@ export {
   type IndexExpression,
 } from './semantics/expressions/index-expression.js'
 export {
+  keyPathToLookupExpression,
   makeLookupExpression,
   readLookupExpression,
   type LookupExpression,
