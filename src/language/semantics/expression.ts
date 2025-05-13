@@ -14,7 +14,7 @@ export const isExpression = (
   /^@[^@]/.test(node['0']) &&
   (!('1' in node) || typeof node[1] === 'object' || typeof node[1] === 'string')
 
-export const isExpressionWithArgument = <Keyword extends `@${string}`>(
+export const isKeywordExpressionWithArgument = <Keyword extends `@${string}`>(
   keyword: Keyword,
   node: Molecule | SemanticGraph,
 ): node is {
