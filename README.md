@@ -9,7 +9,7 @@ git clone git@github.com:mkantor/please-lang-prototype.git
 cd please-lang-prototype
 npm install
 npm run build
-echo '{"@runtime", { context => :context.program.start_time }}' | ./please --output-format=json
+echo '@runtime { context => :context.program.start_time }' | ./please --output-format=json
 ```
 
 There are more example programs in [`./examples`](./examples).
@@ -178,14 +178,18 @@ expressions_. Most of the interesting stuff that Please does involves evaluating
 keyword expressions.
 
 Under the hood, keyword expressions are modeled as objects. For example, `:foo`
-desugars to `{ "@lookup", { key: foo } }`. All such expressions have a property
-named `0` referring to a value that is an `@`-prefixed atom (the keyword). Most
-keyword expressions also require a property named `1` to pass an argument to the
-expression. Keywords include `@apply`, `@check`, `@function`, `@if`, `@index`,
-`@lookup`, `@panic`, and `@runtime`.
+desugars to `{ 0: "@lookup", 1: { key: foo } }`. All such expressions have a
+property named `0` referring to a value that is an `@`-prefixed atom (the
+keyword). Most keyword expressions also require a property named `1` to pass an
+argument to the expression. Keywords include `@apply`, `@check`, `@function`,
+`@if`, `@index`, `@lookup`, `@panic`, and `@runtime`.
 
-Currently only `@function`, `@lookup`, `@index`, and `@apply` have syntax
-sugars.
+In addition to the specific syntax sugars shown above, any keyword expression
+can be written using a generalized sugar:
+
+```
+@keyword { … } // desugars to `{ 0: "@keyword", 1: { … } }`
+```
 
 ### Semantics
 
@@ -211,7 +215,7 @@ function from other programming languages, except there can be any number of
 `@runtime` expressions in a given program. Here's an example:
 
 ```
-{"@runtime", { context => :context.program.start_time }}
+@runtime { context => :context.program.start_time }
 ```
 
 Unsurprisingly, this program outputs the current time when run.
@@ -250,7 +254,7 @@ Take this example `plz` program:
 {
   language: Please
   message: :atom.prepend("Welcome to ")(:language)
-  now: {"@runtime", { context => :context.program.start_time }}
+  now: @runtime { context => :context.program.start_time }
 }
 ```
 

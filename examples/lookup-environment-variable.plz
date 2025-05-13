@@ -2,16 +2,12 @@
   * Given CLI arguments like `--variable=FOO`, looks up the environment
   * variable named `FOO`.
   */
-{
-  "@runtime"
-  {
-    context =>
-      :context.arguments.lookup(variable) match {
-        none: {}
-        some: :context.environment.lookup >> :match({
-          none: {}
-          some: :identity
-        })
-      }
+@runtime { context =>
+  :context.arguments.lookup(variable) match {
+    none: {}
+    some: :context.environment.lookup >> :match({
+      none: {}
+      some: :identity
+    })
   }
 }

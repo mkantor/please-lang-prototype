@@ -13,10 +13,12 @@ import { keyPathToMolecule, type KeyPath } from '../semantics.js'
 import {
   atom,
   atomWithAdditionalQuotationRequirements,
+  unquotedAtomParser,
   type Atom,
 } from './atom.js'
 import {
   arrow,
+  atSign,
   closingBrace,
   colon,
   comma,
@@ -371,6 +373,22 @@ const precededByAtomThenArrow = map(
   },
 )
 
+// @runtime { context => … }
+// @panic
+// @todo blah
+const precededByAtSign = map(
+  sequence([
+    atSign,
+    unquotedAtomParser,
+    optionalTrivia,
+    optional(lazy(() => expression)),
+  ]),
+  ([_atSign, keyword, _trivia, argument]) => ({
+    0: `@${keyword}`,
+    1: argument === undefined ? {} : argument,
+  }),
+)
+
 // :a
 // :a.b
 // :a.b(1).c
@@ -421,6 +439,7 @@ export const expression: Parser<Atom | Molecule> = map(
     oneOf([
       precededByOpeningParenthesis,
       precededByOpeningBrace,
+      precededByAtSign,
       precededByColonThenAtom,
       precededByAtomThenArrow,
       atom,

@@ -8,6 +8,6 @@
   add_one: :integer.add(1)
   three: :add_one(:two)
   function: x => { value: :x }
-  conditional_value: :function({ "@if", { :sky_is_blue, :two, :three } })
-  side_effect: { "@runtime", { context => :context.log("this goes to stderr") } }
+  conditional_value: :function(@if { :sky_is_blue, :two, :three })
+  side_effect: @runtime { context => :context.log("this goes to stderr") }
 }
