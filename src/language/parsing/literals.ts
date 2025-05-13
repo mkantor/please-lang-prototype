@@ -2,6 +2,7 @@ import { literal } from '@matt.kantor/parsing'
 
 export const arrow = literal('=>')
 export const asterisk = literal('*')
+export const atSign = literal('@')
 export const backslash = literal('\\')
 export const closingBlockCommentDelimiter = literal('*/')
 export const closingBrace = literal('}')

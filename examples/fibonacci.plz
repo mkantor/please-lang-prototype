@@ -1,6 +1,6 @@
 {
   fibonacci: n => {
-    @if
+    "@if"
     {
       condition: :n < 2
       then: :n
@@ -9,14 +9,14 @@
   }
 
   input: {
-    @runtime
+    "@runtime"
     { context => :context.arguments.lookup(input) }
   }
 
   output: :input match {
     none: _ => "missing input argument"
     some: input => {
-      @if
+      "@if"
       {
         condition: :natural_number.is(:input)
         then: :fibonacci(:input)

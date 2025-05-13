@@ -11,6 +11,7 @@ import {
   zeroOrMore,
 } from '@matt.kantor/parsing'
 import {
+  atSign,
   backslash,
   closingBlockCommentDelimiter,
   closingBrace,
@@ -31,6 +32,7 @@ import { whitespace } from './trivia.js'
 export type Atom = string
 
 const atomComponentsRequiringQuotation = [
+  atSign,
   backslash,
   closingBlockCommentDelimiter,
   closingBrace,

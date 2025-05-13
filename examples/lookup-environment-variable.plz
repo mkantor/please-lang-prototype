@@ -3,7 +3,7 @@
   * variable named `FOO`.
   */
 {
-  @runtime
+  "@runtime"
   {
     context =>
       :context.arguments.lookup(variable) match {
