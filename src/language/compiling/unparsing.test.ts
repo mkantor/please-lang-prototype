@@ -86,9 +86,7 @@ testCases(
         },
       },
     },
-    either.makeRight(
-      '{ "@runtime", { context => :context.program.start_time } }',
-    ),
+    either.makeRight('@runtime { context => :context.program.start_time }'),
   ],
   [
     {
@@ -182,9 +180,7 @@ testCases(
         },
       },
     },
-    either.makeRight(
-      '{\n  "@runtime"\n  {\n    context => :context.program.start_time\n  }\n}',
-    ),
+    either.makeRight('@runtime {\n  context => :context.program.start_time\n}'),
   ],
   [
     {
