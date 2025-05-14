@@ -11,7 +11,7 @@ export const isExpression = (
 ): node is Expression =>
   typeof node === 'object' &&
   typeof node[0] === 'string' &&
-  node[0][0] === '@' &&
+  /^@[^@]/.test(node['0']) &&
   (!('1' in node) || typeof node[1] === 'object' || typeof node[1] === 'string')
 
 export const isExpressionWithArgument = <Keyword extends `@${string}`>(
