@@ -9,7 +9,7 @@ git clone git@github.com:mkantor/please-lang-prototype.git
 cd please-lang-prototype
 npm install
 npm run build
-echo '{@runtime, context => :context.program.start_time}' | ./please --output-format=json
+echo '@runtime { context => :context.program.start_time }' | ./please --output-format=json
 ```
 
 There are more example programs in [`./examples`](./examples).
@@ -45,7 +45,7 @@ data representation implied by the fact that a value is an atom (e.g. the atom
 `2` may be an integer in memory).
 
 Bare words not containing any
-[reserved character sequences](./src/language/parsing/atom.ts#L33-L55) are
+[reserved character sequences](./src/language/parsing/atom.ts#L34-L57) are
 atoms:
 
 ```
@@ -178,13 +178,18 @@ expressions_. Most of the interesting stuff that Please does involves evaluating
 keyword expressions.
 
 Under the hood, keyword expressions are modeled as objects. For example, `:foo`
-desugars to `{ @lookup, key: foo }`. All such expressions have a key `0`
-referring to a value that is an `@`-prefixed atom (the keyword). Keywords
-include `@apply`, `@check`, `@function`, `@if`, `@index`, `@lookup`, `@panic`,
-and `@runtime`.
+desugars to `{ 0: "@lookup", 1: { key: foo } }`. All such expressions have a
+property named `0` referring to a value that is an `@`-prefixed atom (the
+keyword). Most keyword expressions also require a property named `1` to pass an
+argument to the expression. Keywords include `@apply`, `@check`, `@function`,
+`@if`, `@index`, `@lookup`, `@panic`, and `@runtime`.
 
-Currently only `@function`, `@lookup`, `@index`, and `@apply` have syntax
-sugars.
+In addition to the specific syntax sugars shown above, any keyword expression
+can be written using a generalized sugar:
+
+```
+@keyword { … } // desugars to `{ 0: "@keyword", 1: { … } }`
+```
 
 ### Semantics
 
@@ -210,7 +215,7 @@ function from other programming languages, except there can be any number of
 `@runtime` expressions in a given program. Here's an example:
 
 ```
-{@runtime, context => :context.program.start_time}
+@runtime { context => :context.program.start_time }
 ```
 
 Unsurprisingly, this program outputs the current time when run.
@@ -249,7 +254,7 @@ Take this example `plz` program:
 {
   language: Please
   message: :atom.prepend("Welcome to ")(:language)
-  now: {@runtime, context => :context.program.start_time}
+  now: @runtime { context => :context.program.start_time }
 }
 ```
 
@@ -259,40 +264,58 @@ It desugars to the following `plo` program:
 {
   language: Please
   message: {
-    0: @apply
-    function: {
-      0: @apply
+    0: "@apply"
+    1: {
       function: {
-        0: @index
-        object: {
-          0: @lookup
-          key: atom
-        }
-        query: {
-          0: prepend
+        0: "@apply"
+        1: {
+          function: {
+            0: "@index"
+            1: {
+              object: {
+                0: "@lookup"
+                1: {
+                  key: atom
+                }
+              }
+              query: {
+                0: prepend
+              }
+            }
+          }
+          argument: "Welcome to "
         }
       }
-      argument: "Welcome to "
-    }
-    argument: {
-      0: @lookup
-      key: language
+      argument: {
+        0: "@lookup"
+        1: {
+          key: language
+        }
+      }
     }
   }
   now: {
-    0: @runtime
+    0: "@runtime"
     1: {
-      0: @function
-      parameter: context
-      body: {
-        0: @index
-        object: {
-          0: @lookup
-          key: context
-        }
-        query: {
-          0: program
-          1: start_time
+      0: {
+        0: "@function"
+        1: {
+          parameter: context
+          body: {
+            0: "@index"
+            1: {
+              object: {
+                0: "@lookup"
+                1: {
+                  key: context
+                }
+              }
+              query: {
+                0: program
+                1: start_time
+              }
+            }
+          }
         }
       }
     }
@@ -307,19 +330,27 @@ Which in turn compiles to the following `plt` program:
   language: Please
   message: "Welcome to Please"
   now: {
-    0: @runtime
-    function: {
-      0: @function
-      parameter: context
-      body: {
-        0: @index
-        object: {
-          0: @lookup
-          key: context
-        }
-        query: {
-          0: program
-          1: start_time
+    0: "@runtime"
+    1: {
+      function: {
+        0: "@function"
+        1: {
+          parameter: context
+          body: {
+            0: "@index"
+            1: {
+              object: {
+                0: "@lookup"
+                1: {
+                  key: context
+                }
+              }
+              query: {
+                0: program
+                1: start_time
+              }
+            }
+          }
         }
       }
     }
@@ -333,7 +364,7 @@ Which produces the following runtime output:
 {
   language: Please
   message: "Welcome to Please"
-  now: "2025-02-14T18:45:14.168Z"
+  now: "2025-05-13T22:47:50.802Z"
 }
 ```
 

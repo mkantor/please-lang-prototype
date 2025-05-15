@@ -18,10 +18,7 @@ export {
   readCheckExpression,
   type CheckExpression,
 } from './semantics/expressions/check-expression.js'
-export {
-  asSemanticGraph,
-  readArgumentsFromExpression,
-} from './semantics/expressions/expression-utilities.js'
+export { asSemanticGraph } from './semantics/expressions/expression-utilities.js'
 export {
   makeFunctionExpression,
   readFunctionExpression,

@@ -6,7 +6,7 @@ import type {
   Panic,
   UnserializableValueError,
 } from '../errors.js'
-import type { Atom } from '../parsing.js'
+import type { Atom, Molecule } from '../parsing.js'
 import type { ObjectNode } from './object-node.js'
 import {
   nodeTag,
@@ -25,7 +25,7 @@ export type FunctionNode = ((
   readonly serialize: () => Either<UnserializableValueError, ObjectNode>
 }
 
-export const isFunctionNode = (node: SemanticGraph) =>
+export const isFunctionNode = (node: Molecule | SemanticGraph) =>
   typeof node === 'function' && node[nodeTag] === 'function'
 
 export const makeFunctionNode = (

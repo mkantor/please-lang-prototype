@@ -1,26 +1,25 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
-import { isSpecificExpression } from '../expression.js'
+import { isExpressionWithArgument } from '../expression.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { readArgumentsFromExpression } from './expression-utilities.js'
 
 export type CheckExpression = ObjectNode & {
   readonly 0: '@check'
-  readonly value: SemanticGraph | Molecule
-  readonly type: SemanticGraph | Molecule
+  readonly 1: {
+    readonly value: SemanticGraph | Molecule
+    readonly type: SemanticGraph | Molecule
+  }
 }
 
 export const readCheckExpression = (
   node: SemanticGraph | Molecule,
 ): Either<ElaborationError, CheckExpression> =>
-  isSpecificExpression('@check', node)
+  isExpressionWithArgument('@check', node)
     ? either.map(
-        readArgumentsFromExpression(node, [
-          ['value', '1'],
-          ['type', '2'],
-        ]),
+        readArgumentsFromExpression(node, ['value', 'type']),
         ([value, type]) => makeCheckExpression({ value, type }),
       )
     : either.makeLeft({
@@ -37,6 +36,5 @@ export const makeCheckExpression = ({
 }): CheckExpression =>
   makeObjectNode({
     0: '@check',
-    value,
-    type,
+    1: makeObjectNode({ value, type }),
   })

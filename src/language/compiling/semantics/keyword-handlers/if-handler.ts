@@ -10,6 +10,7 @@ import {
   serialize,
   type Expression,
   type ExpressionContext,
+  type KeyPath,
   type KeywordHandler,
   type SemanticGraph,
 } from '../../../semantics.js'
@@ -19,35 +20,45 @@ export const ifKeywordHandler: KeywordHandler = (
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readIfExpression(expression), ifExpression => {
-    const expressionKeys = {
+    // TODO: Make this less ad-hoc.
+    if (
+      !('1' in expression) ||
+      typeof expression[1] !== 'object' ||
+      expression[1] === null
+    ) {
+      throw new Error(
+        '`@if` expression was invalid after being validated. This is a bug!',
+      )
+    }
+    const subexpressionKeyPaths = {
       // Note: this must be kept in alignment with `readIfExpression`.
-      condition: 'condition' in expression ? 'condition' : '1',
-      then: 'then' in expression ? 'then' : '2',
-      else: 'else' in expression ? 'else' : '3',
+      condition: ['1', 'condition' in expression[1] ? 'condition' : '0'],
+      then: ['1', 'then' in expression[1] ? 'then' : '1'],
+      else: ['1', 'else' in expression[1] ? 'else' : '2'],
     }
 
     const elaboratedCondition = evaluateSubexpression(
-      expressionKeys.condition,
+      subexpressionKeyPaths.condition,
       context,
-      ifExpression.condition,
+      ifExpression[1].condition,
     )
 
     return either.flatMap(elaboratedCondition, elaboratedCondition => {
       if (elaboratedCondition === 'true') {
         return either.map(
           evaluateSubexpression(
-            expressionKeys.then,
+            subexpressionKeyPaths.then,
             context,
-            ifExpression.then,
+            ifExpression[1].then,
           ),
           asSemanticGraph,
         )
       } else if (elaboratedCondition === 'false') {
         return either.map(
           evaluateSubexpression(
-            expressionKeys.else,
+            subexpressionKeyPaths.else,
             context,
-            ifExpression.else,
+            ifExpression[1].else,
           ),
           asSemanticGraph,
         )
@@ -59,7 +70,7 @@ export const ifKeywordHandler: KeywordHandler = (
               // Return an unelaborated `@if` expression.
               return either.makeRight(
                 makeIfExpression({
-                  ...ifExpression,
+                  ...ifExpression[1],
                   condition: elaboratedCondition,
                 }),
               )
@@ -76,7 +87,7 @@ export const ifKeywordHandler: KeywordHandler = (
   })
 
 const evaluateSubexpression = (
-  key: string,
+  subKeyPath: KeyPath,
   context: ExpressionContext,
   subexpression: SemanticGraph | Molecule,
 ) =>
@@ -86,6 +97,6 @@ const evaluateSubexpression = (
       elaborateWithContext(serializedSubexpression, {
         keywordHandlers: context.keywordHandlers,
         program: context.program,
-        location: [...context.location, key],
+        location: [...context.location, ...subKeyPath],
       }),
   )

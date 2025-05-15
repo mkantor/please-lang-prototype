@@ -1,7 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
-import { isSpecificExpression } from '../expression.js'
+import { isExpressionWithArgument } from '../expression.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { readArgumentsFromExpression } from './expression-utilities.js'
@@ -9,21 +9,19 @@ import { readArgumentsFromExpression } from './expression-utilities.js'
 // TODO: Evolve this into pattern matching/destructuring.
 export type IfExpression = ObjectNode & {
   readonly 0: '@if'
-  readonly condition: SemanticGraph | Molecule
-  readonly then: SemanticGraph | Molecule
-  readonly else: SemanticGraph | Molecule
+  readonly 1: {
+    readonly condition: SemanticGraph | Molecule
+    readonly then: SemanticGraph | Molecule
+    readonly else: SemanticGraph | Molecule
+  }
 }
 
 export const readIfExpression = (
   node: SemanticGraph | Molecule,
 ): Either<ElaborationError, IfExpression> =>
-  isSpecificExpression('@if', node)
+  isExpressionWithArgument('@if', node)
     ? either.map(
-        readArgumentsFromExpression(node, [
-          ['condition', '1'],
-          ['then', '2'],
-          ['else', '3'],
-        ]),
+        readArgumentsFromExpression(node, ['condition', 'then', 'else']),
         ([condition, then, otherwise]) =>
           makeIfExpression({ condition, then, else: otherwise }),
       )
@@ -43,7 +41,9 @@ export const makeIfExpression = ({
 }): IfExpression =>
   makeObjectNode({
     0: '@if',
-    condition,
-    then,
-    else: otherwise,
+    1: makeObjectNode({
+      condition,
+      then,
+      else: otherwise,
+    }),
   })

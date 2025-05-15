@@ -6,21 +6,21 @@ elaborationSuite('@lookup', [
   [
     {
       foo: 'bar',
-      bar: { 0: '@lookup', 1: 'foo' },
+      bar: { 0: '@lookup', 1: { 0: 'foo' } },
     },
     success({ foo: 'bar', bar: 'bar' }),
   ],
   [
     {
       foo: 'bar',
-      bar: { 0: '@lookup', key: 'foo' },
+      bar: { 0: '@lookup', 1: { key: 'foo' } },
     },
     success({ foo: 'bar', bar: 'bar' }),
   ],
   [
     {
       foo: 'bar',
-      bar: { 0: '@lookup', 1: 'foo' },
+      bar: { 0: '@lookup', 1: { 0: 'foo' } },
     },
     success({ foo: 'bar', bar: 'bar' }),
   ],
@@ -29,7 +29,7 @@ elaborationSuite('@lookup', [
       a: 'A',
       b: {
         a: 'different A',
-        b: { 0: '@lookup', key: 'a' },
+        b: { 0: '@lookup', 1: { key: 'a' } },
       },
     },
     success({
@@ -43,17 +43,17 @@ elaborationSuite('@lookup', [
   [
     {
       foo: 'bar',
-      bar: { 0: '@lookup', 1: 'foo' },
-      baz: { 0: '@lookup', 1: 'bar' },
+      bar: { 0: '@lookup', 1: { 0: 'foo' } },
+      baz: { 0: '@lookup', 1: { 0: 'bar' } },
     },
     success({ foo: 'bar', bar: 'bar', baz: 'bar' }),
   ],
   [
-    { a: { 0: '@lookup', _: 'missing key' } },
+    { a: { 0: '@lookup', 1: { _: 'missing key' } } },
     output => assert(either.isLeft(output)),
   ],
   [
-    { a: { 0: '@lookup', key: 'thisPropertyDoesNotExist' } },
+    { a: { 0: '@lookup', 1: { key: 'thisPropertyDoesNotExist' } } },
     output => assert(either.isLeft(output)),
   ],
 
@@ -62,7 +62,7 @@ elaborationSuite('@lookup', [
     {
       a: 'C',
       b: {
-        c: { 0: '@lookup', key: 'a' },
+        c: { 0: '@lookup', 1: { key: 'a' } },
       },
     },
     success({
@@ -77,7 +77,7 @@ elaborationSuite('@lookup', [
       a: 'C',
       b: {
         a: 'other C', // this `a` should be referenced
-        c: { 0: '@lookup', key: 'a' },
+        c: { 0: '@lookup', 1: { key: 'a' } },
       },
     },
     success({

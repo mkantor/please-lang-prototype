@@ -4,6 +4,7 @@ import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
 import type { Expression } from '../expression.js'
+import { isFunctionNode } from '../function-node.js'
 import { stringifyKeyPathForEndUser } from '../key-path.js'
 import {
   lookupPropertyOfObjectNode,
@@ -33,46 +34,59 @@ export const locateSelf = (context: ExpressionContext) =>
   })
 
 export const readArgumentsFromExpression = <
-  const Specification extends readonly (readonly [
-    string,
-    ...(readonly string[]),
-  ])[],
+  const Specification extends readonly string[],
 >(
   expression: Expression,
   specification: Specification,
 ): Either<ElaborationError, ParsedExpressionArguments<Specification>> => {
-  const expressionArguments: ObjectNode[string][] = []
-  for (const aliases of specification) {
-    const argument = lookupWithinExpression(aliases, expression)
-    if (option.isNone(argument)) {
-      const requiredKeySummary = aliases
-        .map(alias => `\`${alias}\``)
-        .join(' or ')
-      return either.makeLeft({
-        kind: 'invalidExpression',
-        message: `missing required property ${requiredKeySummary}`,
-      })
-    } else {
-      expressionArguments.push(argument.value)
+  if (expression[1] === undefined) {
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: `missing arguments object`,
+    })
+  } else if (typeof expression[1] === 'string') {
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: `found an atom instead of an arguments object`,
+    })
+  } else if (isFunctionNode(expression[1])) {
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: `found a function instead of an arguments object`,
+    })
+  } else {
+    const expressionArguments: ObjectNode[string][] = []
+    for (const [position, keyword] of specification.entries()) {
+      const argument = lookupWithinMolecule(
+        [keyword, String(position)],
+        expression[1],
+      )
+      if (option.isNone(argument)) {
+        const requiredKeySummary = `\`${keyword}\` or \`${position}\``
+        return either.makeLeft({
+          kind: 'invalidExpression',
+          message: `missing required property ${requiredKeySummary}`,
+        })
+      } else {
+        expressionArguments.push(argument.value)
+      }
     }
+    return either.makeRight(
+      // This is correct since the above loop pushes one argument for each `specification` element.
+      expressionArguments as ParsedExpressionArguments<Specification>,
+    )
   }
-  return either.makeRight(
-    // This is correct since the above loop pushes one argument for each `specification` element.
-    expressionArguments as ParsedExpressionArguments<Specification>,
-  )
 }
-type ParsedExpressionArguments<
-  Specification extends readonly (readonly [string, ...(readonly string[])])[],
-> = {
+type ParsedExpressionArguments<Specification extends readonly string[]> = {
   [Index in keyof Specification]: ObjectNode[string]
 }
 
-const lookupWithinExpression = (
+const lookupWithinMolecule = (
   keyAliases: readonly [Atom, ...(readonly Atom[])],
-  expression: Expression,
+  molecule: Molecule | ObjectNode,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(key, makeObjectNode(expression))
+    const result = lookupPropertyOfObjectNode(key, makeObjectNode(molecule))
     if (!option.isNone(result)) {
       return result
     }

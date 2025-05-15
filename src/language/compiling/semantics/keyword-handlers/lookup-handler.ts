@@ -22,7 +22,7 @@ export const lookupKeywordHandler: KeywordHandler = (
   expression: Expression,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
-  either.flatMap(readLookupExpression(expression), ({ key }) => {
+  either.flatMap(readLookupExpression(expression), ({ 1: { key } }) => {
     if (isObjectNode(context.program)) {
       return either.flatMap(lookup({ context, key }), possibleValue =>
         option.match(possibleValue, {
@@ -61,19 +61,26 @@ const lookup = ({
   } else {
     const pathToCurrentScope = context.location.slice(0, -1)
 
+    // TODO: This is sketchy, or at least confusingly-written. Improve test coverage to weed out
+    // potential bugginess, and consider refactoring to make it easier to follow.
+    const pathToPossibleExpression =
+      pathToCurrentScope[pathToCurrentScope.length - 1] === '1'
+        ? pathToCurrentScope.slice(0, -1)
+        : pathToCurrentScope
+
     const possibleLookedUpValue = option.flatMap(
-      applyKeyPathToSemanticGraph(context.program, pathToCurrentScope),
+      applyKeyPathToSemanticGraph(context.program, pathToPossibleExpression),
       scope =>
         either.match(readFunctionExpression(scope), {
           left: _ =>
             // Lookups should not resolve to expression properties.
-            // For example the value of the lookup expression in `a => :parameter` (which desugars
-            // to `{@function, parameter: a, body: {@lookup, key: parameter}}`) should not be `a`.
+            // For example the value of the lookup expression in `a => :parameter` (desugared:
+            // `{@function, {parameter: a, body: {@lookup, {key: parameter}}}}`) should not be `a`.
             isExpression(scope)
               ? option.none
               : applyKeyPathToSemanticGraph(scope, [key]),
           right: functionExpression =>
-            functionExpression.parameter === key
+            functionExpression[1].parameter === key
               ? // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
                 option.makeSome(makeLookupExpression(key))
               : option.none,

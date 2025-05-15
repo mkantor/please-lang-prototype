@@ -13,10 +13,12 @@ import { keyPathToMolecule, type KeyPath } from '../semantics.js'
 import {
   atom,
   atomWithAdditionalQuotationRequirements,
+  unquotedAtomParser,
   type Atom,
 } from './atom.js'
 import {
   arrow,
+  atSign,
   closingBrace,
   colon,
   comma,
@@ -57,14 +59,18 @@ const trailingIndexesAndArgumentsToExpression = (
       case 'argument':
         return {
           0: '@apply',
-          function: expression,
-          argument: indexOrArgument.argument,
+          1: {
+            function: expression,
+            argument: indexOrArgument.argument,
+          },
         }
       case 'index':
         return {
           0: '@index',
-          object: expression,
-          query: keyPathToMolecule(indexOrArgument.query),
+          1: {
+            object: expression,
+            query: keyPathToMolecule(indexOrArgument.query),
+          },
         }
     }
   }, root)
@@ -119,18 +125,22 @@ const infixTokensToExpression = (
     }
 
     const leftmostFunction = trailingIndexesAndArgumentsToExpression(
-      { 0: '@lookup', key: leftmostOperator[0] },
+      { 0: '@lookup', 1: { key: leftmostOperator[0] } },
       leftmostOperator[1],
     )
 
     const reducedLeftmostOperation: Molecule = {
       0: '@apply',
-      function: {
-        0: '@apply',
-        function: leftmostFunction,
-        argument: leftmostOperationRHS,
+      1: {
+        function: {
+          0: '@apply',
+          1: {
+            function: leftmostFunction,
+            argument: leftmostOperationRHS,
+          },
+        },
+        argument: leftmostOperationLHS,
       },
-      argument: leftmostOperationLHS,
     }
 
     return infixTokensToExpression([
@@ -345,18 +355,38 @@ const precededByAtomThenArrow = map(
     ]
     const initialFunction = {
       0: '@function',
-      parameter: lastParameter,
-      body: body,
+      1: {
+        parameter: lastParameter,
+        body: body,
+      },
     }
     return additionalParameters.reduce(
       (expression, additionalParameter) => ({
         0: '@function',
-        parameter: additionalParameter,
-        body: expression,
+        1: {
+          parameter: additionalParameter,
+          body: expression,
+        },
       }),
       initialFunction,
     )
   },
+)
+
+// @runtime { context => … }
+// @panic
+// @todo blah
+const precededByAtSign = map(
+  sequence([
+    atSign,
+    unquotedAtomParser,
+    optionalTrivia,
+    optional(lazy(() => expression)),
+  ]),
+  ([_atSign, keyword, _trivia, argument]) => ({
+    0: `@${keyword}`,
+    1: argument === undefined ? {} : argument,
+  }),
 )
 
 // :a
@@ -368,7 +398,7 @@ const precededByColonThenAtom = map(
   sequence([colon, atomRequiringDotQuotation, trailingIndexesAndArguments]),
   ([_colon, key, trailingIndexesAndArguments]) =>
     trailingIndexesAndArgumentsToExpression(
-      { 0: '@lookup', key },
+      { 0: '@lookup', 1: { key } },
       trailingIndexesAndArguments,
     ),
 )
@@ -409,6 +439,7 @@ export const expression: Parser<Atom | Molecule> = map(
     oneOf([
       precededByOpeningParenthesis,
       precededByOpeningBrace,
+      precededByAtSign,
       precededByColonThenAtom,
       precededByAtomThenArrow,
       atom,

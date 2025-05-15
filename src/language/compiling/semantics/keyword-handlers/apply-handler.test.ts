@@ -3,91 +3,125 @@ import assert from 'node:assert'
 import { elaborationSuite, success } from '../test-utilities.test.js'
 
 elaborationSuite('@apply', [
-  [{ 0: '@apply', 1: { 0: '@lookup', key: 'identity' }, 2: 'a' }, success('a')],
+  [
+    { 0: '@apply', 1: { 0: { 0: '@lookup', 1: { key: 'identity' } }, 1: 'a' } },
+    success('a'),
+  ],
   [
     {
       0: '@apply',
-      function: { 0: '@lookup', key: 'identity' },
-      argument: 'a',
+      1: {
+        function: { 0: '@lookup', 1: { key: 'identity' } },
+        argument: 'a',
+      },
     },
     success('a'),
   ],
   [
     {
       0: '@apply',
-      function: { 0: '@lookup', key: 'identity' },
-      argument: { foo: 'bar' },
+      1: {
+        function: { 0: '@lookup', 1: { key: 'identity' } },
+        argument: { foo: 'bar' },
+      },
     },
     success({ foo: 'bar' }),
   ],
   [
-    { 0: '@apply', function: 'not a function', argument: 'a' },
+    { 0: '@apply', 1: { function: 'not a function', argument: 'a' } },
     output => assert(either.isLeft(output)),
   ],
   [
     {
       0: '@apply',
-      function: { 0: '@function', 1: 'x', 2: { 0: '@lookup', 1: 'x' } },
-      argument: 'identity is identical',
+      1: {
+        function: {
+          0: '@function',
+          1: { 0: 'x', 1: { 0: '@lookup', 1: { 0: 'x' } } },
+        },
+        argument: 'identity is identical',
+      },
     },
     success('identity is identical'),
   ],
   [
     {
       0: '@apply',
-      function: {
-        0: '@function',
-        parameter: 'a',
-        body: {
-          0: '@apply',
-          function: {
-            0: '@function',
-            parameter: 'b',
+      1: {
+        function: {
+          0: '@function',
+          1: {
+            parameter: 'a',
             body: {
-              A: { 0: '@lookup', key: 'a' },
-              B: { 0: '@lookup', key: 'b' },
+              0: '@apply',
+              1: {
+                function: {
+                  0: '@function',
+                  1: {
+                    parameter: 'b',
+                    body: {
+                      A: { 0: '@lookup', 1: { key: 'a' } },
+                      B: { 0: '@lookup', 1: { key: 'b' } },
+                    },
+                  },
+                },
+                argument: 'b',
+              },
             },
           },
-          argument: 'b',
         },
+        argument: 'a',
       },
-      argument: 'a',
     },
     success({ A: 'a', B: 'b' }),
   ],
   [
     {
       0: '@apply',
-      function: {
-        0: '@function',
-        1: 'x',
-        2: {
-          0: '@apply',
-          function: {
-            0: '@index',
-            1: { 0: '@lookup', 1: 'boolean' },
-            2: { 0: 'not' },
+      1: {
+        function: {
+          0: '@function',
+          1: {
+            0: 'x',
+            1: {
+              0: '@apply',
+              1: {
+                function: {
+                  0: '@index',
+                  1: {
+                    0: { 0: '@lookup', 1: { 0: 'boolean' } },
+                    1: { 0: 'not' },
+                  },
+                },
+                argument: { 0: '@lookup', 1: { 0: 'x' } },
+              },
+            },
           },
-          argument: { 0: '@lookup', 1: 'x' },
         },
+        argument: 'false',
       },
-      argument: 'false',
     },
     success('true'),
   ],
   [
     {
       0: '@apply',
-      function: {
-        0: '@function',
-        1: 'x',
-        2: {
-          0: '@index',
-          1: { 0: '@lookup', 1: 'x' },
-          2: { 0: 'a' },
+      1: {
+        function: {
+          0: '@function',
+          1: {
+            0: 'x',
+            1: {
+              0: '@index',
+              1: {
+                0: { 0: '@lookup', 1: { 0: 'x' } },
+                1: { 0: 'a' },
+              },
+            },
+          },
         },
+        argument: { a: 'it works' },
       },
-      argument: { a: 'it works' },
     },
     success('it works'),
   ],
@@ -103,26 +137,34 @@ elaborationSuite('@apply', [
       a: 'a',
       b: {
         0: '@apply',
-        function: {
-          0: '@function',
-          parameter: 'a',
-          body: {
-            a: 'b',
-            b: {
-              0: '@apply',
-              function: {
-                0: '@function',
-                parameter: 'a',
-                body: {
-                  0: '@lookup',
-                  key: 'a',
+        1: {
+          function: {
+            0: '@function',
+            1: {
+              parameter: 'a',
+              body: {
+                a: 'b',
+                b: {
+                  0: '@apply',
+                  1: {
+                    function: {
+                      0: '@function',
+                      1: {
+                        parameter: 'a',
+                        body: {
+                          0: '@lookup',
+                          1: { key: 'a' },
+                        },
+                      },
+                    },
+                    argument: 'it works',
+                  },
                 },
               },
-              argument: 'it works',
             },
           },
+          argument: 'unused',
         },
-        argument: 'unused',
       },
     },
     success({
@@ -145,23 +187,31 @@ elaborationSuite('@apply', [
       a: 'a',
       b: {
         0: '@apply',
-        function: {
-          0: '@function',
-          parameter: 'a',
-          body: {
-            a: 'it works',
-            b: {
-              0: '@apply',
-              function: {
-                0: '@function',
-                parameter: 'a',
-                body: { 0: '@lookup', key: 'a' },
+        1: {
+          function: {
+            0: '@function',
+            1: {
+              parameter: 'a',
+              body: {
+                a: 'it works',
+                b: {
+                  0: '@apply',
+                  1: {
+                    function: {
+                      0: '@function',
+                      1: {
+                        parameter: 'a',
+                        body: { 0: '@lookup', 1: { key: 'a' } },
+                      },
+                    },
+                    argument: { 0: '@lookup', 1: { key: 'a' } },
+                  },
+                },
               },
-              argument: { 0: '@lookup', key: 'a' },
             },
           },
+          argument: 'unused',
         },
-        argument: 'unused',
       },
     },
     success({
@@ -183,22 +233,30 @@ elaborationSuite('@apply', [
       a: 'it works',
       b: {
         0: '@apply',
-        function: {
-          0: '@function',
-          parameter: 'a',
-          body: {
-            b: {
-              0: '@apply',
-              function: {
-                0: '@function',
-                parameter: 'a',
-                body: { 0: '@lookup', key: 'a' },
+        1: {
+          function: {
+            0: '@function',
+            1: {
+              parameter: 'a',
+              body: {
+                b: {
+                  0: '@apply',
+                  1: {
+                    function: {
+                      0: '@function',
+                      1: {
+                        parameter: 'a',
+                        body: { 0: '@lookup', 1: { key: 'a' } },
+                      },
+                    },
+                    argument: { 0: '@lookup', 1: { key: 'a' } },
+                  },
+                },
               },
-              argument: { 0: '@lookup', key: 'a' },
             },
           },
+          argument: { 0: '@lookup', 1: { key: 'a' } },
         },
-        argument: { 0: '@lookup', key: 'a' },
       },
     },
     success({
@@ -220,23 +278,31 @@ elaborationSuite('@apply', [
       a: 'a',
       b: {
         0: '@apply',
-        function: {
-          0: '@function',
-          parameter: 'a',
-          body: {
-            a: 'it works',
-            b: {
-              0: '@apply',
-              function: {
-                0: '@function',
-                parameter: 'b',
-                body: { 0: '@lookup', key: 'a' },
+        1: {
+          function: {
+            0: '@function',
+            1: {
+              parameter: 'a',
+              body: {
+                a: 'it works',
+                b: {
+                  0: '@apply',
+                  1: {
+                    function: {
+                      0: '@function',
+                      1: {
+                        parameter: 'b',
+                        body: { 0: '@lookup', 1: { key: 'a' } },
+                      },
+                    },
+                    argument: 'unused',
+                  },
+                },
               },
-              argument: 'unused',
             },
           },
+          argument: 'unused',
         },
-        argument: 'unused',
       },
     },
     success({
@@ -259,23 +325,31 @@ elaborationSuite('@apply', [
       a: 'it works',
       b: {
         0: '@apply',
-        function: {
-          0: '@function',
-          parameter: 'b',
-          body: {
-            b: 'b',
-            c: {
-              0: '@apply',
-              function: {
-                0: '@function',
-                parameter: 'b',
-                body: { 0: '@lookup', key: 'a' },
+        1: {
+          function: {
+            0: '@function',
+            1: {
+              parameter: 'b',
+              body: {
+                b: 'b',
+                c: {
+                  0: '@apply',
+                  1: {
+                    function: {
+                      0: '@function',
+                      1: {
+                        parameter: 'b',
+                        body: { 0: '@lookup', 1: { key: 'a' } },
+                      },
+                    },
+                    argument: 'unused',
+                  },
+                },
               },
-              argument: 'unused',
             },
           },
+          argument: 'unused',
         },
-        argument: 'unused',
       },
     },
     success({

@@ -18,14 +18,14 @@ export const applyKeywordHandler: KeywordHandler = (
   either.flatMap(
     readApplyExpression(expression),
     (applyExpression): Either<ElaborationError, SemanticGraph> => {
-      if (containsAnyUnelaboratedNodes(applyExpression.argument)) {
+      if (containsAnyUnelaboratedNodes(applyExpression[1].argument)) {
         // The argument isn't ready, so keep the @apply unelaborated.
         return either.makeRight(applyExpression)
       } else {
-        const functionToApply = asSemanticGraph(applyExpression.function)
+        const functionToApply = asSemanticGraph(applyExpression[1].function)
         if (isFunctionNode(functionToApply)) {
           const result = functionToApply(
-            asSemanticGraph(applyExpression.argument),
+            asSemanticGraph(applyExpression[1].argument),
           )
           if (either.isLeft(result)) {
             if (result.value.kind === 'dependencyUnavailable') {

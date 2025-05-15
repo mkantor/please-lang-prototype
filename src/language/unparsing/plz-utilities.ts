@@ -5,6 +5,7 @@ import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { unquotedAtomParser } from '../parsing/atom.js'
 import {
+  isExpression,
   isSemanticGraph,
   readApplyExpression,
   readFunctionExpression,
@@ -12,6 +13,7 @@ import {
   readLookupExpression,
   serialize,
   type ApplyExpression,
+  type Expression,
   type FunctionExpression,
   type IndexExpression,
   type KeyPath,
@@ -55,7 +57,19 @@ export const moleculeUnparser =
             unparseSugaredLookup(lookupExpression, unparseAtomOrMolecule),
         })
       default:
-        return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
+        if (isExpression(value)) {
+          const result = unparseSugaredGeneralizedKeywordExpression(
+            value,
+            unparseAtomOrMolecule,
+          )
+          if (either.isLeft(result)) {
+            return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
+          } else {
+            return result
+          }
+        } else {
+          return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
+        }
     }
   }
 
@@ -101,10 +115,12 @@ export const unparseAtom = (atom: string): Right<string> =>
       : quoteAtomIfNecessary(atom),
   )
 
+const requiresQuotation = (atom: string): boolean =>
+  either.isLeft(parsing.parse(unquotedAtomParser, atom))
+
 const quoteAtomIfNecessary = (value: string): string => {
   const { quote } = punctuation(kleur)
-  const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
-  if (either.isLeft(unquotedAtomResult)) {
+  if (requiresQuotation(value)) {
     return quote.concat(escapeStringContents(value)).concat(quote)
   } else {
     return value
@@ -142,11 +158,11 @@ const unparseSugaredApply = (
   const { closeParenthesis, openParenthesis } = punctuation(kleur)
   const functionUnparseResult = either.map(
     either.flatMap(
-      serializeIfNeeded(expression.function),
+      serializeIfNeeded(expression[1].function),
       unparseAtomOrMolecule,
     ),
     unparsedFunction =>
-      either.isRight(readFunctionExpression(expression.function))
+      either.isRight(readFunctionExpression(expression[1].function))
         ? // Immediately-applied function expressions need parentheses.
           openParenthesis.concat(unparsedFunction).concat(closeParenthesis)
         : unparsedFunction,
@@ -156,7 +172,7 @@ const unparseSugaredApply = (
   }
 
   const argumentUnparseResult = either.flatMap(
-    serializeIfNeeded(expression.argument),
+    serializeIfNeeded(expression[1].argument),
     unparseAtomOrMolecule,
   )
   if (either.isLeft(argumentUnparseResult)) {
@@ -175,10 +191,10 @@ const unparseSugaredFunction = (
   expression: FunctionExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) =>
-  either.flatMap(serializeIfNeeded(expression.body), serializedBody =>
+  either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
     either.map(unparseAtomOrMolecule(serializedBody), bodyAsString =>
       [
-        kleur.cyan(expression.parameter),
+        kleur.cyan(expression[1].parameter),
         punctuation(kleur).arrow,
         bodyAsString,
       ].join(' '),
@@ -190,20 +206,20 @@ const unparseSugaredIndex = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
   const objectUnparseResult = either.flatMap(
-    serializeIfNeeded(expression.object),
+    serializeIfNeeded(expression[1].object),
     unparseAtomOrMolecule,
   )
   if (either.isLeft(objectUnparseResult)) {
     return objectUnparseResult
   } else {
-    if (typeof expression.query !== 'object') {
+    if (typeof expression[1].query !== 'object') {
       // TODO: It would be nice if this were provably impossible.
       return either.makeLeft({
         kind: 'unserializableValue',
         message: 'Invalid index expression',
       })
     } else {
-      const keyPath = Object.entries(expression.query).reduce(
+      const keyPath = Object.entries(expression[1].query).reduce(
         (accumulator: KeyPath | 'invalid', [key, value]) => {
           if (accumulator === 'invalid') {
             return accumulator
@@ -223,7 +239,7 @@ const unparseSugaredIndex = (
 
       if (
         keyPath === 'invalid' ||
-        Object.keys(expression.query).length !== keyPath.length
+        Object.keys(expression[1].query).length !== keyPath.length
       ) {
         return either.makeLeft({
           kind: 'unserializableValue',
@@ -248,7 +264,42 @@ const unparseSugaredLookup = (
   either.makeRight(
     kleur.cyan(
       punctuation(kleur).colon.concat(
-        quoteKeyPathComponentIfNecessary(expression.key),
+        quoteKeyPathComponentIfNecessary(expression[1].key),
       ),
     ),
   )
+
+const unparseSugaredGeneralizedKeywordExpression = (
+  expression: Expression,
+  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+) => {
+  if (
+    // Not every valid keyword expression can be expressed with the
+    // generalized sugar, e.g. if there are any additional properties
+    // besides the keyword and its argument, or if the keyword requires
+    // quotation (which won't be the case for any built-in keywords, but
+    // maybe eventually users will be able to create custom keywords).
+    requiresQuotation(expression['0'].substring(1)) ||
+    Object.keys(expression).some(key => key !== '0' && key !== '1')
+  ) {
+    return either.makeLeft({
+      kind: 'unserializableValue',
+      message:
+        'expression cannot be faithfully represented using generalized keyword expression sugar',
+    })
+  } else {
+    const unparsedKeyword = kleur.bold(kleur.underline(expression['0']))
+    if ('1' in expression) {
+      return either.map(
+        either.flatMap(
+          serializeIfNeeded(expression['1']),
+          unparseAtomOrMolecule,
+        ),
+        unparsedArgument =>
+          unparsedKeyword.concat(' ').concat(unparsedArgument),
+      )
+    } else {
+      return either.makeRight(unparsedKeyword)
+    }
+  }
+}

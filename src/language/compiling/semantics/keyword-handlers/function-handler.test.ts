@@ -6,11 +6,11 @@ import { elaborationSuite } from '../test-utilities.test.js'
 
 elaborationSuite('@function', [
   [
-    { 0: '@function', 1: 'not a function' },
+    { 0: '@function', 1: { 0: 'not a function' } },
     output => assert(either.isLeft(output)),
   ],
   [
-    { 0: '@function', 1: 'x', 2: { 0: '@lookup', 1: 'x' } },
+    { 0: '@function', 1: { 0: 'x', 1: { 0: '@lookup', 1: { 0: 'x' } } } },
     elaboratedFunction => {
       assert(!either.isLeft(elaboratedFunction))
       assert(isFunctionNode(elaboratedFunction.value))
@@ -22,8 +22,7 @@ elaborationSuite('@function', [
         elaboratedFunction.value.serialize(),
         either.makeRight({
           0: '@function',
-          parameter: 'x',
-          body: { 0: '@lookup', key: 'x' },
+          1: { parameter: 'x', body: { 0: '@lookup', 1: { key: 'x' } } },
         }),
       )
     },
