@@ -1,14 +1,12 @@
 import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { DependencyUnavailable, Panic } from '../../errors.js'
-import type { Atom } from '../../parsing.js'
 import {
+  keyPathToLookupExpression,
   makeApplyExpression,
-  makeIndexExpression,
-  makeLookupExpression,
 } from '../../semantics.js'
 import { makeFunctionNode } from '../function-node.js'
-import { keyPathToMolecule, type KeyPath } from '../key-path.js'
+import { type NonEmptyKeyPath } from '../key-path.js'
 import {
   containsAnyUnelaboratedNodes,
   type SemanticGraph,
@@ -33,21 +31,6 @@ const handleUnavailableDependencies =
       return f(argument)
     }
   }
-
-type NonEmptyKeyPath = readonly [Atom, ...KeyPath]
-
-const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
-  const [initialKey, ...indexes] = keyPath
-  const initialLookup = makeLookupExpression(initialKey)
-  if (indexes.length === 0) {
-    return initialLookup
-  } else {
-    return makeIndexExpression({
-      object: initialLookup,
-      query: keyPathToMolecule(indexes),
-    })
-  }
-}
 
 export const serializeOnceAppliedFunction =
   (keyPath: NonEmptyKeyPath, argument: SemanticGraph) => () =>

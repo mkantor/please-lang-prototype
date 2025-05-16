@@ -5,6 +5,7 @@ import { inlinePlz, unparse } from '../unparsing.js'
 import type { ObjectNode } from './object-node.js'
 
 export type KeyPath = readonly Atom[]
+export type NonEmptyKeyPath = readonly [Atom, ...KeyPath]
 
 export const stringifyKeyPathForEndUser = (keyPath: KeyPath): string =>
   either.match(unparse(keyPathToMolecule(keyPath), inlinePlz), {

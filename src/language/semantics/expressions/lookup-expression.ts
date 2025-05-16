@@ -2,6 +2,7 @@ import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
 import { isExpressionWithArgument } from '../expression.js'
+import { keyPathToMolecule, type NonEmptyKeyPath } from '../key-path.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
 import {
   stringifySemanticGraphForEndUser,
@@ -11,6 +12,7 @@ import {
   asSemanticGraph,
   readArgumentsFromExpression,
 } from './expression-utilities.js'
+import { makeIndexExpression } from './index-expression.js'
 
 export type LookupExpression = ObjectNode & {
   readonly 0: '@lookup'
@@ -45,3 +47,16 @@ export const makeLookupExpression = (key: Atom): LookupExpression =>
     0: '@lookup',
     1: makeObjectNode({ key }),
   })
+
+export const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
+  const [initialKey, ...indexes] = keyPath
+  const initialLookup = makeLookupExpression(initialKey)
+  if (indexes.length === 0) {
+    return initialLookup
+  } else {
+    return makeIndexExpression({
+      object: initialLookup,
+      query: keyPathToMolecule(indexes),
+    })
+  }
+}
