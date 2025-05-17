@@ -456,4 +456,59 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }.output`,
     either.makeRight('it works!'),
   ],
+  [
+    // Lookups should never target keyword expression properties.
+    `{
+      {
+        0: "it works!",
+        result: { 0: "@lookup", 1: { 0: 0 } }
+      }.result
+      {
+        1: "it works!",
+        result: { 0: "@lookup", 1: { key: 1 } }
+      }.result
+      {
+        key: "it works!",
+        result: { 0: "@lookup", 1: { key: key } }
+      }.result
+      {
+        body: "it works!",
+        result: { 0: "@function", 1: { parameter: _, body: :body } }(_)
+      }.result
+      {
+        parameter: "it works!",
+        result: { 0: "@function", 1: { parameter: _, body: :parameter } }(_)
+      }.result
+      {
+        1: "it works!",
+        result: { 0: "@function", 1: { 0: _, 1: :1 } }(_)
+      }.result
+      {
+        0: "it works!",
+        result: { 0: "@function", 1: { 0: _, 1: :0 } }(_)
+      }.result
+      {
+        1: "it works!",
+        result: { 0: "@lookup", 1: { key: 1 } }
+      }.result
+      {
+        1: "it does not work"
+        result: {
+          1: "it works!",
+          result: { 0: "@lookup", 1: { key: 1 } }
+        }.result
+      }.result
+    }`,
+    either.makeRight({
+      0: 'it works!',
+      1: 'it works!',
+      2: 'it works!',
+      3: 'it works!',
+      4: 'it works!',
+      5: 'it works!',
+      6: 'it works!',
+      7: 'it works!',
+      8: 'it works!',
+    }),
+  ],
 ])
