@@ -13,6 +13,7 @@ import {
   readLookupExpression,
   type Expression,
   type ExpressionContext,
+  type KeyPath,
   type KeywordHandler,
   type SemanticGraph,
 } from '../../../semantics.js'
@@ -42,6 +43,9 @@ export const lookupKeywordHandler: KeywordHandler = (
     }
   })
 
+/**
+ * Recursively search upwards in lexical scope for the given `key`.
+ */
 const lookup = ({
   context,
   key,
@@ -59,47 +63,100 @@ const lookup = ({
         })
       : either.makeRight(option.makeSome(asSemanticGraph(valueFromPrelude)))
   } else {
+    // Given the following program:
+    // ```
+    // {
+    //  a1: …
+    //  a2: {
+    //    b1: …
+    //    b2: … // we are here
+    //  }
+    // }
+    // ```
+    // If `context.location` is `['a2', 'b2']`, the current scope (containing `b1`) is at `['a2']`,
+    // and the parent scope (containing `a1`) is at `[]`.
     const pathToCurrentScope = context.location.slice(0, -1)
+    const pathToParentScope = pathToCurrentScope.slice(0, -1)
 
-    // TODO: This is sketchy, or at least confusingly-written. Improve test coverage to weed out
-    // potential bugginess, and consider refactoring to make it easier to follow.
-    const pathToPossibleExpression =
-      pathToCurrentScope[pathToCurrentScope.length - 1] === '1'
-        ? pathToCurrentScope.slice(0, -1)
-        : pathToCurrentScope
-
-    const possibleLookedUpValue = option.flatMap(
-      applyKeyPathToSemanticGraph(context.program, pathToPossibleExpression),
-      scope =>
-        either.match(readFunctionExpression(scope), {
-          left: _ =>
-            // Lookups should not resolve to expression properties.
-            // For example the value of the lookup expression in `a => :parameter` (desugared:
-            // `{@function, {parameter: a, body: {@lookup, {key: parameter}}}}`) should not be `a`.
-            isExpression(scope)
-              ? option.none
-              : applyKeyPathToSemanticGraph(scope, [key]),
-          right: functionExpression =>
-            functionExpression[1].parameter === key
-              ? // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
-                option.makeSome(makeLookupExpression(key))
-              : option.none,
-        }),
+    // If parent is a keyword expression and the current scope's key is `1`, the current scope is
+    // an expression argument.
+    const expressionCurrentScopeIsArgumentOf = option.flatMap(
+      option.filter(
+        applyKeyPathToSemanticGraph(context.program, pathToParentScope),
+        isExpression,
+      ),
+      parent =>
+        pathToCurrentScope[pathToCurrentScope.length - 1] === '1'
+          ? option.makeSome(parent)
+          : option.none,
     )
 
-    return option.match(possibleLookedUpValue, {
-      none: () =>
-        // Try the parent scope.
-        lookup({
-          key,
-          context: {
-            keywordHandlers: context.keywordHandlers,
-            location: pathToCurrentScope,
-            program: context.program,
-          },
-        }),
-      some: lookedUpValue => either.makeRight(option.makeSome(lookedUpValue)),
-    })
+    type LookupResult =
+      | {
+          readonly kind: 'found'
+          readonly foundValue: SemanticGraph
+        }
+      | {
+          readonly kind: 'notFound'
+          readonly nextLocationToCheckFrom: KeyPath
+        }
+
+    const result: LookupResult = option.match(
+      expressionCurrentScopeIsArgumentOf,
+      {
+        some: parentExpression => {
+          const parentFunctionResult = readFunctionExpression(parentExpression)
+          // If enclosed in a `@function` expression, allow looking up the parameter.
+          if (
+            either.isRight(parentFunctionResult) &&
+            parentFunctionResult.value[1].parameter === key
+          ) {
+            // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
+            return {
+              kind: 'found',
+              foundValue: makeLookupExpression(key),
+            }
+          } else {
+            return {
+              kind: 'notFound',
+              // Skip a level; don't consider expression properties as potential `@lookup` targets.
+              nextLocationToCheckFrom: pathToParentScope,
+            }
+          }
+        },
+        none: _ =>
+          option.match(
+            option.flatMap(
+              applyKeyPathToSemanticGraph(context.program, pathToCurrentScope),
+              currentScope => applyKeyPathToSemanticGraph(currentScope, [key]),
+            ),
+            {
+              some: foundValue => ({
+                kind: 'found',
+                foundValue,
+              }),
+              none: _ => ({
+                kind: 'notFound',
+                nextLocationToCheckFrom: pathToCurrentScope,
+              }),
+            },
+          ),
+      },
+    )
+
+    if (result.kind === 'found') {
+      return either.makeRight(option.makeSome(result.foundValue))
+    } else {
+      // Try the parent scope.
+      return lookup({
+        key,
+        context: {
+          keywordHandlers: context.keywordHandlers,
+          location: result.nextLocationToCheckFrom,
+          program: context.program,
+        },
+      })
+    }
   }
 }
 
