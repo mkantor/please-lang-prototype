@@ -26,7 +26,8 @@ implementations.
 
 Enough pieces exist to write basic runnable programs. There is a type system,
 but it's not wired up in many places yet so mistakes often go unnoticed at
-compile time. The standard library is anemic and documentation is lacking.
+compile time. The standard library is anemic, documentation is lacking, and
+error messages are horrible.
 
 The current runtime is an interpreter, but the plan is to eventually add one or
 more backends to allow building native executables.
@@ -94,9 +95,11 @@ Data can be referenced from other places in the program using lookups, like
   zh: "世界您好！"
   hi: "हैलो वर्ल्ड!"
   es: "¡Hola, Mundo!"
-  default: :en // runtime value is "Hello, World!"
+  default: :en
 }
 ```
+
+The runtime value of the `default` property will be `"Hello, World!"`.
 
 You can index into the properties of looked-up values:
 
@@ -107,7 +110,7 @@ You can index into the properties of looked-up values:
       greeting: "Hello, World!"
     }
   }
-  greeting: :deeply.nested.greeting
+  greeting: :deeply.nested.greeting // "Hello, World!"
 }
 ```
 
@@ -150,7 +153,7 @@ Here's another example:
 ```
 {
   cons: b => a => { :a, :b }
-  list: 1 cons (2 cons 3) // evaluates to `{ 1, { 2, 3 } }`
+  list: 1 cons (2 cons 3) // { 1, { 2, 3 } }
 }
 ```
 
@@ -173,7 +176,7 @@ precedence. Use of parentheses is encouraged.
 
 #### Keywords
 
-The functions and lookups shown above are syntax sugar for _keyword
+The functions and lookups shown above are syntax sugars for _keyword
 expressions_. Most of the interesting stuff that Please does involves evaluating
 keyword expressions.
 
