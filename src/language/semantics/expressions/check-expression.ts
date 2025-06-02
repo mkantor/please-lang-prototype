@@ -1,7 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import type { Molecule } from '../../parsing.js'
-import { isExpressionWithArgument } from '../expression.js'
+import { isKeywordExpressionWithArgument } from '../expression.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { readArgumentsFromExpression } from './expression-utilities.js'
@@ -17,7 +17,7 @@ export type CheckExpression = ObjectNode & {
 export const readCheckExpression = (
   node: SemanticGraph | Molecule,
 ): Either<ElaborationError, CheckExpression> =>
-  isExpressionWithArgument('@check', node)
+  isKeywordExpressionWithArgument('@check', node)
     ? either.map(
         readArgumentsFromExpression(node, ['value', 'type']),
         ([value, type]) => makeCheckExpression({ value, type }),
