@@ -89,12 +89,8 @@ const apply = (
     ),
   )
 
-  if (either.isLeft(result)) {
-    return either.makeLeft({
-      kind: 'panic',
-      message: result.value.message,
-    })
-  } else {
-    return result
-  }
+  return either.mapLeft(result, error => ({
+    kind: 'panic',
+    message: error.message,
+  }))
 }
