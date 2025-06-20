@@ -160,16 +160,12 @@ export const keywordHandlers: KeywordHandlers = {
           const result = runtimeFunction(
             runtimeContext(runtimeFunction.parameterName),
           )
-          if (either.isLeft(result)) {
-            // The runtime function panicked or had an unavailable dependency (which results in a panic
-            // anyway in this context).
-            return either.makeLeft({
-              kind: 'panic',
-              message: result.value.message,
-            })
-          } else {
-            return result
-          }
+          return either.mapLeft(result, error => ({
+            // The runtime function panicked or had an unavailable dependency (which results in a
+            // panic anyway in this context).
+            kind: 'panic',
+            message: error.message,
+          }))
         }
       },
     ),

@@ -62,11 +62,9 @@ export const moleculeUnparser =
             value,
             unparseAtomOrMolecule,
           )
-          if (either.isLeft(result)) {
-            return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
-          } else {
-            return result
-          }
+          return either.flatMapLeft(result, _ =>
+            unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          )
         } else {
           return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
         }
@@ -156,34 +154,30 @@ const unparseSugaredApply = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
   const { closeParenthesis, openParenthesis } = punctuation(kleur)
-  const functionUnparseResult = either.map(
-    either.flatMap(
-      serializeIfNeeded(expression[1].function),
-      unparseAtomOrMolecule,
+  return either.flatMap(
+    either.map(
+      either.flatMap(
+        serializeIfNeeded(expression[1].function),
+        unparseAtomOrMolecule,
+      ),
+      unparsedFunction =>
+        either.isRight(readFunctionExpression(expression[1].function))
+          ? // Immediately-applied function expressions need parentheses.
+            openParenthesis.concat(unparsedFunction).concat(closeParenthesis)
+          : unparsedFunction,
     ),
     unparsedFunction =>
-      either.isRight(readFunctionExpression(expression[1].function))
-        ? // Immediately-applied function expressions need parentheses.
-          openParenthesis.concat(unparsedFunction).concat(closeParenthesis)
-        : unparsedFunction,
-  )
-  if (either.isLeft(functionUnparseResult)) {
-    return functionUnparseResult
-  }
-
-  const argumentUnparseResult = either.flatMap(
-    serializeIfNeeded(expression[1].argument),
-    unparseAtomOrMolecule,
-  )
-  if (either.isLeft(argumentUnparseResult)) {
-    return argumentUnparseResult
-  }
-
-  return either.makeRight(
-    functionUnparseResult.value
-      .concat(openParenthesis)
-      .concat(argumentUnparseResult.value)
-      .concat(closeParenthesis),
+      either.map(
+        either.flatMap(
+          serializeIfNeeded(expression[1].argument),
+          unparseAtomOrMolecule,
+        ),
+        unparsedArgument =>
+          unparsedFunction
+            .concat(openParenthesis)
+            .concat(unparsedArgument)
+            .concat(closeParenthesis),
+      ),
   )
 }
 
@@ -209,12 +203,10 @@ const unparseSugaredIndex = (
     serializeIfNeeded(expression[1].object),
     unparseAtomOrMolecule,
   )
-  if (either.isLeft(objectUnparseResult)) {
-    return objectUnparseResult
-  } else {
+  return either.flatMap(objectUnparseResult, unparsedObject => {
     if (typeof expression[1].query !== 'object') {
       // TODO: It would be nice if this were provably impossible.
-      return either.makeLeft({
+      return either.makeLeft<UnserializableValueError>({
         kind: 'unserializableValue',
         message: 'Invalid index expression',
       })
@@ -248,13 +240,13 @@ const unparseSugaredIndex = (
       } else {
         const { dot } = punctuation(kleur)
         return either.makeRight(
-          objectUnparseResult.value
+          unparsedObject
             .concat(dot)
             .concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
         )
       }
     }
-  }
+  })
 }
 
 const unparseSugaredLookup = (
