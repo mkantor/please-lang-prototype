@@ -1,21 +1,22 @@
 {
   fibonacci: n =>
     @if {
-      condition: :n < 2
+      :n < 2
       then: :n
       else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
     }
 
   input: @runtime { context =>
+    // read --input from command-line arguments
     :context.arguments.lookup(input)
   }
 
   output: :input match {
-    none: _ => "missing input argument"
+    none: _ => "missing --input argument"
     some: input => @if {
-      condition: :natural_number.is(:input)
+      :natural_number.is(:input)
       then: :fibonacci(:input)
-      else: "input must be a natural number"
+      else: "--input must be a natural number"
     }
   }
 }.output
