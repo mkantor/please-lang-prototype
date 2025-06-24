@@ -11,6 +11,7 @@ import {
   zeroOrMore,
 } from '@matt.kantor/parsing'
 import {
+  arrow,
   atSign,
   backslash,
   closingBlockCommentDelimiter,
@@ -32,6 +33,7 @@ import { whitespace } from './trivia.js'
 export type Atom = string
 
 const atomComponentsRequiringQuotation = [
+  arrow,
   atSign,
   backslash,
   closingBlockCommentDelimiter,
@@ -46,10 +48,8 @@ const atomComponentsRequiringQuotation = [
   singleLineCommentDelimiter,
   whitespace,
 
-  // Reserved to allow symbols like `=>` to not be conflated with atoms:
-  literal('='),
-
   // Reserved for future use:
+  literal('='),
   literal('['),
   literal(']'),
   literal('#'),
