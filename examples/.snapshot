@@ -3,7 +3,7 @@ exports[`examples > fibonacci.plz --input="not a number" > stderr 1`] = `
 `;
 
 exports[`examples > fibonacci.plz --input="not a number" > stdout 1`] = `
-"input must be a natural number"
+"--input must be a natural number"
 
 `;
 
@@ -12,7 +12,7 @@ exports[`examples > fibonacci.plz --input=-1 > stderr 1`] = `
 `;
 
 exports[`examples > fibonacci.plz --input=-1 > stdout 1`] = `
-"input must be a natural number"
+"--input must be a natural number"
 
 `;
 
@@ -57,7 +57,7 @@ exports[`examples > fibonacci.plz > stderr 1`] = `
 `;
 
 exports[`examples > fibonacci.plz > stdout 1`] = `
-"missing input argument"
+"missing --input argument"
 
 `;
 

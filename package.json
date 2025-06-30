@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "bin": {
-    "please": "./please"
+    "please": "please"
   },
   "scripts": {
     "0": "node ./dist/language/cli/0.js",
