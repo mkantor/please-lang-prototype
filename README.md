@@ -1,6 +1,7 @@
 # Please
 
-An exploratory programming language.
+An [arborescent](https://en.wikipedia.org/wiki/Arborescence_(graph_theory))
+programming language.
 
 ## Quick Start
 
