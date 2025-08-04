@@ -1,5 +1,4 @@
 import either, { type Either } from '@matt.kantor/either'
-import kleur from 'kleur'
 import { parseArgs } from 'node:util'
 import { type SyntaxTree } from '../parsing/syntax-tree.js'
 import {
@@ -27,7 +26,10 @@ export const handleOutput = async (
   if (typeof noColorArg !== 'boolean') {
     throw new Error('Unsupported value for --no-color')
   } else if (noColorArg === true) {
-    kleur.enabled = false
+    // Warning: the global state mutation here means that we can't style text in static contexts!
+    // Functions like `node:util`'s `styleText` shouldn't be called from the top level of modules.
+    delete process.env['FORCE_COLOR']
+    process.env['NO_COLOR'] = 'true'
   }
 
   const outputFormatArg = args.values['output-format']
