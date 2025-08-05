@@ -12,13 +12,13 @@
     "build": "tsc --build tsconfig.app.json --force",
     "build:tests": "tsc --project tsconfig.app.json --outDir dist-test --declarationDir dist && tsc --build tsconfig.test.json",
     "clean": "rm -rf dist* *.tsbuildinfo",
-    "test": "npm run build:tests && node --test --experimental-test-snapshots",
-    "test-update-snapshots": "npm run build:tests && node --test --test-update-snapshots --experimental-test-snapshots"
+    "test": "npm run build:tests && node --test --no-experimental-strip-types",
+    "test-update-snapshots": "npm run build:tests && node --test --test-update-snapshots"
   },
   "devDependencies": {
-    "@types/node": "^22.15.3",
+    "@types/node": "^22.17.0",
     "strip-ansi": "^7.1.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "dependencies": {
     "@matt.kantor/either": "^1.2.0",
@@ -27,6 +27,6 @@
     "kleur": "^4.1.5"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   }
 }
