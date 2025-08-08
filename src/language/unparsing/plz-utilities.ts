@@ -1,6 +1,6 @@
 import either, { type Either, type Right } from '@matt.kantor/either'
 import parsing from '@matt.kantor/parsing'
-import kleur from 'kleur'
+import { styleText } from 'node:util'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { unquotedAtomParser } from '../parsing/atom.js'
@@ -76,7 +76,7 @@ export const moleculeAsKeyValuePairStrings = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
   options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
-  const { colon } = punctuation(kleur)
+  const { colon } = punctuation(styleText)
   const entries = Object.entries(value)
 
   const keyValuePairsAsStrings: string[] = []
@@ -96,8 +96,7 @@ export const moleculeAsKeyValuePairStrings = (
       ordinalPropertyKeyCounter += 1n
     } else {
       keyValuePairsAsStrings.push(
-        kleur
-          .cyan(quoteAtomIfNecessary(propertyKey).concat(colon))
+        styleText('cyan', quoteAtomIfNecessary(propertyKey).concat(colon))
           .concat(' ')
           .concat(valueAsStringResult.value),
       )
@@ -109,7 +108,7 @@ export const moleculeAsKeyValuePairStrings = (
 export const unparseAtom = (atom: string): Right<string> =>
   either.makeRight(
     /^@[^@]/.test(atom)
-      ? kleur.bold(kleur.underline(quoteAtomIfNecessary(atom)))
+      ? styleText(['bold', 'underline'], quoteAtomIfNecessary(atom))
       : quoteAtomIfNecessary(atom),
   )
 
@@ -117,7 +116,7 @@ const requiresQuotation = (atom: string): boolean =>
   either.isLeft(parsing.parse(unquotedAtomParser, atom))
 
 const quoteAtomIfNecessary = (value: string): string => {
-  const { quote } = punctuation(kleur)
+  const { quote } = punctuation(styleText)
   if (requiresQuotation(value)) {
     return quote.concat(escapeStringContents(value)).concat(quote)
   } else {
@@ -126,7 +125,7 @@ const quoteAtomIfNecessary = (value: string): string => {
 }
 
 const quoteKeyPathComponentIfNecessary = (value: string): string => {
-  const { quote } = punctuation(kleur)
+  const { quote } = punctuation(styleText)
   const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
   if (either.isLeft(unquotedAtomResult) || value.includes('.')) {
     return quote.concat(escapeStringContents(value)).concat(quote)
@@ -153,7 +152,7 @@ const unparseSugaredApply = (
   expression: ApplyExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
-  const { closeParenthesis, openParenthesis } = punctuation(kleur)
+  const { closeParenthesis, openParenthesis } = punctuation(styleText)
   return either.flatMap(
     either.map(
       either.flatMap(
@@ -188,8 +187,8 @@ const unparseSugaredFunction = (
   either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
     either.map(unparseAtomOrMolecule(serializedBody), bodyAsString =>
       [
-        kleur.cyan(expression[1].parameter),
-        punctuation(kleur).arrow,
+        styleText('cyan', expression[1].parameter),
+        punctuation(styleText).arrow,
         bodyAsString,
       ].join(' '),
     ),
@@ -238,7 +237,7 @@ const unparseSugaredIndex = (
           message: 'invalid key path',
         })
       } else {
-        const { dot } = punctuation(kleur)
+        const { dot } = punctuation(styleText)
         return either.makeRight(
           unparsedObject
             .concat(dot)
@@ -254,8 +253,9 @@ const unparseSugaredLookup = (
   _unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) =>
   either.makeRight(
-    kleur.cyan(
-      punctuation(kleur).colon.concat(
+    styleText(
+      'cyan',
+      punctuation(styleText).colon.concat(
         quoteKeyPathComponentIfNecessary(expression[1].key),
       ),
     ),
@@ -280,7 +280,7 @@ const unparseSugaredGeneralizedKeywordExpression = (
         'expression cannot be faithfully represented using generalized keyword expression sugar',
     })
   } else {
-    const unparsedKeyword = kleur.bold(kleur.underline(expression['0']))
+    const unparsedKeyword = styleText(['bold', 'underline'], expression['0'])
     if ('1' in expression) {
       return either.map(
         either.flatMap(

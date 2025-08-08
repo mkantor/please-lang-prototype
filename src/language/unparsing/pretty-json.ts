@@ -1,6 +1,6 @@
 import type { Right } from '@matt.kantor/either'
 import either from '@matt.kantor/either'
-import kleur from 'kleur'
+import { styleText } from 'node:util'
 import type { Atom, Molecule } from '../parsing.js'
 import { indent, punctuation, type Notation } from './unparsing-utilities.js'
 
@@ -8,16 +8,18 @@ const escapeStringContents = (value: string) =>
   value.replace('\\', '\\\\').replace('"', '\\"')
 
 const key = (value: Atom): string => {
-  const { quote } = punctuation(kleur)
-  return quote.concat(kleur.bold(escapeStringContents(value))).concat(quote)
+  const { quote } = punctuation(styleText)
+  return quote
+    .concat(styleText('bold', escapeStringContents(value)))
+    .concat(quote)
 }
 
 const unparseAtom = (value: Atom): Right<string> => {
-  const { quote } = punctuation(kleur)
+  const { quote } = punctuation(styleText)
   return either.makeRight(
     quote.concat(
       escapeStringContents(
-        /^@[^@]/.test(value) ? kleur.bold(kleur.underline(value)) : value,
+        /^@[^@]/.test(value) ? styleText(['bold', 'underline'], value) : value,
       ),
       quote,
     ),
@@ -25,7 +27,7 @@ const unparseAtom = (value: Atom): Right<string> => {
 }
 
 const unparseMolecule = (value: Molecule): Right<string> => {
-  const { closeBrace, colon, comma, openBrace } = punctuation(kleur)
+  const { closeBrace, colon, comma, openBrace } = punctuation(styleText)
   const entries = Object.entries(value)
   if (entries.length === 0) {
     return either.makeRight(openBrace.concat(closeBrace))
