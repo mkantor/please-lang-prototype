@@ -50,13 +50,13 @@ Bare words not containing any
 [reserved character sequences](./src/language/parsing/atom.ts#L34-L57) are
 atoms:
 
-```
+```plz
 Hello
 ```
 
 Atoms can be quoted:
 
-```
+```plz
 "Hello, World!"
 ```
 
@@ -64,13 +64,13 @@ Atoms can be quoted:
 
 Objects are maps of key/value pairs ("properties"), where keys must be atoms:
 
-```
+```plz
 { greeting: "Hello, World!" }
 ```
 
 Properties are delimited by newlines or commas:
 
-```
+```plz
 // These mean the same thing:
 {
   a: 1
@@ -81,7 +81,7 @@ Properties are delimited by newlines or commas:
 
 Properties without explicitly-written keys are automatically enumerated:
 
-```
+```plz
 { a, b } // is the same as { 0: a, 1: b }
 ```
 
@@ -90,7 +90,7 @@ Properties without explicitly-written keys are automatically enumerated:
 Data can be referenced from other places in the program using lookups, like
 `:en` below:
 
-```
+```plz
 {
   en: "Hello, World!"
   zh: "世界您好！"
@@ -104,7 +104,7 @@ The runtime value of the `default` property will be `"Hello, World!"`.
 
 You can index into the properties of looked-up values:
 
-```
+```plz
 {
   deeply: {
     nested: {
@@ -117,7 +117,7 @@ You can index into the properties of looked-up values:
 
 Lookups are lexically scoped:
 
-```
+```plz
 {
   greeting: "Hello, World!"
   scope: {
@@ -132,7 +132,7 @@ Lookups are lexically scoped:
 
 Functions take exactly one parameter and their body is exactly one expression:
 
-```
+```plz
 {
   make_pair: a => { :a, :a }
 }
@@ -140,7 +140,7 @@ Functions take exactly one parameter and their body is exactly one expression:
 
 Functions can be applied:
 
-```
+```plz
 {
   f: a => :a
   greeting: :f("Hello, World!")
@@ -151,7 +151,7 @@ Infix notation can be used to apply binary functions (those which look like
 `b => a => …`). For example, the expression `x f y` desugars to `:f(y)(x)`.
 Here's another example:
 
-```
+```plz
 {
   cons: b => a => { :a, :b }
   list: 1 cons (2 cons 3) // { 1, { 2, 3 } }
@@ -162,7 +162,7 @@ The standard library contains symbolically-named functions for arithmetic and
 other familiar binary operations. For example, `1 + 2 - 3` is `0`. Also included
 in the standard library are the functions`|>` (pipe) and `>>` (flow):
 
-```
+```plz
 {
   // `>>` composes functions
   append_bc: :atom.append(b) >> :atom.append(c)
@@ -191,7 +191,7 @@ argument to the expression. Keywords include `@apply`, `@check`, `@function`,
 In addition to the specific syntax sugars shown above, any keyword expression
 can be written using a generalized sugar:
 
-```
+```plz
 @keyword { … } // desugars to `{ 0: "@keyword", 1: { … } }`
 ```
 
@@ -209,7 +209,7 @@ Before a Please program terminates, it prints the fully-resolved version of
 itself to standard output. That means `hello-world.plz` can be as simple as
 this:
 
-```
+```plz
 "Hello, World!"
 ```
 
@@ -218,7 +218,7 @@ arguments). A `@runtime` expression is conceptually a bit like the `main`
 function from other programming languages, except there can be any number of
 `@runtime` expressions in a given program. Here's an example:
 
-```
+```plz
 @runtime { context => :context.program.start_time }
 ```
 
@@ -228,7 +228,7 @@ Code outside of `@runtime` expressions is evaluated at compile-time as much as
 possible. For example, this program compiles to the literal value `2` (no
 computation will occur at runtime):
 
-```
+```plz
 1 + 1
 ```
 
@@ -254,7 +254,7 @@ MessagePack, CBOR, etc could be supported).
 
 Take this example `plz` program:
 
-```
+```plz
 {
   language: Please
   message: :atom.prepend("Welcome to ")(:language)
@@ -264,7 +264,7 @@ Take this example `plz` program:
 
 It desugars to the following `plo` program:
 
-```
+```plz
 {
   language: Please
   message: {
@@ -329,7 +329,7 @@ It desugars to the following `plo` program:
 
 Which in turn compiles to the following `plt` program:
 
-```
+```plz
 {
   language: Please
   message: "Welcome to Please"
@@ -364,7 +364,7 @@ Which in turn compiles to the following `plt` program:
 
 Which produces the following runtime output:
 
-```
+```plz
 {
   language: Please
   message: "Welcome to Please"
