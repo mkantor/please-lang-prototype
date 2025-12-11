@@ -1,4 +1,5 @@
 import either from '@matt.kantor/either'
+import assert from 'node:assert'
 import stripAnsi from 'strip-ansi'
 import { testCases } from '../../test-utilities.test.js'
 import { type Atom, type Molecule } from '../parsing.js'
@@ -17,10 +18,19 @@ const unparsers = (value: Atom | Molecule) => {
         : notation.molecule(value, notation),
       stripAnsi, // terminal styling is not currently tested
     )
+
+  const unparsedInlinePlz = unparse(inlinePlz)
+  const unparsedPrettyPlz = unparse(prettyPlz)
+  const unparsedPrettyJson = unparse(prettyJson)
+
   return {
-    inlinePlz: unparse(inlinePlz),
-    prettyPlz: unparse(prettyPlz),
-    prettyJson: unparse(prettyJson),
+    // TODO: Also test roundtrippableness of plz unparsing.
+    inlinePlz: unparsedInlinePlz,
+    prettyPlz: unparsedPrettyPlz,
+    prettyJson: either.map(unparsedPrettyJson, json => {
+      assert.deepEqual(JSON.parse(json), value)
+      return json
+    }),
   }
 }
 
@@ -178,7 +188,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
         prettyPlz:
           '{\n  a.b: {\n    "c \\"d"": {\n      e.f: g\n    }\n  }\n  test: :"a.b"."c \\"d""."e.f"\n}',
         prettyJson:
-          '{\n  "a.b": {\n    "c \\"d"": {\n      "e.f": "g"\n    }\n  },\n  "test": {\n    "0": "@index",\n    "1": {\n      "object": {\n        "0": "@lookup",\n        "1": {\n          "0": "a.b"\n        }\n      },\n      "query": {\n        "0": "c \\"d"",\n        "1": "e.f"\n      }\n    }\n  }\n}',
+          '{\n  "a.b": {\n    "c \\"d\\"": {\n      "e.f": "g"\n    }\n  },\n  "test": {\n    "0": "@index",\n    "1": {\n      "object": {\n        "0": "@lookup",\n        "1": {\n          "0": "a.b"\n        }\n      },\n      "query": {\n        "0": "c \\"d\\"",\n        "1": "e.f"\n      }\n    }\n  }\n}',
       }),
     ],
   ],

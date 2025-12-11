@@ -5,7 +5,7 @@ import type { Atom, Molecule } from '../parsing.js'
 import { indent, punctuation, type Notation } from './unparsing-utilities.js'
 
 const escapeStringContents = (value: string) =>
-  value.replace('\\', '\\\\').replace('"', '\\"')
+  value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
 
 const key = (value: Atom): string => {
   const { quote } = punctuation(styleText)
