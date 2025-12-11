@@ -3,12 +3,14 @@ import assert from 'node:assert'
 import stripAnsi from 'strip-ansi'
 import { testCases } from '../../test-utilities.test.js'
 import { type Atom, type Molecule } from '../parsing.js'
+import { parse } from '../parsing/parser.js'
 import {
   inlinePlz,
   prettyJson,
   prettyPlz,
   type Notation,
 } from '../unparsing.js'
+import { compile } from './compiler.js'
 
 const unparsers = (value: Atom | Molecule) => {
   const unparse = (notation: Notation) =>
@@ -24,9 +26,20 @@ const unparsers = (value: Atom | Molecule) => {
   const unparsedPrettyJson = unparse(prettyJson)
 
   return {
-    // TODO: Also test roundtrippableness of plz unparsing.
-    inlinePlz: unparsedInlinePlz,
-    prettyPlz: unparsedPrettyPlz,
+    inlinePlz: either.flatMap(
+      either.flatMap(unparsedInlinePlz, parse),
+      (roundtrippedValue: {}) => {
+        assert.deepEqual(compile(roundtrippedValue), compile(value))
+        return unparsedInlinePlz
+      },
+    ),
+    prettyPlz: either.flatMap(
+      either.flatMap(unparsedPrettyPlz, parse),
+      (roundtrippedValue: {}) => {
+        assert.deepEqual(compile(roundtrippedValue), compile(value))
+        return unparsedPrettyPlz
+      },
+    ),
     prettyJson: either.map(unparsedPrettyJson, json => {
       assert.deepEqual(JSON.parse(json), value)
       return json
@@ -184,9 +197,9 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       outputs({
         inlinePlz:
-          '{ a.b: { "c \\"d"": { e.f: g } }, test: :"a.b"."c \\"d""."e.f" }',
+          '{ a.b: { "c \\"d\\"": { e.f: g } }, test: :"a.b"."c \\"d\\""."e.f" }',
         prettyPlz:
-          '{\n  a.b: {\n    "c \\"d"": {\n      e.f: g\n    }\n  }\n  test: :"a.b"."c \\"d""."e.f"\n}',
+          '{\n  a.b: {\n    "c \\"d\\"": {\n      e.f: g\n    }\n  }\n  test: :"a.b"."c \\"d\\""."e.f"\n}',
         prettyJson:
           '{\n  "a.b": {\n    "c \\"d\\"": {\n      "e.f": "g"\n    }\n  },\n  "test": {\n    "0": "@index",\n    "1": {\n      "object": {\n        "0": "@lookup",\n        "1": {\n          "0": "a.b"\n        }\n      },\n      "query": {\n        "0": "c \\"d\\"",\n        "1": "e.f"\n      }\n    }\n  }\n}',
       }),

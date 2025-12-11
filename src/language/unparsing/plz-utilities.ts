@@ -146,7 +146,7 @@ type UnparseAtomOrMolecule = (
 ) => Either<UnserializableValueError, string>
 
 const escapeStringContents = (value: string) =>
-  value.replace('\\', '\\\\').replace('"', '\\"')
+  value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
 
 const unparseSugaredApply = (
   expression: ApplyExpression,
