@@ -8,22 +8,21 @@ import {
   inlinePlz,
   prettyJson,
   prettyPlz,
+  unparse,
   type Notation,
 } from '../unparsing.js'
 import { compile } from './compiler.js'
 
 const unparsers = (value: Atom | Molecule) => {
-  const unparse = (notation: Notation) =>
+  const unparseAndStripAnsi = (notation: Notation) =>
     either.map(
-      typeof value === 'string'
-        ? notation.atom(value)
-        : notation.molecule(value, notation),
+      unparse(value, notation),
       stripAnsi, // terminal styling is not currently tested
     )
 
-  const unparsedInlinePlz = unparse(inlinePlz)
-  const unparsedPrettyPlz = unparse(prettyPlz)
-  const unparsedPrettyJson = unparse(prettyJson)
+  const unparsedInlinePlz = unparseAndStripAnsi(inlinePlz)
+  const unparsedPrettyPlz = unparseAndStripAnsi(prettyPlz)
+  const unparsedPrettyJson = unparseAndStripAnsi(prettyJson)
 
   return {
     inlinePlz: either.flatMap(
@@ -202,6 +201,243 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
           '{\n  a.b: {\n    "c \\"d\\"": {\n      e.f: g\n    }\n  }\n  test: :"a.b"."c \\"d\\""."e.f"\n}',
         prettyJson:
           '{\n  "a.b": {\n    "c \\"d\\"": {\n      "e.f": "g"\n    }\n  },\n  "test": {\n    "0": "@index",\n    "1": {\n      "object": {\n        "0": "@lookup",\n        "1": {\n          "0": "a.b"\n        }\n      },\n      "query": {\n        "0": "c \\"d\\"",\n        "1": "e.f"\n      }\n    }\n  }\n}',
+      }),
+    ],
+    [
+      {
+        '0': '@apply',
+        '1': {
+          function: {
+            '0': '@apply',
+            '1': {
+              function: {
+                '0': '@lookup',
+                '1': {
+                  key: '+',
+                },
+              },
+              argument: '2',
+            },
+          },
+          argument: '1',
+        },
+      },
+      outputs({
+        inlinePlz: '1 + 2',
+        prettyPlz: '1 + 2',
+        prettyJson:
+          '{\n  "0": "@apply",\n  "1": {\n    "function": {\n      "0": "@apply",\n      "1": {\n        "function": {\n          "0": "@lookup",\n          "1": {\n            "key": "+"\n          }\n        },\n        "argument": "2"\n      }\n    },\n    "argument": "1"\n  }\n}',
+      }),
+    ],
+    [
+      {
+        five: '5',
+        answer: {
+          '0': '@apply',
+          '1': {
+            function: {
+              '0': '@apply',
+              '1': {
+                function: {
+                  '0': '@lookup',
+                  '1': {
+                    key: '&&',
+                  },
+                },
+                argument: {
+                  '0': '@apply',
+                  '1': {
+                    function: {
+                      '0': '@index',
+                      '1': {
+                        object: {
+                          '0': '@lookup',
+                          '1': {
+                            key: 'boolean',
+                          },
+                        },
+                        query: {
+                          '0': 'not',
+                        },
+                      },
+                    },
+                    argument: 'true',
+                  },
+                },
+              },
+            },
+            argument: {
+              '0': '@apply',
+              '1': {
+                function: {
+                  '0': '@apply',
+                  '1': {
+                    function: {
+                      '0': '@lookup',
+                      '1': {
+                        key: '<',
+                      },
+                    },
+                    argument: {
+                      '0': '@lookup',
+                      '1': {
+                        key: 'five',
+                      },
+                    },
+                  },
+                },
+                argument: {
+                  '0': '@apply',
+                  '1': {
+                    function: {
+                      '0': '@apply',
+                      '1': {
+                        function: {
+                          '0': '@lookup',
+                          '1': {
+                            key: '-',
+                          },
+                        },
+                        argument: {
+                          '0': '@apply',
+                          '1': {
+                            function: {
+                              '0': '@apply',
+                              '1': {
+                                function: {
+                                  '0': '@lookup',
+                                  '1': {
+                                    key: '+',
+                                  },
+                                },
+                                argument: '4',
+                              },
+                            },
+                            argument: '3',
+                          },
+                        },
+                      },
+                    },
+                    argument: {
+                      '0': '@apply',
+                      '1': {
+                        function: {
+                          '0': '@apply',
+                          '1': {
+                            function: {
+                              '0': '@lookup',
+                              '1': {
+                                key: '+',
+                              },
+                            },
+                            argument: '2',
+                          },
+                        },
+                        argument: '1',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      outputs({
+        inlinePlz:
+          '{ five: 5, answer: 1 + 2 - (3 + 4) < :five && :boolean.not(true) }',
+        prettyPlz:
+          '{\n  five: 5\n  answer: 1 + 2 - (3 + 4) < :five && :boolean.not(true)\n}',
+        prettyJson:
+          '{\n  "five": "5",\n  "answer": {\n    "0": "@apply",\n    "1": {\n      "function": {\n        "0": "@apply",\n        "1": {\n          "function": {\n            "0": "@lookup",\n            "1": {\n              "key": "&&"\n            }\n          },\n          "argument": {\n            "0": "@apply",\n            "1": {\n              "function": {\n                "0": "@index",\n                "1": {\n                  "object": {\n                    "0": "@lookup",\n                    "1": {\n                      "key": "boolean"\n                    }\n                  },\n                  "query": {\n                    "0": "not"\n                  }\n                }\n              },\n              "argument": "true"\n            }\n          }\n        }\n      },\n      "argument": {\n        "0": "@apply",\n        "1": {\n          "function": {\n            "0": "@apply",\n            "1": {\n              "function": {\n                "0": "@lookup",\n                "1": {\n                  "key": "<"\n                }\n              },\n              "argument": {\n                "0": "@lookup",\n                "1": {\n                  "key": "five"\n                }\n              }\n            }\n          },\n          "argument": {\n            "0": "@apply",\n            "1": {\n              "function": {\n                "0": "@apply",\n                "1": {\n                  "function": {\n                    "0": "@lookup",\n                    "1": {\n                      "key": "-"\n                    }\n                  },\n                  "argument": {\n                    "0": "@apply",\n                    "1": {\n                      "function": {\n                        "0": "@apply",\n                        "1": {\n                          "function": {\n                            "0": "@lookup",\n                            "1": {\n                              "key": "+"\n                            }\n                          },\n                          "argument": "4"\n                        }\n                      },\n                      "argument": "3"\n                    }\n                  }\n                }\n              },\n              "argument": {\n                "0": "@apply",\n                "1": {\n                  "function": {\n                    "0": "@apply",\n                    "1": {\n                      "function": {\n                        "0": "@lookup",\n                        "1": {\n                          "key": "+"\n                        }\n                      },\n                      "argument": "2"\n                    }\n                  },\n                  "argument": "1"\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}',
+      }),
+    ],
+    [
+      {
+        '0': '@apply',
+        '1': {
+          function: {
+            '0': '@apply',
+            '1': {
+              function: {
+                '0': '@apply',
+                '1': {
+                  function: {
+                    '0': '@lookup',
+                    '1': {
+                      key: '>>',
+                    },
+                  },
+                  argument: {
+                    '0': '@function',
+                    '1': {
+                      parameter: 'a',
+                      body: {
+                        '0': '@apply',
+                        '1': {
+                          function: {
+                            '0': '@apply',
+                            '1': {
+                              function: {
+                                '0': '@lookup',
+                                '1': {
+                                  key: '-',
+                                },
+                              },
+                              argument: '1',
+                            },
+                          },
+                          argument: {
+                            '0': '@lookup',
+                            '1': {
+                              key: 'a',
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              argument: {
+                '0': '@function',
+                '1': {
+                  parameter: 'a',
+                  body: {
+                    '0': '@apply',
+                    '1': {
+                      function: {
+                        '0': '@apply',
+                        '1': {
+                          function: {
+                            '0': '@lookup',
+                            '1': {
+                              key: '+',
+                            },
+                          },
+                          argument: '1',
+                        },
+                      },
+                      argument: {
+                        '0': '@lookup',
+                        '1': {
+                          key: 'a',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          argument: '1',
+        },
+      },
+      outputs({
+        inlinePlz: '((a => :a + 1) >> (a => :a - 1))(1)',
+        prettyPlz: '((a => :a + 1) >> (a => :a - 1))(1)',
+        prettyJson:
+          '{\n  "0": "@apply",\n  "1": {\n    "function": {\n      "0": "@apply",\n      "1": {\n        "function": {\n          "0": "@apply",\n          "1": {\n            "function": {\n              "0": "@lookup",\n              "1": {\n                "key": ">>"\n              }\n            },\n            "argument": {\n              "0": "@function",\n              "1": {\n                "parameter": "a",\n                "body": {\n                  "0": "@apply",\n                  "1": {\n                    "function": {\n                      "0": "@apply",\n                      "1": {\n                        "function": {\n                          "0": "@lookup",\n                          "1": {\n                            "key": "-"\n                          }\n                        },\n                        "argument": "1"\n                      }\n                    },\n                    "argument": {\n                      "0": "@lookup",\n                      "1": {\n                        "key": "a"\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        },\n        "argument": {\n          "0": "@function",\n          "1": {\n            "parameter": "a",\n            "body": {\n              "0": "@apply",\n              "1": {\n                "function": {\n                  "0": "@apply",\n                  "1": {\n                    "function": {\n                      "0": "@lookup",\n                      "1": {\n                        "key": "+"\n                      }\n                    },\n                    "argument": "1"\n                  }\n                },\n                "argument": {\n                  "0": "@lookup",\n                  "1": {\n                    "key": "a"\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    "argument": "1"\n  }\n}',
       }),
     ],
   ],
