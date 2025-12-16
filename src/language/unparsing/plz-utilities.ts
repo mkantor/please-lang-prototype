@@ -96,9 +96,10 @@ export const moleculeAsKeyValuePairStrings = (
       ordinalPropertyKeyCounter += 1n
     } else {
       keyValuePairsAsStrings.push(
-        styleText('cyan', quoteAtomIfNecessary(propertyKey).concat(colon))
-          .concat(' ')
-          .concat(valueAsStringResult.value),
+        styleText(
+          'cyan',
+          quoteAtomIfNecessary(propertyKey).concat(colon),
+        ).concat(' ', valueAsStringResult.value),
       )
     }
   }
@@ -118,7 +119,7 @@ const requiresQuotation = (atom: string): boolean =>
 const quoteAtomIfNecessary = (value: string): string => {
   const { quote } = punctuation(styleText)
   if (requiresQuotation(value)) {
-    return quote.concat(escapeStringContents(value)).concat(quote)
+    return quote.concat(escapeStringContents(value), quote)
   } else {
     return value
   }
@@ -128,7 +129,7 @@ const quoteKeyPathComponentIfNecessary = (value: string): string => {
   const { quote } = punctuation(styleText)
   const unquotedAtomResult = parsing.parse(unquotedAtomParser, value)
   if (either.isLeft(unquotedAtomResult) || value.includes('.')) {
-    return quote.concat(escapeStringContents(value)).concat(quote)
+    return quote.concat(escapeStringContents(value), quote)
   } else {
     return value
   }
@@ -271,9 +272,10 @@ const unparseSugaredIndex = (
       } else {
         const { dot } = punctuation(styleText)
         return either.makeRight(
-          unparsedObject
-            .concat(dot)
-            .concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
+          unparsedObject.concat(
+            dot,
+            keyPath.map(quoteKeyPathComponentIfNecessary).join(dot),
+          ),
         )
       }
     }
@@ -319,8 +321,7 @@ const unparseSugaredGeneralizedKeywordExpression = (
           serializeIfNeeded(expression['1']),
           unparseAtomOrMolecule,
         ),
-        unparsedArgument =>
-          unparsedKeyword.concat(' ').concat(unparsedArgument),
+        unparsedArgument => unparsedKeyword.concat(' ', unparsedArgument),
       )
     } else {
       return either.makeRight(unparsedKeyword)

@@ -18,11 +18,12 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
         ordinalKeys: 'omit',
       }),
       keyValuePairsAsStrings =>
-        openBrace
-          .concat(' ')
-          .concat(keyValuePairsAsStrings.join(comma.concat(' ')))
-          .concat(' ')
-          .concat(closeBrace),
+        openBrace.concat(
+          ' ',
+          keyValuePairsAsStrings.join(comma.concat(' ')),
+          ' ',
+          closeBrace,
+        ),
     )
   }
 }
