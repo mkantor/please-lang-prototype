@@ -1,19 +1,91 @@
 import either, { type Either } from '@matt.kantor/either'
 import assert from 'node:assert'
+import stripAnsi from 'strip-ansi'
 import { compile } from './language/compiling.js'
 import type { Atom, Molecule } from './language/parsing.js'
 import { parse } from './language/parsing/parser.js'
 import { evaluate } from './language/runtime.js'
+import {
+  inlinePlz,
+  prettyPlz,
+  unparse,
+  type Notation,
+} from './language/unparsing.js'
 import { testCases } from './test-utilities.test.js'
 
 type SimpleResult = Either<{ readonly message: string }, Atom | Molecule>
 
-const endToEnd = (input: string) => {
+const parseAndCompileAndRun = (input: string) => {
   const syntaxTree: SimpleResult = parse(input)
   const program: SimpleResult = either.flatMap(syntaxTree, compile)
   const runtimeOutput: SimpleResult = either.flatMap(program, evaluate)
   return runtimeOutput
 }
+
+const unparseAndRoundtrip = (value: Atom | Molecule) => (notation: Notation) =>
+  either.flatMap(
+    either.map(unparse(value, notation), stripAnsi),
+    parseAndCompileAndRun,
+  )
+
+const unparseAndRoundtripMultipleNotations = (value: Atom | Molecule) => {
+  const unparseAndRoundtripValue = unparseAndRoundtrip(value)
+  const roundtrippedOutputs = either.flatMap(
+    unparseAndRoundtripValue(prettyPlz),
+    outputFromPretty =>
+      either.map(
+        unparseAndRoundtripValue(inlinePlz),
+        outputFromInline => [outputFromPretty, outputFromInline] as const,
+      ),
+  )
+  return either.flatMap(
+    roundtrippedOutputs,
+    ([outputFromPretty, outputFromInline]) =>
+      either.map(
+        either.tryCatch(() =>
+          assert.deepEqual(outputFromPretty, outputFromInline),
+        ),
+        _ => outputFromPretty,
+      ),
+  )
+}
+
+const endToEnd = (input: string) => {
+  const syntaxTree: SimpleResult = parse(input)
+  const runtimeOutputFromRoundtrippingSyntaxTree = either.flatMap(
+    syntaxTree,
+    unparseAndRoundtripMultipleNotations,
+  )
+
+  const program: SimpleResult = either.flatMap(syntaxTree, compile)
+  const runtimeOutputFromRoundtrippingProgram = either.flatMap(
+    program,
+    unparseAndRoundtripMultipleNotations,
+  )
+
+  const runtimeOutput: SimpleResult = either.flatMap(program, evaluate)
+
+  // These errors could be stitched into the returned `Either`'s left, but
+  // that'd lead to worse test reporting.
+  assert.deepEqual(runtimeOutput, runtimeOutputFromRoundtrippingSyntaxTree)
+  assert.deepEqual(runtimeOutput, runtimeOutputFromRoundtrippingProgram)
+
+  return runtimeOutput
+}
+
+// These tests can't be fully-roundtripped because their output depends on
+// varying runtime state.
+testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
+  [
+    `@runtime { context => :identity(:context).program.start_time }`,
+    output => {
+      if (either.isLeft(output)) {
+        assert.fail(output.value.message)
+      }
+      assert(typeof output.value === 'string')
+    },
+  ],
+])
 
 testCases(endToEnd, code => code)('end-to-end tests', [
   ['""', either.makeRight('')],
@@ -152,17 +224,6 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
-  [
-    `@runtime { context =>
-      :identity(:context).program.start_time
-    }`,
-    output => {
-      if (either.isLeft(output)) {
-        assert.fail(output.value.message)
-      }
-      assert(typeof output.value === 'string')
-    },
-  ],
   [':atom.prepend(a)(b)', either.makeRight('ab')],
   [`:natural_number.add(1)(1)`, either.makeRight('2')],
   [
@@ -403,7 +464,6 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     )(0)`,
     either.makeRight('10'),
   ],
-
   [
     `(
       :+(1) >>
