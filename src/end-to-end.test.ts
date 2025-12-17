@@ -1,6 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
 import assert from 'node:assert'
-import stripAnsi from 'strip-ansi'
 import { compile } from './language/compiling.js'
 import type { Atom, Molecule } from './language/parsing.js'
 import { parse } from './language/parsing/parser.js'
@@ -23,10 +22,7 @@ const parseAndCompileAndRun = (input: string) => {
 }
 
 const unparseAndRoundtrip = (value: Atom | Molecule) => (notation: Notation) =>
-  either.flatMap(
-    either.map(unparse(value, notation), stripAnsi),
-    parseAndCompileAndRun,
-  )
+  either.flatMap(unparse(value, notation), parseAndCompileAndRun)
 
 const unparseAndRoundtripMultipleNotations = (value: Atom | Molecule) => {
   const unparseAndRoundtripValue = unparseAndRoundtrip(value)
