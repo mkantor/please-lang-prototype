@@ -346,7 +346,7 @@ const readInfixOperation = (expression: ApplyExpression) =>
           ])
         : either.makeLeft({
             kind: 'invalidExpression',
-            message: 'not expression which can use infix notation',
+            message: 'not an expression which can use infix notation',
           }),
     ),
   )
