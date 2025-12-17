@@ -35,7 +35,7 @@ export const readFunctionExpression = (
       )
     : either.makeLeft({
         kind: 'invalidExpression',
-        message: 'not an expression',
+        message: 'not a `@function` expression',
       })
 
 export const makeFunctionExpression = (

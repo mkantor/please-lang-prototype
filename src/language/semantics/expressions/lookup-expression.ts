@@ -39,7 +39,7 @@ export const readLookupExpression = (
       })
     : either.makeLeft({
         kind: 'invalidExpression',
-        message: 'not an expression',
+        message: 'not a `@lookup` expression',
       })
 
 export const makeLookupExpression = (key: Atom): LookupExpression =>

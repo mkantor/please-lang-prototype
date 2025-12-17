@@ -39,7 +39,7 @@ export const readRuntimeExpression = (
       })
     : either.makeLeft({
         kind: 'invalidExpression',
-        message: 'not an expression',
+        message: 'not a `@runtime` expression',
       })
 
 export const makeRuntimeExpression = (f: SemanticGraph): RuntimeExpression =>

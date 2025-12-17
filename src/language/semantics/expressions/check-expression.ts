@@ -24,7 +24,7 @@ export const readCheckExpression = (
       )
     : either.makeLeft({
         kind: 'invalidExpression',
-        message: 'not an expression',
+        message: 'not a `@check` expression',
       })
 
 export const makeCheckExpression = ({

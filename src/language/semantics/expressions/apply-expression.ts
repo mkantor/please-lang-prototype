@@ -24,7 +24,7 @@ export const readApplyExpression = (
       )
     : either.makeLeft({
         kind: 'invalidExpression',
-        message: 'not an expression',
+        message: 'not an `@apply` expression',
       })
 
 export const makeApplyExpression = ({
