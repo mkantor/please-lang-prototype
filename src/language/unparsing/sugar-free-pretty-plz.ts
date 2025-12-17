@@ -14,11 +14,12 @@ const unparseMolecule = (value: Molecule) => {
         ordinalKeys: 'preserve',
       }),
       keyValuePairsAsStrings =>
-        openBrace
-          .concat('\n')
-          .concat(indent(2, keyValuePairsAsStrings.join('\n')))
-          .concat('\n')
-          .concat(closeBrace),
+        openBrace.concat(
+          '\n',
+          indent(2, keyValuePairsAsStrings.join('\n')),
+          '\n',
+          closeBrace,
+        ),
     )
   }
 }

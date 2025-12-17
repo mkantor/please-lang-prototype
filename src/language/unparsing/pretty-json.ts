@@ -9,9 +9,7 @@ const escapeStringContents = (value: string) =>
 
 const key = (value: Atom): string => {
   const { quote } = punctuation(styleText)
-  return quote
-    .concat(styleText('bold', escapeStringContents(value)))
-    .concat(quote)
+  return quote.concat(styleText('bold', escapeStringContents(value)), quote)
 }
 
 const unparseAtom = (value: Atom): Right<string> => {
@@ -34,19 +32,16 @@ const unparseMolecule = (value: Molecule): Right<string> => {
   } else {
     const keyValuePairs: string = Object.entries(value)
       .map(([propertyKey, propertyValue]) =>
-        key(propertyKey)
-          .concat(colon)
-          .concat(' ')
-          .concat(unparseAtomOrMolecule(propertyValue).value),
+        key(propertyKey).concat(
+          colon,
+          ' ',
+          unparseAtomOrMolecule(propertyValue).value,
+        ),
       )
       .join(comma.concat('\n'))
 
     return either.makeRight(
-      openBrace
-        .concat('\n')
-        .concat(indent(2, keyValuePairs))
-        .concat('\n')
-        .concat(closeBrace),
+      openBrace.concat('\n', indent(2, keyValuePairs), '\n', closeBrace),
     )
   }
 }
