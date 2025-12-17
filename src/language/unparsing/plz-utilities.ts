@@ -153,31 +153,63 @@ const unparseSugaredApply = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
   const { closeParenthesis, openParenthesis } = punctuation(styleText)
-  return either.flatMap(
-    either.map(
+
+  const infixSugaredApply = either.flatMap(
+    readInfixOperation(expression),
+    ([operand1, operator, operand2]) => {
+      // Infix syntax is probably appropriate.
+      const unparsedOperand1 = either.map(
+        either.flatMap(serializeIfNeeded(operand1), unparseAtomOrMolecule),
+        unparsedOperand1 =>
+          needsParenthesesAsFirstInfixOperand(operand1)
+            ? openParenthesis.concat(unparsedOperand1, closeParenthesis)
+            : unparsedOperand1,
+      )
+      const unparsedOperand2 = either.map(
+        either.flatMap(serializeIfNeeded(operand2), unparseAtomOrMolecule),
+        unparsedOperand2 =>
+          needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
+            operand2,
+          )
+            ? openParenthesis.concat(unparsedOperand2, closeParenthesis)
+            : unparsedOperand2,
+      )
+      return either.flatMap(unparsedOperand1, unparsedOperand1 =>
+        either.map(unparsedOperand2, unparsedOperand2 =>
+          unparsedOperand1.concat(' ', operator, ' ', unparsedOperand2),
+        ),
+      )
+    },
+  )
+
+  return either.flatMapLeft(infixSugaredApply, _ => {
+    // Fall back to non-infix syntax.
+    const unparsedFunction = either.map(
       either.flatMap(
         serializeIfNeeded(expression[1].function),
         unparseAtomOrMolecule,
       ),
       unparsedFunction =>
-        either.isRight(readFunctionExpression(expression[1].function))
-          ? // Immediately-applied function expressions need parentheses.
-            openParenthesis.concat(unparsedFunction).concat(closeParenthesis)
+        needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
+          expression[1].function,
+        )
+          ? openParenthesis.concat(unparsedFunction, closeParenthesis)
           : unparsedFunction,
-    ),
-    unparsedFunction =>
-      either.map(
-        either.flatMap(
-          serializeIfNeeded(expression[1].argument),
-          unparseAtomOrMolecule,
+    )
+    const unparsedArgument = either.flatMap(
+      serializeIfNeeded(expression[1].argument),
+      unparseAtomOrMolecule,
+    )
+    return either.flatMap(unparsedFunction, unparsedFunction =>
+      either.map(unparsedArgument, unparsedArgument =>
+        unparsedFunction.concat(
+          openParenthesis,
+          unparsedArgument,
+          closeParenthesis,
         ),
-        unparsedArgument =>
-          unparsedFunction
-            .concat(openParenthesis)
-            .concat(unparsedArgument)
-            .concat(closeParenthesis),
       ),
-  )
+    )
+  })
 }
 
 const unparseSugaredFunction = (
@@ -266,11 +298,11 @@ const unparseSugaredGeneralizedKeywordExpression = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
   if (
-    // Not every valid keyword expression can be expressed with the
-    // generalized sugar, e.g. if there are any additional properties
-    // besides the keyword and its argument, or if the keyword requires
-    // quotation (which won't be the case for any built-in keywords, but
-    // maybe eventually users will be able to create custom keywords).
+    // Not every valid keyword expression can be expressed with the generalized
+    // sugar, e.g. if there are any additional properties besides the keyword
+    // and its argument, or if the keyword requires quotation (which won't be
+    // the case for any built-in keywords, but maybe eventually users will be
+    // able to create custom keywords).
     requiresQuotation(expression['0'].substring(1)) ||
     Object.keys(expression).some(key => key !== '0' && key !== '1')
   ) {
@@ -295,3 +327,41 @@ const unparseSugaredGeneralizedKeywordExpression = (
     }
   }
 }
+
+/**
+ * An apply should be written in infix notation if:
+ *   1. It is immediately applied again to another operand.
+ *   2. The function of the inner apply is a simple lookup.
+ *   3. The lookup key is symbolic.
+ */
+const readInfixOperation = (expression: ApplyExpression) =>
+  either.flatMap(readApplyExpression(expression[1].function), innerApply =>
+    either.flatMap(readLookupExpression(innerApply[1].function), lookup =>
+      atomIsEntirelySymbolic(lookup[1].key)
+        ? either.makeRight([
+            expression[1].argument,
+            lookup[1].key,
+            innerApply[1].argument,
+          ])
+        : either.makeLeft({
+            kind: 'invalidExpression',
+            message: 'not expression which can use infix notation',
+          }),
+    ),
+  )
+
+const needsParenthesesAsFirstInfixOperand = (
+  expression: SemanticGraph | Molecule,
+) => either.isRight(readFunctionExpression(expression))
+
+const needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction = (
+  expression: SemanticGraph | Molecule,
+) =>
+  either.isRight(readFunctionExpression(expression)) ||
+  either.isRight(
+    either.flatMap(readApplyExpression(expression), readInfixOperation),
+  )
+
+const entirelySymbolicPattern = /^[\p{Punctuation}\p{Symbol}\p{Emoji}]+$/u
+const atomIsEntirelySymbolic = (atom: Atom) =>
+  !requiresQuotation(atom) && entirelySymbolicPattern.test(atom)
