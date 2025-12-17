@@ -240,7 +240,7 @@ const unparseSugaredIndex = (
       // TODO: It would be nice if this were provably impossible.
       return either.makeLeft<UnserializableValueError>({
         kind: 'unserializableValue',
-        message: 'Invalid index expression',
+        message: 'invalid index expression',
       })
     } else {
       const keyPath = Object.entries(expression[1].query).reduce(
