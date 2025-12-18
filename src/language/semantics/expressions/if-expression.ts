@@ -27,7 +27,7 @@ export const readIfExpression = (
       )
     : either.makeLeft({
         kind: 'invalidExpression',
-        message: 'not an expression',
+        message: 'not an `@if` expression',
       })
 
 export const makeIfExpression = ({

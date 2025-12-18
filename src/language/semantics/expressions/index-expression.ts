@@ -51,7 +51,7 @@ export const readIndexExpression = (
       )
     : either.makeLeft({
         kind: 'invalidExpression',
-        message: 'not an expression',
+        message: 'not an `@index` expression',
       })
 
 export const makeIndexExpression = ({
