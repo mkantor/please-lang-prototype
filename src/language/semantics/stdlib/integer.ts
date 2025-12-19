@@ -149,6 +149,45 @@ export const integer = {
         ),
       ),
   ),
+  multiply: preludeFunction(
+    ['integer', 'multiply'],
+    {
+      parameter: types.integer,
+      return: makeFunctionType('', {
+        parameter: types.integer,
+        return: types.integer,
+      }),
+    },
+    number2 =>
+      either.makeRight(
+        makeFunctionNode(
+          {
+            parameter: types.integer,
+            return: types.integer,
+          },
+          serializeOnceAppliedFunction(['integer', 'multiply'], number2),
+          option.none,
+          number1 => {
+            if (
+              typeof number1 !== 'string' ||
+              !types.integer.isAssignableFrom(makeUnionType('', [number1])) ||
+              typeof number2 !== 'string' ||
+              !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+            ) {
+              return either.makeLeft({
+                kind: 'panic',
+                message: 'numbers must be atoms',
+              })
+            } else {
+              return either.makeRight(
+                // TODO: See comment in `integer.add`.
+                String(BigInt(number1) * BigInt(number2)),
+              )
+            }
+          },
+        ),
+      ),
+  ),
   subtract: preludeFunction(
     ['integer', 'subtract'],
     {

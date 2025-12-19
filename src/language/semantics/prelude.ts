@@ -18,6 +18,7 @@ export const prelude = makeObjectNode({
   '>>': globalFunctions.flow,
   '|>': globalFunctions.identity,
   '+': integer.add,
+  '*': integer.multiply,
   '-': integer.subtract,
   '<': integer.less_than,
   '>': integer.greater_than,
