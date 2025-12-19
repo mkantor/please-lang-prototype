@@ -221,6 +221,15 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':atom.prepend(a)(b)', either.makeRight('ab')],
+  [
+    `{
+      :atom.equal(hello)(hello)
+      :atom.equal("")("")
+      :atom.equal(hello)(Hello)
+      :atom.equal("1.0")("1.00")
+    }`,
+    either.makeRight({ 0: 'true', 1: 'true', 2: 'false', 3: 'false' }),
+  ],
   [`:integer.add(1)(1)`, either.makeRight('2')],
   [
     `:integer.add(one)(juan)`,
