@@ -221,9 +221,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':atom.prepend(a)(b)', either.makeRight('ab')],
-  [`:natural_number.add(1)(1)`, either.makeRight('2')],
+  [`:integer.add(1)(1)`, either.makeRight('2')],
   [
-    `:natural_number.add(one)(juan)`,
+    `:integer.add(one)(juan)`,
     output => {
       assert(either.isLeft(output))
     },
