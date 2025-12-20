@@ -173,7 +173,7 @@ const findKeyPathsToTypeParameterImplementation = (
 export const replaceAllTypeParametersWithTheirConstraints = (
   type: Type,
 ): Type =>
-  // TODO: this implementation can probably be specialized to only traverse `type` once
+  // TODO: specialize this implementation to only traverse `type` once
   [...containedTypeParameters(type).values()]
     .flatMap(({ typeParameters }) => [...typeParameters.members])
     .reduce(
@@ -187,11 +187,11 @@ export const replaceAllTypeParametersWithTheirConstraints = (
     )
 
 /**
- * Substitute the given `typeParameter` with the given `typeArgument` within `type`, recursively
- * visiting object properties, union members, etc.
+ * Substitute the given `typeParameter` with the given `typeArgument` within
+ * `type`, recursively visiting object properties, union members, etc.
  *
- * Note that this function does *not* check whether `typeArgument` is compatible with the
- * constraints of `typeParameter`.
+ * Note that this function does *not* check whether `typeArgument` is compatible
+ * with the constraints of `typeParameter`.
  */
 export const supplyTypeArgument = (
   type: Type,
@@ -253,8 +253,8 @@ export const supplyTypeArgument = (
 }
 
 /**
- * If the given `KeyPath` is not valid for the given `Type`, the given `Type` is returned unchanged
- * (and `operation` is never called).
+ * If the given `KeyPath` is not valid for the given `Type`, the given `Type` is
+ * returned unchanged (and `operation` is never called).
  */
 export const updateTypeAtKeyPathIfValid = (
   type: Type,
@@ -418,8 +418,8 @@ const mergeTypeParametersByKeyPath = (
   return result
 }
 
-// The string format is not meant for human consumption. The only guarantee is that every distinct
-// key path produces a unique string.
+// The string format is not meant for human consumption. The only guarantee is
+// that every distinct key path produces a unique string.
 const stringifyKeyPath = (keyPath: TypeKeyPath): string =>
   keyPath.reduce((stringifiedKeyPath: string, key) => {
     const stringifiedKey =

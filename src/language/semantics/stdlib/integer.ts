@@ -42,10 +42,11 @@ export const integer = {
               return either.makeRight(
                 // FIXME: It's wasteful to always convert here.
                 //
-                // Consider `add(add(1)(1))(1)`—the `2` returned from the inner `add` is
-                // stringified only to be converted back to a bigint. This is acceptable for the
-                // prototype, but a real implementation could use a fancier `SemanticGraph` which
-                // can model atoms as different native data types.
+                // Consider `add(add(1)(1))(1)`—the `2` returned from the inner
+                // `add` is stringified only to be converted back to a bigint.
+                // This is acceptable for the prototype, but a real
+                // implementation could use a fancier `SemanticGraph` which can
+                // model atoms as different native data types.
                 String(BigInt(number1) + BigInt(number2)),
               )
             }

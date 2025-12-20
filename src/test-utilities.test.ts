@@ -7,8 +7,8 @@ const testNameLengthLimit = 100
 
 export const testCases =
   <Input, Output>(
-    // Validate that `Output` is not a function. This avoids unsafe `typeof` narrowing within the
-    // implementation.
+    // Validate that `Output` is not a function. This avoids unsafe `typeof`
+    // narrowing within the implementation.
     functionToTest: (
       input: Input,
     ) => Output extends UnknownFunction ? never : Output,
@@ -31,7 +31,8 @@ export const testCases =
           () => {
             const output = functionToTest(input)
             const widenedCheck: unknown = check
-            // This narrowing is only safe because `Output` cannot be a function.
+            // This narrowing is only safe because `Output` cannot be a
+            // function.
             if (typeof widenedCheck === 'function') {
               widenedCheck(output)
             } else {

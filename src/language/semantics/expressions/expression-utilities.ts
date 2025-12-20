@@ -72,7 +72,8 @@ export const readArgumentsFromExpression = <
       }
     }
     return either.makeRight(
-      // This is correct since the above loop pushes one argument for each `specification` element.
+      // This is correct since the above loop pushes one argument for each
+      // `specification` element.
       expressionArguments as ParsedExpressionArguments<Specification>,
     )
   }

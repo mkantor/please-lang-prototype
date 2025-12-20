@@ -534,7 +534,8 @@ typeAssignabilitySuite('custom types (assignable)', [
     ],
     true,
   ],
-  // TODO: improve assignability checks for unions of objects to make this test case pass:
+  // TODO: improve assignability checks for unions of objects to make this test
+  // case pass:
   // [
   //   [
   //     // `{ a: 'a' | 'b', b: 'c' }` is assignable to `{ a: 'a' } | { a: 'b', b: 'c' }`

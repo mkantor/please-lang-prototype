@@ -18,8 +18,9 @@ export const indent = (spaces: number, textToIndent: string) => {
     .replace(/(\r?\n)/g, `$1${indentation}`)
 }
 
-// Note that `node:util`'s `styleText` changes behavior based on the current global state of
-// `process.env`, which may be mutated at runtime (e.g. to handle `--no-color`).
+// Note that `node:util`'s `styleText` changes behavior based on the current
+// global state of `process.env`, which may be mutated at runtime (e.g. to
+// handle `--no-color`).
 export const punctuation = (styleText: typeof util.styleText) => ({
   dot: styleText('dim', '.'),
   quote: styleText('dim', '"'),

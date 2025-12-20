@@ -73,13 +73,13 @@ const lookup = ({
     //  }
     // }
     // ```
-    // If `context.location` is `['a2', 'b2']`, the current scope (containing `b1`) is at `['a2']`,
-    // and the parent scope (containing `a1`) is at `[]`.
+    // If `context.location` is `['a2', 'b2']`, the current scope (containing
+    // `b1`) is at `['a2']`, and the parent scope (containing `a1`) is at `[]`.
     const pathToCurrentScope = context.location.slice(0, -1)
     const pathToParentScope = pathToCurrentScope.slice(0, -1)
 
-    // If parent is a keyword expression and the current scope's key is `1`, the current scope is
-    // an expression argument.
+    // If parent is a keyword expression and the current scope's key is `1`, the
+    // current scope is an expression argument.
     const expressionCurrentScopeIsArgumentOf = option.flatMap(
       option.filter(
         applyKeyPathToSemanticGraph(context.program, pathToParentScope),
@@ -106,12 +106,14 @@ const lookup = ({
       {
         some: parentExpression => {
           const parentFunctionResult = readFunctionExpression(parentExpression)
-          // If enclosed in a `@function` expression, allow looking up the parameter.
+          // If enclosed in a `@function` expression, allow looking up the
+          // parameter.
           if (
             either.isRight(parentFunctionResult) &&
             parentFunctionResult.value[1].parameter === key
           ) {
-            // Keep an unelaborated `@lookup` around for resolution when the `@function` is called.
+            // Keep an unelaborated `@lookup` around for resolution when the
+            // `@function` is called.
             return {
               kind: 'found',
               foundValue: makeLookupExpression(key),
@@ -119,7 +121,8 @@ const lookup = ({
           } else {
             return {
               kind: 'notFound',
-              // Skip a level; don't consider expression properties as potential `@lookup` targets.
+              // Skip a level; don't consider expression properties as potential
+              // `@lookup` targets.
               nextLocationToCheckFrom: pathToParentScope,
             }
           }

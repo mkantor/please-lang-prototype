@@ -56,8 +56,8 @@ const check = ({
   } else if (isFunctionNode(type)) {
     const result = type(value)
     if (either.isLeft(result)) {
-      // The compile-time-evaluated function panicked or had an unavailable dependency (which
-      // results in a panic anyway in this context).
+      // The compile-time-evaluated function panicked or had an unavailable
+      // dependency (which results in a panic anyway in this context).
       return either.makeLeft({
         kind: 'panic',
         message: result.value.message,
@@ -74,7 +74,8 @@ const check = ({
       return either.makeRight(value)
     }
   } else if (typeof value === 'string') {
-    // The only remaining case is when the type is an object, so we must have a type error.
+    // The only remaining case is when the type is an object, so we must have a
+    // type error.
     return either.makeLeft({
       kind: 'typeMismatch',
       message: `the value \`${stringifySemanticGraphForEndUser(
@@ -84,8 +85,9 @@ const check = ({
       )}\``,
     })
   } else {
-    // Make sure all properties in the type are present and valid in the value (recursively).
-    // Values may legally have additional properties beyond what is required by the type.
+    // Make sure all properties in the type are present and valid in the value
+    // (recursively). Values may legally have additional properties beyond what
+    // is required by the type.
     for (const [key, typePropertyValue] of Object.entries(type)) {
       const valuePropertyValue = lookupPropertyOfObjectNode(key, value)
       if (option.isNone(valuePropertyValue)) {
@@ -109,7 +111,8 @@ const check = ({
         }
       }
     }
-    // If this function has not yet returned then the value is assignable to the type.
+    // If this function has not yet returned then the value is assignable to the
+    // type.
     return either.makeRight(value)
   }
 }

@@ -32,16 +32,18 @@ export const isAssignable = ({
       function: source =>
         matchTypeFormat(target, {
           function: target => {
-            // Functions are contravariant in parameters, covariant in return types.
+            // Functions are contravariant in parameters, covariant in return
+            // types.
             if (
               source.signature.parameter.kind === 'parameter' &&
               source.signature.return.kind === 'parameter' &&
               source.signature.parameter.identity ===
                 source.signature.return.identity
             ) {
-              // The source is an identity function (`a => a`), which means this much simpler check
-              // can be performed. This also allows correctly handling the fact that `a => a` is
-              // assignable to a type like `atom => atom`.
+              // The source is an identity function (`a => a`), which means this
+              // much simpler check can be performed. This also allows correctly
+              // handling the fact that `a => a` is assignable to a type like
+              // `atom => atom`.
               return (
                 isAssignable({
                   source: target.signature.parameter,
@@ -60,17 +62,17 @@ export const isAssignable = ({
                 target.signature.parameter,
               )
 
-              // An example showing how this will be used:
-              // When checking whether `{ a: (a <: atom) } => a` is assignable to
-              // `{ a: (b <: "a") } => b`, the parameter types are compatible if
-              // `{ a: (b <: "a") }` is assignable to `{ a: atom }` (it is).
+              // An example showing how this will be used: When checking whether
+              // `{ a: (a <: atom) } => a` is assignable to `{ a: (b <: "a") }
+              // => b`, the parameter types are compatible if `{ a: (b <: "a")
+              // }` is assignable to `{ a: atom }` (it is).
               let sourceParameterWithTypeParametersReplacedByConstraints =
                 source.signature.parameter
 
-              // An example showing how this will be used:
-              // When checking whether `a => { a: a, b: atom }` is assignable to
-              // `(b <: atom) => { a: b }`, the return types are compatible if
-              // `{ a: b, b: atom }` is assignable to `{ a: b }` (it is).
+              // An example showing how this will be used: When checking whether
+              // `a => { a: a, b: atom }` is assignable to `(b <: atom) => { a:
+              // b }`, the return types are compatible if `{ a: b, b: atom }` is
+              // assignable to `{ a: b }` (it is).
               let sourceReturnWithTypeParametersReplacedByTargetTypeParameters =
                 source.signature.return
 
@@ -144,9 +146,10 @@ export const isAssignable = ({
         matchTypeFormat(target, {
           function: _ => false, // objects are never assignable to functions
           object: target => {
-            // Make sure all properties in the target are present and valid in the source
-            // (recursively). Values may have additional properties beyond what is required by the
-            // target and still be assignable to it.
+            // Make sure all properties in the target are present and valid in
+            // the source (recursively). Values may have additional properties
+            // beyond what is required by the target and still be assignable to
+            // it.
             for (const [key, typePropertyValue] of Object.entries(
               target.children,
             )) {
@@ -172,8 +175,9 @@ export const isAssignable = ({
         }),
       opaque: source => source.isAssignableTo(target),
       parameter: source =>
-        // A type parameter is only assignable to a type parameter if they are the same parameter.
-        // For any other `target`, a type parameter is assignable to it if its constraint is.
+        // A type parameter is only assignable to a type parameter if they are
+        // the same parameter. For any other `target`, a type parameter is
+        // assignable to it if its constraint is.
         target.kind === 'parameter'
           ? source.identity === target.identity
           : isAssignable({
@@ -187,7 +191,8 @@ export const isAssignable = ({
           opaque: target => isUnionAssignableToNonUnion({ source, target }),
           parameter: target => isUnionAssignableToNonUnion({ source, target }),
           union: target => {
-            // Return true if every member of the source is assignable to some member of the target.
+            // Return true if every member of the source is assignable to some
+            // member of the target.
             for (const sourceMember of source.members) {
               const sourceMemberIsAssignableToSomeMemberOfSupertype = (() => {
                 const preparedTarget = simplifyUnionType(target)
@@ -232,12 +237,13 @@ const isNonUnionAssignableToUnion = ({
   if (source.kind === 'opaque') {
     return source.isAssignableTo(target)
   } else {
-    // The strategy for this case is to check whether any of the target's members are assignable to
-    // the source type. However this alone is not sufficient—for example `{ a: 'a' | 'b' }` should
-    // be assignable to `{ a: 'a' } | { a: 'b' }` even though `{ a: 'a' | 'b' }` is not directly
-    // assignable to `{ a: 'a' }` nor `{ a: 'b' }`. To make things work the target type is first
-    // converted into a standard form (e.g. `{ a: 'a' } | { a: 'b' }` is translated into
-    // `{ a: 'a' | 'b' }`.
+    // The strategy for this case is to check whether any of the target's
+    // members are assignable to the source type. However this alone is not
+    // sufficient—for example `{ a: 'a' | 'b' }` should be assignable to `{ a:
+    // 'a' } | { a: 'b' }` even though `{ a: 'a' | 'b' }` is not directly
+    // assignable to `{ a: 'a' }` nor `{ a: 'b' }`. To make things work the
+    // target type is first converted into a standard form (e.g. `{ a: 'a' } | {
+    // a: 'b' }` is translated into `{ a: 'a' | 'b' }`.
 
     const preparedTarget = simplifyUnionType(target)
 
@@ -280,11 +286,11 @@ const isUnionAssignableToNonUnion = ({
 }
 
 /**
- * Removes redundancies and otherwise attempts to reduce the number of members in a union while
- * preserving the semantics of the given `UnionType`.
+ * Removes redundancies and otherwise attempts to reduce the number of members
+ * in a union while preserving the semantics of the given `UnionType`.
  *
- * For example, `{ a: 'a' | 'b' } | { a: 'b' } | { a: 'c' } | atom | 'a'` is simplified to
- * `{ a: 'a' | 'b' | 'c' } | atom`.
+ * For example, `{ a: 'a' | 'b' } | { a: 'b' } | { a: 'c' } | atom | 'a'` is
+ * simplified to `{ a: 'a' | 'b' | 'c' } | atom`.
  */
 export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
   const reducibleSubsets: Map<
@@ -298,10 +304,13 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
     if (typeof type !== 'string' && type.kind === 'object') {
       const keys = Object.keys(type.children)
 
-      // Object types with a single key are always mergeable with other object types containing the
-      // same single key. For example `{ a: 'a' } | { a: 'b' }` can become `{ a: 'a' | 'b' }`.
-      // TODO: Handle cases where there is more than one key but property types are compatible. For
-      // example `{ a: 'a', b: 'b' } | { a: 'b', b: 'b' }` can become `{ a: 'a' | 'b', b: 'b' }`.
+      // Object types with a single key are always mergeable with other object
+      // types containing the same single key. For example `{ a: 'a' } | { a:
+      // 'b' }` can become `{ a: 'a' | 'b' }`.
+      //
+      // TODO: Handle cases where there is more than one key but property types
+      // are compatible. For example `{ a: 'a', b: 'b' } | { a: 'b', b: 'b' }`
+      // can become `{ a: 'a' | 'b', b: 'b' }`.
       const fingerprint = keys[0]
       if (keys.length === 1 && fingerprint !== undefined) {
         const objectTypesWithThisFingerprint = reducibleSubsets.get(
@@ -318,13 +327,14 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
   const canonicalizedTargetMembers: Set<Atom | Exclude<Type, UnionType>> =
     new Set([...typeToSimplify.members])
 
-  // Reduce `reducibleSubsets` by merging all candidate, updating `canonicalizedTargetMembers`.
-  // Merge algorithm:
+  // Reduce `reducibleSubsets` by merging all candidate, updating
+  // `canonicalizedTargetMembers`. Merge algorithm:
   //  - for each reducible subset of object types:
   //    - for each shared key within that subset:
   //      - get the key's property type from every member of `typesToMerge`
   //      - create a union allowing any of those types
-  //    - create single object type where each property has the appropriate union type
+  //    - create single object type where each property has the appropriate
+  //      union type
   for (const { keys, typesToMerge } of reducibleSubsets.values()) {
     const typesToMergeAsArray = [...typesToMerge]
     const mergedObjectTypeChildren = Object.fromEntries(
@@ -367,7 +377,8 @@ const excludeRedundantUnionTypeMembers = (type: UnionType) => {
     type.name,
     membersAsArray.filter(
       (possiblyRedundantMember, index) =>
-        // If `possiblyRedundantMember` is assignable to any other member, filter it out
+        // If `possiblyRedundantMember` is assignable to any other member,
+        // filter it out.
         !membersAsArray.some(
           (otherMember, otherIndex) =>
             index !== otherIndex &&
