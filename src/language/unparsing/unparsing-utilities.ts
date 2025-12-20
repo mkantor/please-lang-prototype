@@ -9,6 +9,7 @@ export type Notation = {
     value: Molecule,
     notation: Notation,
   ) => Either<UnserializableValueError, string>
+  readonly suffix: string
 }
 
 export const indent = (spaces: number, textToIndent: string) => {

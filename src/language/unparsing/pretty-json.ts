@@ -52,4 +52,5 @@ const unparseAtomOrMolecule = (value: Atom | Molecule) =>
 export const prettyJson: Notation = {
   atom: unparseAtom,
   molecule: unparseMolecule,
+  suffix: '\n',
 }
