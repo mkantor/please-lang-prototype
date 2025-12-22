@@ -221,9 +221,18 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':atom.prepend(a)(b)', either.makeRight('ab')],
-  [`:natural_number.add(1)(1)`, either.makeRight('2')],
   [
-    `:natural_number.add(one)(juan)`,
+    `{
+      :atom.equal(hello)(hello)
+      :atom.equal("")("")
+      :atom.equal(hello)(Hello)
+      :atom.equal("1.0")("1.00")
+    }`,
+    either.makeRight({ 0: 'true', 1: 'true', 2: 'false', 3: 'false' }),
+  ],
+  [`:integer.add(1)(1)`, either.makeRight('2')],
+  [
+    `:integer.add(one)(juan)`,
     output => {
       assert(either.isLeft(output))
     },
@@ -236,6 +245,11 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`1 - 2 - 3`, either.makeRight('-4')],
   [`1 - (2 - 3)`, either.makeRight('2')],
   [`(1 - 2) - 3`, either.makeRight('-4')],
+  [`:integer.multiply(2)(2)`, either.makeRight('4')],
+  [`2 * 2`, either.makeRight('4')],
+  [`2 * -2`, either.makeRight('-4')],
+  [`-2 * -2`, either.makeRight('4')],
+  [`2 * 0`, either.makeRight('0')],
   [':flow(:atom.append(b))(:atom.append(a))(z)', either.makeRight('zab')],
   [
     `@runtime { :object.lookup("key which does not exist in runtime context") }`,
