@@ -335,24 +335,18 @@ const unparseSugaredGeneralizedKeywordExpression = (
 }
 
 /**
- * An apply should be written in infix notation if:
- *   1. It is immediately applied again to another operand.
- *   2. The function of the inner apply is a simple lookup.
- *   3. The lookup key is symbolic.
+ * An apply should be written in infix notation if it is immediately applied
+ * again to another operand and the function is a resolved via a lookup (it's
+ * not anonymous).
  */
 const readInfixOperation = (expression: ApplyExpression) =>
   either.flatMap(readApplyExpression(expression[1].function), innerApply =>
     either.flatMap(readLookupExpression(innerApply[1].function), lookup =>
-      atomIsEntirelySymbolic(lookup[1].key)
-        ? either.makeRight([
-            expression[1].argument,
-            lookup[1].key,
-            innerApply[1].argument,
-          ])
-        : either.makeLeft({
-            kind: 'invalidExpression',
-            message: 'not an expression which can use infix notation',
-          }),
+      either.makeRight([
+        expression[1].argument,
+        lookup[1].key,
+        innerApply[1].argument,
+      ]),
     ),
   )
 
@@ -367,7 +361,3 @@ const needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction = (
   either.isRight(
     either.flatMap(readApplyExpression(expression), readInfixOperation),
   )
-
-const entirelySymbolicPattern = /^[\p{Punctuation}\p{Symbol}\p{Emoji}]+$/u
-const atomIsEntirelySymbolic = (atom: Atom) =>
-  !requiresQuotation(atom) && entirelySymbolicPattern.test(atom)
