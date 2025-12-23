@@ -177,7 +177,12 @@ const unparseSugaredApply = (
       )
       return either.flatMap(unparsedOperand1, unparsedOperand1 =>
         either.map(unparsedOperand2, unparsedOperand2 =>
-          unparsedOperand1.concat(' ', operator, ' ', unparsedOperand2),
+          unparsedOperand1.concat(
+            ' ',
+            styleText('cyan', operator),
+            ' ',
+            unparsedOperand2,
+          ),
         ),
       )
     },
