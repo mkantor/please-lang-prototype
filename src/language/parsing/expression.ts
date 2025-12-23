@@ -34,7 +34,8 @@ import { optionalTrivia, trivia, triviaExceptNewlines } from './trivia.js'
 
 export type Molecule = { readonly [key: Atom]: Molecule | Atom }
 
-// Keyless properties are automatically assigned numeric indexes, which uses some mutable state.
+// Keyless properties are automatically assigned numeric indexes, which uses
+// some mutable state.
 type Indexer = () => string
 const makeIncrementingIndexer = (): Indexer => {
   const state = { currentIndex: 0n }
@@ -217,7 +218,8 @@ const sugarFreeMolecule: Parser<Molecule> = map(
     const enumerate = makeIncrementingIndexer()
     return properties.reduce((molecule: Writable<Molecule>, [key, value]) => {
       if (key === undefined) {
-        // Note that `enumerate()` increments its internal counter as a side effect.
+        // Note that `enumerate()` increments its internal counter as a side
+        // effect.
         molecule[enumerate()] = value
       } else {
         molecule[key] = value

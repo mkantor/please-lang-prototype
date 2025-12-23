@@ -21,7 +21,8 @@ export const keyPathFromObjectNodeOrMolecule = (
 ): Either<InvalidExpressionError, KeyPath> => {
   const relativePath: string[] = []
   let queryIndex = 0
-  // Consume numeric indexes ("0", "1", …) until exhausted, validating that each is an atom.
+  // Consume numeric indexes ("0", "1", …) until exhausted, validating that each
+  // is an atom.
   let key = node[queryIndex]
   while (key !== undefined) {
     if (typeof key !== 'string') {

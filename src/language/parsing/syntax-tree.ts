@@ -38,10 +38,11 @@ export const applyKeyPathToSyntaxTree = (
 }
 
 /**
- * Canonicalized syntax trees are made of strings and (potentially-nested) objects with
- * string-valued properties.
+ * Canonicalized syntax trees are made of strings and (potentially-nested)
+ * objects with string-valued properties.
  *
- * The JSON value `["a", 1, null]` is canonicalized as `{ "0": "a", "1": "1", "2": "null" }`.
+ * The JSON value `["a", 1, null]` is canonicalized as `{ "0": "a", "1": "1",
+ * "2": "null" }`.
  */
 export const canonicalize = (
   input: JsonValueForbiddingSymbolicKeys,
@@ -59,9 +60,10 @@ export const canonicalize = (
 }
 
 /**
- * `canonicalize` inputs should not have symbolic keys. This type doesn't robustly guarantee that
- * (because symbolic keys can always be widened away), but will catch simple mistakes like directly
- * feeding an `Option<…>` into `canonicalize`.
+ * `canonicalize` inputs should not have symbolic keys. This type doesn't
+ * robustly guarantee that (because symbolic keys can always be widened away),
+ * but will catch simple mistakes like directly feeding an `Option<…>` into
+ * `canonicalize`.
  */
 export type JsonValueForbiddingSymbolicKeys =
   | Exclude<JsonValue, JsonArray | JsonRecord>

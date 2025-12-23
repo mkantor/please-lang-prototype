@@ -26,8 +26,9 @@ export const handleOutput = async (
   if (typeof noColorArg !== 'boolean') {
     throw new Error('Unsupported value for --no-color')
   } else if (noColorArg === true) {
-    // Warning: the global state mutation here means that we can't style text in static contexts!
-    // Functions like `node:util`'s `styleText` shouldn't be called from the top level of modules.
+    // Warning: the global state mutation here means that we can't style text in
+    // static contexts! Functions like `node:util`'s `styleText` shouldn't be
+    // called from the top level of modules.
     delete process.env['FORCE_COLOR']
     process.env['NO_COLOR'] = 'true'
   }
@@ -69,16 +70,17 @@ export const writeOutput = (
   } else {
     writeStream.write(outputAsString.value)
 
-    // Writing a newline ensures that output is flushed before terminating, otherwise nothing may be
-    // printed to the console. See:
+    // Writing a newline ensures that output is flushed before terminating,
+    // otherwise nothing may be printed to the console. See:
     //  - <https://github.com/nodejs/node/issues/6379>
     //  - <https://github.com/nodejs/node/issues/6456>
     //  - <https://github.com/nodejs/node/issues/2972>
     //  - …and many other near-duplicate issues
     //
-    // I've tried other workarounds such as explicitly terminating via `process.exit`, passing a
-    // callback to `writeStream.write` (ensuring the returned `Promise` is not resolved until it is
-    // called), and explicitly calling `writeStream.end`/`writeStream.uncork` and so far this is the
+    // I've tried other workarounds such as explicitly terminating via
+    // `process.exit`, passing a callback to `writeStream.write` (ensuring the
+    // returned `Promise` is not resolved until it is called), and explicitly
+    // calling `writeStream.end`/`writeStream.uncork` and so far this is the
     // only workaround which reliably results in the desired behavior.
     writeStream.write('\n')
   }

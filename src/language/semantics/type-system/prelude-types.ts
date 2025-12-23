@@ -43,7 +43,8 @@ export const naturalNumber = makeOpaqueAtomType('natural_number', {
 
 export const object = makeObjectType('object', {})
 
-// `functionType` and `something` reference each other directly, so we need to do a dance:
+// `functionType` and `something` reference each other directly, so we need to
+// do a dance:
 export const functionType: FunctionType = {} as FunctionType
 export const something: UnionType = {} as UnionType // the top type
 Object.assign(

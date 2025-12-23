@@ -161,8 +161,8 @@ export const keywordHandlers: KeywordHandlers = {
             runtimeContext(runtimeFunction.parameterName),
           )
           return either.mapLeft(result, error => ({
-            // The runtime function panicked or had an unavailable dependency (which results in a
-            // panic anyway in this context).
+            // The runtime function panicked or had an unavailable dependency
+            // (which results in a panic anyway in this context).
             kind: 'panic',
             message: error.message,
           }))

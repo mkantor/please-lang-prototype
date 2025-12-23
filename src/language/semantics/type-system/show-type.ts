@@ -7,7 +7,8 @@ export const showType = (type: Type | Atom): string => {
   if (typeof type === 'string') {
     return JSON.stringify(type)
   } else {
-    // Constraints are only shown the first time each type parameter is mentioned.
+    // Constraints are only shown the first time each type parameter is
+    // mentioned.
     const mentionedTypeParameters: Set<symbol> = new Set()
     const showTypeImplementation = (type: Type): string => {
       if (type.name.trim() !== '' && type.kind !== 'parameter') {
@@ -35,9 +36,9 @@ export const showType = (type: Type | Atom): string => {
             if (mentionedTypeParameters.has(identity)) {
               return nonEmptyName
             } else {
-              // This type parameter hasn't previously been mentioned, so include its constraints.
-              // If the parameter's upper bound is the top type then it's not really "constrained",
-              // so omit it.
+              // This type parameter hasn't previously been mentioned, so
+              // include its constraints. If the parameter's upper bound is the
+              // top type then it's not really "constrained", so omit it.
 
               const shownUpperBound = isAssignable({
                 source: types.something,
