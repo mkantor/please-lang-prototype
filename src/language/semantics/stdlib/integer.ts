@@ -229,4 +229,4 @@ export const integer = {
         ),
       ),
   ),
-}
+} as const

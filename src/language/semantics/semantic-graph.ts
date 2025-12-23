@@ -17,8 +17,16 @@ import {
   type ObjectNode,
 } from './object-node.js'
 import { nodeTag } from './semantic-graph-node-tag.js'
+import {
+  atomQuale,
+  integerQuale,
+  naturalNumberQuale,
+} from './type-system/prelude-types.js'
 
-export type Quale = symbol
+export type Quale =
+  | typeof atomQuale
+  | typeof integerQuale
+  | typeof naturalNumberQuale
 
 export type SemanticGraph = Atom | Quale | FunctionNode | ObjectNode
 
@@ -52,7 +60,8 @@ export const applyKeyPathToSemanticGraph = (
 export const containsAnyUnelaboratedNodes = (
   node: SemanticGraph | Molecule,
 ): boolean => {
-  if (isExpression(node)) {
+  // TODO: Do not hardcode `@union` here.
+  if (isExpression(node) && node[0] !== '@union') {
     return true
   } else if (typeof node === 'object') {
     for (const propertyValue of Object.values(node)) {

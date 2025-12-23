@@ -2,6 +2,7 @@ import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
+import { isKeywordExpressionWithArgument } from '../expression.js'
 import { serialize, type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import { opaqueTypesBySymbol } from './prelude-types.js'
@@ -396,9 +397,32 @@ export const literalTypeFromSemanticGraph = (
   } else if (typeof node === 'function') {
     return either.flatMap(serialize(node), literalTypeFromSemanticGraph)
   } else {
-    const children: Writable<ObjectType['children']> = {}
-    for (const [key, value] of Object.entries(node)) {
-      if (value !== undefined && key !== undefined) {
+    if (isKeywordExpressionWithArgument('@union', node)) {
+      let members = new Set<Atom | Exclude<Type, UnionType>>()
+      for (const result of Object.values(node[1]).map(
+        literalTypeFromSemanticGraph,
+      )) {
+        if (either.isLeft(result)) {
+          return result
+        } else {
+          if (result.value.kind === 'union') {
+            for (const member of result.value.members) {
+              members.add(member)
+            }
+          } else {
+            members.add(result.value)
+          }
+        }
+      }
+      return either.makeRight({
+        name: '',
+        kind: 'union',
+        members,
+      })
+    } else {
+      // `node` is an object type.
+      const children: Writable<ObjectType['children']> = {}
+      for (const [key, value] of Object.entries(node)) {
         const childAsTypeResult = literalTypeFromSemanticGraph(value)
         if (either.isLeft(childAsTypeResult)) {
           return childAsTypeResult
@@ -406,13 +430,13 @@ export const literalTypeFromSemanticGraph = (
           children[key] = childAsTypeResult.value
         }
       }
-    }
 
-    return either.makeRight({
-      name: '',
-      kind: 'object',
-      children,
-    })
+      return either.makeRight({
+        name: '',
+        kind: 'object',
+        children,
+      })
+    }
   }
 }
 

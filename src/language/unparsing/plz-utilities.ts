@@ -403,12 +403,13 @@ const readInfixOperation = (expression: ApplyExpression) =>
 
     return either.map(
       readLookupExpression(lookupExpression),
-      lookupExpression => ({
-        operand1: expression[1].argument,
-        operatorLookupKey: lookupExpression[1].key,
-        operatorIndexExpression: optionalOperatorIndexExpression,
-        operand2: innerApply[1].argument,
-      }),
+      lookupExpression =>
+        ({
+          operand1: expression[1].argument,
+          operatorLookupKey: lookupExpression[1].key,
+          operatorIndexExpression: optionalOperatorIndexExpression,
+          operand2: innerApply[1].argument,
+        } as const),
     )
   })
 

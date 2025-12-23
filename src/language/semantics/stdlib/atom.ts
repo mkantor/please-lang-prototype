@@ -108,4 +108,4 @@ export const atom = {
         ),
       ),
   ),
-}
+} as const

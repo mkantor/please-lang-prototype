@@ -62,4 +62,4 @@ export const object = {
       }
     },
   ),
-}
+} as const

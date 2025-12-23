@@ -68,4 +68,4 @@ export const natural_number = {
         ),
       ),
   ),
-}
+} as const
