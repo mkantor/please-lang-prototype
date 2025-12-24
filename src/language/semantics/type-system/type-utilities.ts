@@ -1,5 +1,5 @@
 import type { Writable } from '../../../utility-types.js'
-import type { Atom } from '../../parsing.js'
+import type { Atom, Molecule } from '../../parsing.js'
 import { types } from '../type-system.js'
 import { simplifyUnionType } from './subtyping.js'
 import {
@@ -365,6 +365,27 @@ export const updateTypeAtKeyPathIfValid = (
           }),
         ),
     })
+  }
+}
+
+export const literalTypeFromAtomOrMolecule = (value: Atom | Molecule): Type => {
+  if (typeof value === 'string') {
+    return {
+      name: '',
+      kind: 'union',
+      members: new Set(value),
+    }
+  } else {
+    return {
+      name: '',
+      kind: 'object',
+      children: Object.fromEntries(
+        Object.entries(value).map(([key, value]) => [
+          key,
+          literalTypeFromAtomOrMolecule(value),
+        ]),
+      ),
+    }
   }
 }
 
