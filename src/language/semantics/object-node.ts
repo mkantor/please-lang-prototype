@@ -3,7 +3,13 @@ import option, { type Option } from '@matt.kantor/option'
 import type { Writable } from '../../utility-types.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import { nodeTag, serialize, type SemanticGraph } from './semantic-graph.js'
+import { serializeFunctionNode } from './function-node.js'
+import {
+  nodeTag,
+  serialize,
+  type Output,
+  type SemanticGraph,
+} from './semantic-graph.js'
 
 export type ObjectNode = {
   readonly [nodeTag]: 'object'
@@ -37,11 +43,8 @@ export const serializeObjectNode = (
 ): Either<UnserializableValueError, Molecule> => {
   const molecule: Writable<Molecule> = {}
   for (const [key, propertyValue] of Object.entries(node)) {
-    const serializedPropertyValueResult = serialize(
-      typeof propertyValue === 'object'
-        ? makeObjectNode(propertyValue)
-        : propertyValue,
-    )
+    const serializedPropertyValueResult =
+      serializeObjectPropertyValue(propertyValue)
     if (either.isLeft(serializedPropertyValueResult)) {
       return serializedPropertyValueResult
     } else {
@@ -49,4 +52,22 @@ export const serializeObjectNode = (
     }
   }
   return either.makeRight(molecule)
+}
+
+const serializeObjectPropertyValue = (
+  propertyValue: ObjectNode[string],
+): Either<UnserializableValueError, Output> => {
+  switch (typeof propertyValue) {
+    case 'string':
+      return serialize(propertyValue)
+    case 'object':
+      return serialize(makeObjectNode(propertyValue))
+    case 'symbol':
+      return either.makeLeft({
+        kind: 'unserializableValue',
+        message: 'symbols cannot be serialized',
+      })
+    case 'function':
+      return serializeFunctionNode(propertyValue)
+  }
 }

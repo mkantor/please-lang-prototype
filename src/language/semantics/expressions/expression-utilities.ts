@@ -49,6 +49,11 @@ export const readArgumentsFromExpression = <
       kind: 'invalidExpression',
       message: `found an atom instead of an arguments object`,
     })
+  } else if (typeof expression[1] === 'symbol') {
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: `found a symbol instead of an arguments object`,
+    })
   } else if (isFunctionNode(expression[1])) {
     return either.makeLeft({
       kind: 'invalidExpression',
