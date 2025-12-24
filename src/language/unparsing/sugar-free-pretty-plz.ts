@@ -30,4 +30,5 @@ const unparseAtomOrMolecule = (value: Atom | Molecule) =>
 export const sugarFreePrettyPlz: Notation = {
   atom: unparseAtom,
   molecule: unparseMolecule,
+  suffix: '\n',
 }

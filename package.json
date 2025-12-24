@@ -5,10 +5,11 @@
   "bin": {
     "please": "please"
   },
+  "//": "The ugly `bash -c` contortions in the scripts below are to work around <https://github.com/npm/cli/issues/8583>.",
   "scripts": {
-    "0": "node ./dist/language/cli/0.js",
-    "1": "node ./dist/language/cli/1.js",
-    "2": "node ./dist/language/cli/2.js",
+    "0": "bash -c 'node ./dist/language/cli/0.js \"$@\"; echo' bash",
+    "1": "bash -c 'node ./dist/language/cli/1.js \"$@\"; echo' bash",
+    "2": "bash -c 'node ./dist/language/cli/2.js \"$@\"; echo' bash",
     "build": "tsc --build tsconfig.app.json --force",
     "build:tests": "tsc --project tsconfig.app.json --outDir dist-test --declarationDir dist && tsc --build tsconfig.test.json",
     "clean": "rm -rf dist* *.tsbuildinfo",

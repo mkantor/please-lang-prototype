@@ -39,4 +39,5 @@ const unparseMolecule = moleculeUnparser(
 export const inlinePlz: Notation = {
   atom: unparseAtom,
   molecule: unparseMolecule,
+  suffix: '',
 }

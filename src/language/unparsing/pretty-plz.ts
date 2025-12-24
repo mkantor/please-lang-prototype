@@ -39,4 +39,5 @@ const unparseMolecule = moleculeUnparser(
 export const prettyPlz: Notation = {
   atom: unparseAtom,
   molecule: unparseMolecule,
+  suffix: '\n',
 }
