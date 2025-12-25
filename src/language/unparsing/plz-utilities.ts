@@ -1,4 +1,5 @@
 import either, { type Either, type Right } from '@matt.kantor/either'
+import option from '@matt.kantor/option'
 import parsing from '@matt.kantor/parsing'
 import { styleText } from 'node:util'
 import type { UnserializableValueError } from '../errors.js'
@@ -18,6 +19,7 @@ import {
   type IndexExpression,
   type KeyPath,
   type LookupExpression,
+  type ObjectNode,
   type SemanticGraph,
 } from '../semantics.js'
 import { punctuation } from './unparsing-utilities.js'
@@ -76,7 +78,7 @@ export const moleculeAsKeyValuePairStrings = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
   options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
-  const { colon } = punctuation(styleText)
+  const { colon, openParenthesis, closeParenthesis } = punctuation(styleText)
   const entries = Object.entries(value)
 
   const keyValuePairsAsStrings: string[] = []
@@ -92,7 +94,16 @@ export const moleculeAsKeyValuePairStrings = (
       propertyKey === String(ordinalPropertyKeyCounter) &&
       options.ordinalKeys === 'omit'
     ) {
-      keyValuePairsAsStrings.push(valueAsStringResult.value)
+      keyValuePairsAsStrings.push(
+        // If the property value is something like an anonymous function or an
+        // infix operation then it needs parentheses when the key is omitted. We
+        // can skip the parentheses when this is the only property.
+        needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
+          propertyValue,
+        ) && entries.length !== 1
+          ? openParenthesis.concat(valueAsStringResult.value, closeParenthesis)
+          : valueAsStringResult.value,
+      )
       ordinalPropertyKeyCounter += 1n
     } else {
       keyValuePairsAsStrings.push(
@@ -153,11 +164,11 @@ const unparseSugaredApply = (
   expression: ApplyExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
-  const { closeParenthesis, openParenthesis } = punctuation(styleText)
+  const { openParenthesis, closeParenthesis } = punctuation(styleText)
 
   const infixSugaredApply = either.flatMap(
     readInfixOperation(expression),
-    ([operand1, operator, operand2]) => {
+    ({ operand1, operatorLookupKey, operatorIndexExpression, operand2 }) => {
       // Infix syntax is probably appropriate.
       const unparsedOperand1 = either.map(
         either.flatMap(serializeIfNeeded(operand1), unparseAtomOrMolecule),
@@ -175,14 +186,23 @@ const unparseSugaredApply = (
             ? openParenthesis.concat(unparsedOperand2, closeParenthesis)
             : unparsedOperand2,
       )
+
+      // Operators omit the leading `:`, but otherwise look like lookups
+      // (possibly followed by indexes).
+      const unparsedOperator = styleText('cyan', operatorLookupKey).concat(
+        option.match(operatorIndexExpression, {
+          some: operatorIndexExpression =>
+            either.unwrapOrElse(
+              unparseKeyPathOfSugaredIndex(operatorIndexExpression[1].query),
+              _ => '',
+            ),
+          none: _ => '',
+        }),
+      )
+
       return either.flatMap(unparsedOperand1, unparsedOperand1 =>
         either.map(unparsedOperand2, unparsedOperand2 =>
-          unparsedOperand1.concat(
-            ' ',
-            styleText('cyan', operator),
-            ' ',
-            unparsedOperand2,
-          ),
+          unparsedOperand1.concat(' ', unparsedOperator, ' ', unparsedOperand2),
         ),
       )
     },
@@ -248,43 +268,44 @@ const unparseSugaredIndex = (
         message: 'invalid index expression',
       })
     } else {
-      const keyPath = Object.entries(expression[1].query).reduce(
-        (accumulator: KeyPath | 'invalid', [key, value]) => {
-          if (accumulator === 'invalid') {
-            return accumulator
-          } else {
-            if (
-              key === String(accumulator.length) &&
-              typeof value === 'string'
-            ) {
-              return [...accumulator, value]
-            } else {
-              return 'invalid'
-            }
-          }
-        },
-        [],
+      return either.map(
+        unparseKeyPathOfSugaredIndex(expression[1].query),
+        unparsedKeyPath => unparsedObject.concat(unparsedKeyPath),
       )
-
-      if (
-        keyPath === 'invalid' ||
-        Object.keys(expression[1].query).length !== keyPath.length
-      ) {
-        return either.makeLeft({
-          kind: 'unserializableValue',
-          message: 'invalid key path',
-        })
-      } else {
-        const { dot } = punctuation(styleText)
-        return either.makeRight(
-          unparsedObject.concat(
-            dot,
-            keyPath.map(quoteKeyPathComponentIfNecessary).join(dot),
-          ),
-        )
-      }
     }
   })
+}
+
+const unparseKeyPathOfSugaredIndex = (query: ObjectNode | Molecule) => {
+  const keyPath = Object.entries(query).reduce(
+    (accumulator: KeyPath | 'invalid', [key, value]) => {
+      if (accumulator === 'invalid') {
+        return accumulator
+      } else {
+        if (key === String(accumulator.length) && typeof value === 'string') {
+          return [...accumulator, value]
+        } else {
+          return 'invalid'
+        }
+      }
+    },
+    [],
+  )
+
+  if (keyPath === 'invalid' || Object.keys(query).length !== keyPath.length) {
+    return either.makeLeft({
+      kind: 'unserializableValue',
+      message: 'invalid key path',
+    })
+  } else {
+    const { dot } = punctuation(styleText)
+    return either.makeRight(
+      styleText(
+        'cyan',
+        dot.concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
+      ),
+    )
+  }
 }
 
 const unparseSugaredLookup = (
@@ -340,15 +361,30 @@ const unparseSugaredGeneralizedKeywordExpression = (
  * not anonymous).
  */
 const readInfixOperation = (expression: ApplyExpression) =>
-  either.flatMap(readApplyExpression(expression[1].function), innerApply =>
-    either.flatMap(readLookupExpression(innerApply[1].function), lookup =>
-      either.makeRight([
-        expression[1].argument,
-        lookup[1].key,
-        innerApply[1].argument,
-      ]),
-    ),
-  )
+  either.flatMap(readApplyExpression(expression[1].function), innerApply => {
+    // Support indexed lookups and bare lookups.
+    const optionalOperatorIndexExpression = either.match(
+      readIndexExpression(innerApply[1].function),
+      {
+        left: _ => option.none,
+        right: option.makeSome,
+      },
+    )
+    const lookupExpression = option.match(optionalOperatorIndexExpression, {
+      none: _ => innerApply[1].function,
+      some: operatorIndexExpression => operatorIndexExpression[1].object,
+    })
+
+    return either.map(
+      readLookupExpression(lookupExpression),
+      lookupExpression => ({
+        operand1: expression[1].argument,
+        operatorLookupKey: lookupExpression[1].key,
+        operatorIndexExpression: optionalOperatorIndexExpression,
+        operand2: innerApply[1].argument,
+      }),
+    )
+  })
 
 const needsParenthesesAsFirstInfixOperand = (
   expression: SemanticGraph | Molecule,
