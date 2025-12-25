@@ -27,7 +27,7 @@ export const atom = makeOpaqueAtomType('atom', {
   nearestOpaqueAssignableTo: () => optionAdt.none,
 })
 
-export const integer = makeOpaqueAtomType('natural_number', {
+export const integer = makeOpaqueAtomType('integer', {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(naturalNumber),
