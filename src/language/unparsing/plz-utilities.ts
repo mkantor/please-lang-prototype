@@ -22,7 +22,7 @@ import {
   type ObjectNode,
   type SemanticGraph,
 } from '../semantics.js'
-import { punctuation } from './unparsing-utilities.js'
+import { functionColor, keyColor, punctuation } from './unparsing-utilities.js'
 
 export const moleculeUnparser =
   (
@@ -78,7 +78,13 @@ export const moleculeAsKeyValuePairStrings = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
   options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
-  const { colon, openParenthesis, closeParenthesis } = punctuation(styleText)
+  const {
+    colon,
+    openGroupingParenthesis,
+    closeGroupingParenthesis,
+    openApplyParenthesis,
+    closeApplyParenthesis,
+  } = punctuation(styleText)
   const entries = Object.entries(value)
 
   const keyValuePairsAsStrings: string[] = []
@@ -101,14 +107,17 @@ export const moleculeAsKeyValuePairStrings = (
         needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
           propertyValue,
         ) && entries.length !== 1
-          ? openParenthesis.concat(valueAsStringResult.value, closeParenthesis)
+          ? openGroupingParenthesis.concat(
+              valueAsStringResult.value,
+              closeGroupingParenthesis,
+            )
           : valueAsStringResult.value,
       )
       ordinalPropertyKeyCounter += 1n
     } else {
       keyValuePairsAsStrings.push(
         styleText(
-          'cyan',
+          keyColor,
           quoteAtomIfNecessary(propertyKey).concat(colon),
         ).concat(' ', valueAsStringResult.value),
       )
@@ -164,7 +173,12 @@ const unparseSugaredApply = (
   expression: ApplyExpression,
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
 ) => {
-  const { openParenthesis, closeParenthesis } = punctuation(styleText)
+  const {
+    openGroupingParenthesis,
+    closeGroupingParenthesis,
+    openApplyParenthesis,
+    closeApplyParenthesis,
+  } = punctuation(styleText)
 
   const infixSugaredApply = either.flatMap(
     readInfixOperation(expression),
@@ -174,7 +188,10 @@ const unparseSugaredApply = (
         either.flatMap(serializeIfNeeded(operand1), unparseAtomOrMolecule),
         unparsedOperand1 =>
           needsParenthesesAsFirstInfixOperand(operand1)
-            ? openParenthesis.concat(unparsedOperand1, closeParenthesis)
+            ? openGroupingParenthesis.concat(
+                unparsedOperand1,
+                closeGroupingParenthesis,
+              )
             : unparsedOperand1,
       )
       const unparsedOperand2 = either.map(
@@ -183,13 +200,19 @@ const unparseSugaredApply = (
           needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
             operand2,
           )
-            ? openParenthesis.concat(unparsedOperand2, closeParenthesis)
+            ? openGroupingParenthesis.concat(
+                unparsedOperand2,
+                closeGroupingParenthesis,
+              )
             : unparsedOperand2,
       )
 
       // Operators omit the leading `:`, but otherwise look like lookups
       // (possibly followed by indexes).
-      const unparsedOperator = styleText('cyan', operatorLookupKey).concat(
+      const unparsedOperator = styleText(
+        functionColor,
+        operatorLookupKey,
+      ).concat(
         option.match(operatorIndexExpression, {
           some: operatorIndexExpression =>
             either.unwrapOrElse(
@@ -219,7 +242,10 @@ const unparseSugaredApply = (
         needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
           expression[1].function,
         )
-          ? openParenthesis.concat(unparsedFunction, closeParenthesis)
+          ? openGroupingParenthesis.concat(
+              unparsedFunction,
+              closeGroupingParenthesis,
+            )
           : unparsedFunction,
     )
     const unparsedArgument = either.flatMap(
@@ -229,9 +255,9 @@ const unparseSugaredApply = (
     return either.flatMap(unparsedFunction, unparsedFunction =>
       either.map(unparsedArgument, unparsedArgument =>
         unparsedFunction.concat(
-          openParenthesis,
+          openApplyParenthesis,
           unparsedArgument,
-          closeParenthesis,
+          closeApplyParenthesis,
         ),
       ),
     )
@@ -245,7 +271,7 @@ const unparseSugaredFunction = (
   either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
     either.map(unparseAtomOrMolecule(serializedBody), bodyAsString =>
       [
-        styleText('cyan', expression[1].parameter),
+        styleText(keyColor, expression[1].parameter),
         punctuation(styleText).arrow,
         bodyAsString,
       ].join(' '),
@@ -301,7 +327,7 @@ const unparseKeyPathOfSugaredIndex = (query: ObjectNode | Molecule) => {
     const { dot } = punctuation(styleText)
     return either.makeRight(
       styleText(
-        'cyan',
+        keyColor,
         dot.concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
       ),
     )
@@ -314,7 +340,7 @@ const unparseSugaredLookup = (
 ) =>
   either.makeRight(
     styleText(
-      'cyan',
+      keyColor,
       punctuation(styleText).colon.concat(
         quoteKeyPathComponentIfNecessary(expression[1].key),
       ),
