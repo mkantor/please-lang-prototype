@@ -78,13 +78,8 @@ export const moleculeAsKeyValuePairStrings = (
   unparseAtomOrMolecule: UnparseAtomOrMolecule,
   options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
-  const {
-    colon,
-    openGroupingParenthesis,
-    closeGroupingParenthesis,
-    openApplyParenthesis,
-    closeApplyParenthesis,
-  } = punctuation(styleText)
+  const { colon, openGroupingParenthesis, closeGroupingParenthesis } =
+    punctuation(styleText)
   const entries = Object.entries(value)
 
   const keyValuePairsAsStrings: string[] = []
@@ -216,7 +211,10 @@ const unparseSugaredApply = (
         option.match(operatorIndexExpression, {
           some: operatorIndexExpression =>
             either.unwrapOrElse(
-              unparseKeyPathOfSugaredIndex(operatorIndexExpression[1].query),
+              unparseKeyPathOfSugaredIndex(
+                operatorIndexExpression[1].query,
+                functionColor,
+              ),
               _ => '',
             ),
           none: _ => '',
@@ -295,14 +293,17 @@ const unparseSugaredIndex = (
       })
     } else {
       return either.map(
-        unparseKeyPathOfSugaredIndex(expression[1].query),
+        unparseKeyPathOfSugaredIndex(expression[1].query, keyColor),
         unparsedKeyPath => unparsedObject.concat(unparsedKeyPath),
       )
     }
   })
 }
 
-const unparseKeyPathOfSugaredIndex = (query: ObjectNode | Molecule) => {
+const unparseKeyPathOfSugaredIndex = (
+  query: ObjectNode | Molecule,
+  color: typeof keyColor | typeof functionColor,
+) => {
   const keyPath = Object.entries(query).reduce(
     (accumulator: KeyPath | 'invalid', [key, value]) => {
       if (accumulator === 'invalid') {
@@ -327,7 +328,7 @@ const unparseKeyPathOfSugaredIndex = (query: ObjectNode | Molecule) => {
     const { dot } = punctuation(styleText)
     return either.makeRight(
       styleText(
-        keyColor,
+        color,
         dot.concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
       ),
     )
