@@ -16,8 +16,7 @@ import {
   serializeObjectNode,
   type ObjectNode,
 } from './object-node.js'
-
-export const nodeTag = Symbol('nodeTag')
+import { nodeTag } from './semantic-graph-node-tag.js'
 
 export type Quale = symbol
 

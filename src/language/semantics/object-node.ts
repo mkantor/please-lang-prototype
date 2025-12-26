@@ -4,12 +4,8 @@ import type { Writable } from '../../utility-types.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { serializeFunctionNode } from './function-node.js'
-import {
-  nodeTag,
-  serialize,
-  type Output,
-  type SemanticGraph,
-} from './semantic-graph.js'
+import { nodeTag } from './semantic-graph-node-tag.js'
+import { serialize, type Output, type SemanticGraph } from './semantic-graph.js'
 
 export type ObjectNode = {
   readonly [nodeTag]: 'object'
