@@ -106,4 +106,36 @@ elaborationSuite('@check', [
     },
     success({ a: { b: 'c' } }),
   ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: {
+          0: '@index',
+          1: {
+            0: { 0: '@lookup', 1: { 0: 'natural_number' } },
+            1: { 0: 'type' },
+          },
+        },
+        value: '42',
+      },
+    },
+    success('42'),
+  ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: {
+          0: '@index',
+          1: {
+            0: { 0: '@lookup', 1: { 0: 'natural_number' } },
+            1: { 0: 'type' },
+          },
+        },
+        value: '"not a number"',
+      },
+    },
+    output => assert(either.isLeft(output)),
+  ],
 ])

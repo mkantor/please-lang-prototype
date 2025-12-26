@@ -41,6 +41,7 @@ export const makeObjectType = (
 
 export type OpaqueType = {
   readonly name: string
+  readonly symbol: symbol
   readonly kind: 'opaque'
   readonly isAssignableFrom: (source: Type) => boolean
   readonly isAssignableTo: (target: Type) => boolean
@@ -68,6 +69,7 @@ export const makeOpaqueAtomType = (
 ): OpaqueType => {
   const self: OpaqueType = {
     name,
+    symbol: Symbol(name),
     kind: 'opaque',
     isAssignableFrom: source =>
       matchTypeFormat(source, {

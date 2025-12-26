@@ -41,6 +41,12 @@ export const naturalNumber = makeOpaqueAtomType('natural_number', {
   nearestOpaqueAssignableTo: () => optionAdt.makeSome(integer),
 })
 
+export const opaqueTypesBySymbol = {
+  [atom.symbol]: atom,
+  [integer.symbol]: integer,
+  [naturalNumber.symbol]: naturalNumber,
+}
+
 export const object = makeObjectType('object', {})
 
 // `functionType` and `something` reference each other directly, so we need to

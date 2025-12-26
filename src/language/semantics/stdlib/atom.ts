@@ -9,6 +9,7 @@ import {
 } from './stdlib-utilities.js'
 
 export const atom = {
+  type: types.atom.symbol,
   append: preludeFunction(
     ['atom', 'append'],
     {

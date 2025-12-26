@@ -1,6 +1,10 @@
+import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
+import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
+import { serialize, type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
+import { opaqueTypesBySymbol } from './prelude-types.js'
 import { simplifyUnionType } from './subtyping.js'
 import {
   makeFunctionType,
@@ -368,24 +372,47 @@ export const updateTypeAtKeyPathIfValid = (
   }
 }
 
-export const literalTypeFromAtomOrMolecule = (value: Atom | Molecule): Type => {
-  if (typeof value === 'string') {
-    return {
+export const literalTypeFromSemanticGraph = (
+  node: Molecule | SemanticGraph,
+): Either<ElaborationError, Type> => {
+  if (typeof node === 'string') {
+    return either.makeRight({
       name: '',
       kind: 'union',
-      members: new Set(value),
+      members: new Set([node]),
+    })
+  } else if (typeof node === 'symbol') {
+    if (
+      node in opaqueTypesBySymbol &&
+      opaqueTypesBySymbol[node] !== undefined
+    ) {
+      return either.makeRight(opaqueTypesBySymbol[node])
+    } else {
+      return either.makeLeft({
+        kind: 'bug',
+        message: 'semantic graph contained an unknown symbol',
+      })
     }
+  } else if (typeof node === 'function') {
+    return either.flatMap(serialize(node), literalTypeFromSemanticGraph)
   } else {
-    return {
+    const children: Writable<ObjectType['children']> = {}
+    for (const [key, value] of Object.entries(node)) {
+      if (value !== undefined && key !== undefined) {
+        const childAsTypeResult = literalTypeFromSemanticGraph(value)
+        if (either.isLeft(childAsTypeResult)) {
+          return childAsTypeResult
+        } else {
+          children[key] = childAsTypeResult.value
+        }
+      }
+    }
+
+    return either.makeRight({
       name: '',
       kind: 'object',
-      children: Object.fromEntries(
-        Object.entries(value).map(([key, value]) => [
-          key,
-          literalTypeFromAtomOrMolecule(value),
-        ]),
-      ),
-    }
+      children,
+    })
   }
 }
 

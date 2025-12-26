@@ -4,14 +4,14 @@ import {
   asSemanticGraph,
   isAssignable,
   readCheckExpression,
-  serialize,
   stringifySemanticGraphForEndUser,
   type Expression,
   type ExpressionContext,
   type KeywordHandler,
   type SemanticGraph,
 } from '../../../semantics.js'
-import { literalTypeFromAtomOrMolecule } from '../../../semantics/type-system/type-utilities.js'
+import { showType } from '../../../semantics/type-system/show-type.js'
+import { literalTypeFromSemanticGraph } from '../../../semantics/type-system/type-utilities.js'
 
 export const checkKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -30,22 +30,23 @@ const check = ({
 }: {
   readonly value: SemanticGraph
   readonly type: SemanticGraph
-}): Either<ElaborationError, SemanticGraph> => {
-  if (
-    isAssignable({
-      source: literalTypeFromAtomOrMolecule(serialize(value)),
-      target: literalTypeFromAtomOrMolecule(serialize(type)),
-    })
-  ) {
-    return either.makeRight(value)
-  } else {
-    return either.makeLeft({
-      kind: 'typeMismatch',
-      message: `the value \`${stringifySemanticGraphForEndUser(
-        value,
-      )}\` is not assignable to the type \`${stringifySemanticGraphForEndUser(
-        type,
-      )}\``,
-    })
-  }
-}
+}): Either<ElaborationError, SemanticGraph> =>
+  either.flatMap(literalTypeFromSemanticGraph(value), valueAsType =>
+    either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
+      if (
+        isAssignable({
+          source: valueAsType,
+          target: typeAsType,
+        })
+      ) {
+        return either.makeRight(value)
+      } else {
+        return either.makeLeft({
+          kind: 'typeMismatch',
+          message: `the value \`${stringifySemanticGraphForEndUser(
+            value,
+          )}\` is not assignable to the type \`${showType(typeAsType)}\``,
+        })
+      }
+    }),
+  )
