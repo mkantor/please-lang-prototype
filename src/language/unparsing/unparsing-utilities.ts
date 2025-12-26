@@ -19,6 +19,10 @@ export const indent = (spaces: number, textToIndent: string) => {
     .replace(/(\r?\n)/g, `$1${indentation}`)
 }
 
+export const functionColor = 'redBright'
+
+export const keyColor = 'cyan'
+
 // Note that `node:util`'s `styleText` changes behavior based on the current
 // global state of `process.env`, which may be mutated at runtime (e.g. to
 // handle `--no-color`).
@@ -29,7 +33,10 @@ export const punctuation = (styleText: typeof util.styleText) => ({
   comma: styleText('dim', ','),
   openBrace: styleText('dim', '{'),
   closeBrace: styleText('dim', '}'),
-  openParenthesis: styleText('dim', '('),
-  closeParenthesis: styleText('dim', ')'),
-  arrow: styleText('dim', '=>'),
+  openGroupingParenthesis: styleText('dim', '('),
+  closeGroupingParenthesis: styleText('dim', ')'),
+
+  openApplyParenthesis: styleText(functionColor, '('),
+  closeApplyParenthesis: styleText(functionColor, ')'),
+  arrow: styleText(functionColor, '=>'),
 })
