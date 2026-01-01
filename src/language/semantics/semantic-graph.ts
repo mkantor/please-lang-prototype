@@ -11,6 +11,7 @@ import { inlinePlz, unparse } from '../unparsing.js'
 import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
+import { isExemptFromElaboration, isKeyword } from './keyword.js'
 import {
   makeObjectNode,
   serializeObjectNode,
@@ -60,8 +61,11 @@ export const applyKeyPathToSemanticGraph = (
 export const containsAnyUnelaboratedNodes = (
   node: SemanticGraph | Molecule,
 ): boolean => {
-  // TODO: Do not hardcode `@union` here.
-  if (isExpression(node) && node[0] !== '@union') {
+  if (
+    isExpression(node) &&
+    isKeyword(node[0]) &&
+    !isExemptFromElaboration(node[0])
+  ) {
     return true
   } else if (typeof node === 'object') {
     for (const propertyValue of Object.values(node)) {

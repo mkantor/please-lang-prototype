@@ -1,3 +1,5 @@
+export const isExemptFromElaboration = (input: Keyword) => input === '@union'
+
 export const isKeyword = (input: string) =>
   input === '@apply' ||
   input === '@check' ||
