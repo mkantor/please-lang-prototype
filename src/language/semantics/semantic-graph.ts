@@ -19,17 +19,17 @@ import {
 } from './object-node.js'
 import { nodeTag } from './semantic-graph-node-tag.js'
 import {
-  atomQuale,
-  integerQuale,
-  naturalNumberQuale,
+  atomTypeSymbol,
+  integerTypeSymbol,
+  naturalNumberTypeSymbol,
 } from './type-system/prelude-types.js'
 
-export type Quale =
-  | typeof atomQuale
-  | typeof integerQuale
-  | typeof naturalNumberQuale
+export type TypeSymbol =
+  | typeof atomTypeSymbol
+  | typeof integerTypeSymbol
+  | typeof naturalNumberTypeSymbol
 
-export type SemanticGraph = Atom | Quale | FunctionNode | ObjectNode
+export type SemanticGraph = Atom | TypeSymbol | FunctionNode | ObjectNode
 
 export const applyKeyPathToSemanticGraph = (
   node: SemanticGraph,
@@ -42,7 +42,7 @@ export const applyKeyPathToSemanticGraph = (
     return matchSemanticGraph(node, {
       atom: _ => option.none,
       function: _ => option.none,
-      quale: _ => option.none,
+      typeSymbol: _ => option.none,
       object: graph => {
         const next = graph[firstKey]
         if (next === undefined) {
@@ -109,7 +109,7 @@ export const updateValueAtKeyPathInSemanticGraph = (
     return matchSemanticGraph(node, {
       atom: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
       function: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
-      quale: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
+      typeSymbol: _ => either.makeLeft(makePropertyNotFoundError(keyPath)),
       object: node => {
         const next = node[firstKey]
         if (next === undefined) {
@@ -139,13 +139,13 @@ export const matchSemanticGraph = <Result>(
     atom: (node: Atom) => Result
     function: (node: FunctionNode) => Result
     object: (node: ObjectNode) => Result
-    quale: (node: Quale) => Result
+    typeSymbol: (node: TypeSymbol) => Result
   },
 ): Result => {
   if (typeof semanticGraph === 'string') {
     return cases.atom(semanticGraph)
   } else if (typeof semanticGraph === 'symbol') {
-    return cases.quale(semanticGraph)
+    return cases.typeSymbol(semanticGraph)
   } else {
     switch (semanticGraph[nodeTag]) {
       case 'function':
@@ -172,7 +172,7 @@ export const serialize = (
         either.makeRight(node),
       function: node => serializeFunctionNode(node),
       object: node => serializeObjectNode(node),
-      quale: _node =>
+      typeSymbol: _node =>
         either.makeLeft({
           kind: 'unserializableValue',
           message: 'symbols cannot be serialized',
@@ -194,13 +194,13 @@ export const stringifySemanticGraphForEndUser = (
 
 export const isSemanticGraph = (
   value:
-    | Quale
+    | TypeSymbol
     | Atom
     | Molecule
     | {
         readonly [nodeTag]?: Exclude<
           SemanticGraph,
-          Atom | Quale
+          Atom | TypeSymbol
         >[typeof nodeTag]
       },
 ): value is SemanticGraph =>

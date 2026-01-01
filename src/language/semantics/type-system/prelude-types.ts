@@ -21,25 +21,25 @@ export const boolean = makeUnionType('boolean', ['false', 'true'])
 //    - integer
 //      - natural_number
 
-export const atomQuale = Symbol('atom')
-export const atom = makeOpaqueAtomType('atom', atomQuale, {
+export const atomTypeSymbol = Symbol('atom')
+export const atom = makeOpaqueAtomType('atom', atomTypeSymbol, {
   isAssignableFromLiteralType: (_literalType: string) => true,
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(integer),
   nearestOpaqueAssignableTo: () => optionAdt.none,
 })
 
-export const integerQuale = Symbol('integer')
-export const integer = makeOpaqueAtomType('integer', integerQuale, {
+export const integerTypeSymbol = Symbol('integer')
+export const integer = makeOpaqueAtomType('integer', integerTypeSymbol, {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(naturalNumber),
   nearestOpaqueAssignableTo: () => optionAdt.makeSome(atom),
 })
 
-export const naturalNumberQuale = Symbol('natural_number')
+export const naturalNumberTypeSymbol = Symbol('natural_number')
 export const naturalNumber = makeOpaqueAtomType(
   'natural_number',
-  naturalNumberQuale,
+  naturalNumberTypeSymbol,
   {
     isAssignableFromLiteralType: literalType =>
       /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
