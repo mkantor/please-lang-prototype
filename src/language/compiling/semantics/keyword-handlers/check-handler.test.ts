@@ -220,4 +220,52 @@ elaborationSuite('@check', [
     },
     output => assert(either.isLeft(output)),
   ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: {
+          0: '@index',
+          1: {
+            0: { 0: '@lookup', 1: { 0: 'object' } },
+            1: { 0: 'type' },
+          },
+        },
+        value: {},
+      },
+    },
+    success({}),
+  ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: {
+          0: '@index',
+          1: {
+            0: { 0: '@lookup', 1: { 0: 'object' } },
+            1: { 0: 'type' },
+          },
+        },
+        value: { hello: 'world', arbitrary: { properties: 'true' } },
+      },
+    },
+    success({ hello: 'world', arbitrary: { properties: 'true' } }),
+  ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: {
+          0: '@index',
+          1: {
+            0: { 0: '@lookup', 1: { 0: 'object' } },
+            1: { 0: 'type' },
+          },
+        },
+        value: 'not an object',
+      },
+    },
+    output => assert(either.isLeft(output)),
+  ],
 ])
