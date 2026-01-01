@@ -46,6 +46,7 @@ export {
   type RuntimeExpression,
 } from './semantics/expressions/runtime-expression.js'
 export { type TodoExpression } from './semantics/expressions/todo-expression.js'
+export { type UnionExpression } from './semantics/expressions/union-expression.js'
 export {
   isFunctionNode,
   makeFunctionNode,
