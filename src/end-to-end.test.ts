@@ -581,4 +581,26 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       8: 'it works!',
     }),
   ],
+  [
+    `{
+      a: 42 assume :natural_number.type
+      b: true ~ :boolean.type
+      c: {} ~ :object.type
+      d: { z: -42 } assume { z: :integer.type }
+    }`,
+    either.makeRight({
+      a: '42',
+      b: 'true',
+      c: {},
+      d: { z: '-42' },
+    }),
+  ],
+  [
+    `"not a number" assume :integer.type`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

@@ -15,6 +15,7 @@ export const prelude = makeObjectNode({
   object: makeObjectNode(object),
 
   // Aliases:
+  '~': globalFunctions.assume,
   '>>': globalFunctions.flow,
   '|>': globalFunctions.identity,
   '+': integer.add,
