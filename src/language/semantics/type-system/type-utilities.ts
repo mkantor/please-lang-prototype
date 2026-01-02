@@ -1,9 +1,9 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
-import type { ElaborationError } from '../../errors.js'
+import type { Bug } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
-import { serialize, type SemanticGraph } from '../semantic-graph.js'
+import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import { opaqueTypesBySymbol } from './prelude-types.js'
 import { simplifyUnionType } from './subtyping.js'
@@ -375,7 +375,7 @@ export const updateTypeAtKeyPathIfValid = (
 
 export const literalTypeFromSemanticGraph = (
   node: Molecule | SemanticGraph,
-): Either<ElaborationError, Type> => {
+): Either<Bug, Type> => {
   if (typeof node === 'string') {
     return either.makeRight({
       name: '',
@@ -395,7 +395,7 @@ export const literalTypeFromSemanticGraph = (
       })
     }
   } else if (typeof node === 'function') {
-    return either.flatMap(serialize(node), literalTypeFromSemanticGraph)
+    return literalTypeFromSemanticGraph(node)
   } else {
     if (isKeywordExpressionWithArgument('@union', node)) {
       let members = new Set<Atom | Exclude<Type, UnionType>>()
