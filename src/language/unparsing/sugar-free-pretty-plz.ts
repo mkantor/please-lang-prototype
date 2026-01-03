@@ -10,9 +10,13 @@ const unparseMolecule = (value: Molecule) => {
     return either.makeRight(openBrace + closeBrace)
   } else {
     return either.map(
-      moleculeAsKeyValuePairStrings(value, unparseAtomOrMolecule, {
-        ordinalKeys: 'preserve',
-      }),
+      moleculeAsKeyValuePairStrings(
+        value,
+        { unparseAtomOrMolecule, semanticContext: 'default' },
+        {
+          ordinalKeys: 'preserve',
+        },
+      ),
       keyValuePairsAsStrings =>
         openBrace.concat(
           '\n',

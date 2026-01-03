@@ -1,10 +1,12 @@
-import either from '@matt.kantor/either'
+import either, { type Either } from '@matt.kantor/either'
 import { styleText } from 'node:util'
+import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import {
   moleculeAsKeyValuePairStrings,
   moleculeUnparser,
   unparseAtom,
+  type SemanticContext,
 } from './plz-utilities.js'
 import { punctuation, type Notation } from './unparsing-utilities.js'
 
@@ -14,9 +16,13 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
     return either.makeRight(openBrace + closeBrace)
   } else {
     return either.map(
-      moleculeAsKeyValuePairStrings(value, unparseAtomOrMolecule, {
-        ordinalKeys: 'omit',
-      }),
+      moleculeAsKeyValuePairStrings(
+        value,
+        { unparseAtomOrMolecule, semanticContext: 'default' },
+        {
+          ordinalKeys: 'omit',
+        },
+      ),
       keyValuePairsAsStrings =>
         openBrace.concat(
           ' ',
@@ -28,16 +34,21 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
   }
 }
 
-const unparseAtomOrMolecule = (value: Atom | Molecule) =>
-  typeof value === 'string' ? unparseAtom(value) : unparseMolecule(value)
+const unparseAtomOrMolecule =
+  (semanticContext: SemanticContext) =>
+  (value: Atom | Molecule): Either<UnserializableValueError, string> =>
+    typeof value === 'string'
+      ? unparseAtom(value)
+      : unparseMolecule(semanticContext)(value)
 
-const unparseMolecule = moleculeUnparser(
-  unparseAtomOrMolecule,
-  unparseSugarFreeMolecule,
-)
+const unparseMolecule = (semanticContext: SemanticContext) =>
+  moleculeUnparser(semanticContext)(
+    unparseAtomOrMolecule,
+    unparseSugarFreeMolecule,
+  )
 
 export const inlinePlz: Notation = {
   atom: unparseAtom,
-  molecule: unparseMolecule,
+  molecule: unparseMolecule('default'),
   suffix: '',
 }

@@ -24,58 +24,74 @@ import {
 } from '../semantics.js'
 import { functionColor, keyColor, punctuation } from './unparsing-utilities.js'
 
+export type SemanticContext = 'apply' | 'default'
+
+type Context = {
+  readonly unparseAtomOrMolecule: UnparseAtomOrMolecule
+  readonly semanticContext: SemanticContext
+}
+
+type UnparseAtomOrMolecule = (
+  semanticContext: SemanticContext,
+) => (value: Atom | Molecule) => Either<UnserializableValueError, string>
+
 export const moleculeUnparser =
+  (semanticContext: SemanticContext) =>
   (
     unparseAtomOrMolecule: UnparseAtomOrMolecule,
     unparseSugarFreeMolecule: (
       expression: Molecule,
-      unparseAtomOrMolecule: UnparseAtomOrMolecule,
+      context: Context,
     ) => Either<UnserializableValueError, string>,
   ) =>
   (value: Molecule): Either<UnserializableValueError, string> => {
+    const context: Context = {
+      unparseAtomOrMolecule,
+      semanticContext,
+    }
     switch (value['0']) {
       case '@apply':
         return either.match(readApplyExpression(value), {
-          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          left: _ => unparseSugarFreeMolecule(value, context),
           right: applyExpression =>
-            unparseSugaredApply(applyExpression, unparseAtomOrMolecule),
+            unparseSugaredApply(applyExpression, context),
         })
       case '@function':
         return either.match(readFunctionExpression(value), {
-          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          left: _ => unparseSugarFreeMolecule(value, context),
           right: functionExpression =>
-            unparseSugaredFunction(functionExpression, unparseAtomOrMolecule),
+            unparseSugaredFunction(functionExpression, context),
         })
       case '@index':
         return either.match(readIndexExpression(value), {
-          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          left: _ => unparseSugarFreeMolecule(value, context),
           right: indexExpression =>
-            unparseSugaredIndex(indexExpression, unparseAtomOrMolecule),
+            unparseSugaredIndex(indexExpression, context),
         })
       case '@lookup':
         return either.match(readLookupExpression(value), {
-          left: _ => unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+          left: _ => unparseSugarFreeMolecule(value, context),
           right: lookupExpression =>
-            unparseSugaredLookup(lookupExpression, unparseAtomOrMolecule),
+            unparseSugaredLookup(lookupExpression, context),
         })
       default:
         if (isExpression(value)) {
           const result = unparseSugaredGeneralizedKeywordExpression(
             value,
-            unparseAtomOrMolecule,
+            context,
           )
           return either.flatMapLeft(result, _ =>
-            unparseSugarFreeMolecule(value, unparseAtomOrMolecule),
+            unparseSugarFreeMolecule(value, context),
           )
         } else {
-          return unparseSugarFreeMolecule(value, unparseAtomOrMolecule)
+          return unparseSugarFreeMolecule(value, context)
         }
     }
   }
 
 export const moleculeAsKeyValuePairStrings = (
   value: Molecule,
-  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  { unparseAtomOrMolecule, semanticContext }: Context,
   options: { readonly ordinalKeys: 'omit' | 'preserve' },
 ): Either<UnserializableValueError, readonly string[]> => {
   const { colon, openGroupingParenthesis, closeGroupingParenthesis } =
@@ -85,7 +101,8 @@ export const moleculeAsKeyValuePairStrings = (
   const keyValuePairsAsStrings: string[] = []
   let ordinalPropertyKeyCounter = 0n
   for (const [propertyKey, propertyValue] of entries) {
-    const valueAsStringResult = unparseAtomOrMolecule(propertyValue)
+    const valueAsStringResult =
+      unparseAtomOrMolecule(semanticContext)(propertyValue)
     if (either.isLeft(valueAsStringResult)) {
       return valueAsStringResult
     }
@@ -157,16 +174,12 @@ const serializeIfNeeded = (
     ? serialize(nodeOrMolecule)
     : either.makeRight(nodeOrMolecule)
 
-type UnparseAtomOrMolecule = (
-  value: Atom | Molecule,
-) => Either<UnserializableValueError, string>
-
 const escapeStringContents = (value: string) =>
   value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
 
 const unparseSugaredApply = (
   expression: ApplyExpression,
-  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  { unparseAtomOrMolecule, semanticContext }: Context,
 ) => {
   const {
     openGroupingParenthesis,
@@ -180,7 +193,10 @@ const unparseSugaredApply = (
     ({ operand1, operatorLookupKey, operatorIndexExpression, operand2 }) => {
       // Infix syntax is probably appropriate.
       const unparsedOperand1 = either.map(
-        either.flatMap(serializeIfNeeded(operand1), unparseAtomOrMolecule),
+        either.flatMap(
+          serializeIfNeeded(operand1),
+          unparseAtomOrMolecule(semanticContext),
+        ),
         unparsedOperand1 =>
           needsParenthesesAsFirstInfixOperand(operand1)
             ? openGroupingParenthesis.concat(
@@ -190,7 +206,10 @@ const unparseSugaredApply = (
             : unparsedOperand1,
       )
       const unparsedOperand2 = either.map(
-        either.flatMap(serializeIfNeeded(operand2), unparseAtomOrMolecule),
+        either.flatMap(
+          serializeIfNeeded(operand2),
+          unparseAtomOrMolecule(semanticContext),
+        ),
         unparsedOperand2 =>
           needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
             operand2,
@@ -211,10 +230,10 @@ const unparseSugaredApply = (
         option.match(operatorIndexExpression, {
           some: operatorIndexExpression =>
             either.unwrapOrElse(
-              unparseKeyPathOfSugaredIndex(
-                operatorIndexExpression[1].query,
-                functionColor,
-              ),
+              unparseKeyPathOfSugaredIndex(operatorIndexExpression[1].query, {
+                unparseAtomOrMolecule,
+                semanticContext: 'apply',
+              }),
               _ => '',
             ),
           none: _ => '',
@@ -234,7 +253,7 @@ const unparseSugaredApply = (
     const unparsedFunction = either.map(
       either.flatMap(
         serializeIfNeeded(expression[1].function),
-        unparseAtomOrMolecule,
+        unparseAtomOrMolecule(semanticContext),
       ),
       unparsedFunction =>
         needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
@@ -248,7 +267,7 @@ const unparseSugaredApply = (
     )
     const unparsedArgument = either.flatMap(
       serializeIfNeeded(expression[1].argument),
-      unparseAtomOrMolecule,
+      unparseAtomOrMolecule(semanticContext),
     )
     return either.flatMap(unparsedFunction, unparsedFunction =>
       either.map(unparsedArgument, unparsedArgument =>
@@ -264,10 +283,10 @@ const unparseSugaredApply = (
 
 const unparseSugaredFunction = (
   expression: FunctionExpression,
-  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  { unparseAtomOrMolecule }: Context,
 ) =>
   either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
-    either.map(unparseAtomOrMolecule(serializedBody), bodyAsString =>
+    either.map(unparseAtomOrMolecule('default')(serializedBody), bodyAsString =>
       [
         styleText(keyColor, expression[1].parameter),
         punctuation(styleText).arrow,
@@ -278,11 +297,11 @@ const unparseSugaredFunction = (
 
 const unparseSugaredIndex = (
   expression: IndexExpression,
-  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  { unparseAtomOrMolecule, semanticContext }: Context,
 ) => {
   const objectUnparseResult = either.flatMap(
     serializeIfNeeded(expression[1].object),
-    unparseAtomOrMolecule,
+    unparseAtomOrMolecule(semanticContext),
   )
   return either.flatMap(objectUnparseResult, unparsedObject => {
     if (typeof expression[1].query !== 'object') {
@@ -293,7 +312,10 @@ const unparseSugaredIndex = (
       })
     } else {
       return either.map(
-        unparseKeyPathOfSugaredIndex(expression[1].query, keyColor),
+        unparseKeyPathOfSugaredIndex(expression[1].query, {
+          unparseAtomOrMolecule,
+          semanticContext: 'default',
+        }),
         unparsedKeyPath => unparsedObject.concat(unparsedKeyPath),
       )
     }
@@ -302,7 +324,7 @@ const unparseSugaredIndex = (
 
 const unparseKeyPathOfSugaredIndex = (
   query: ObjectNode | Molecule,
-  color: typeof keyColor | typeof functionColor,
+  { semanticContext }: Context,
 ) => {
   const keyPath = Object.entries(query).reduce(
     (accumulator: KeyPath | 'invalid', [key, value]) => {
@@ -328,7 +350,7 @@ const unparseKeyPathOfSugaredIndex = (
     const { dot } = punctuation(styleText)
     return either.makeRight(
       styleText(
-        color,
+        semanticContext === 'apply' ? functionColor : keyColor,
         dot.concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
       ),
     )
@@ -337,11 +359,11 @@ const unparseKeyPathOfSugaredIndex = (
 
 const unparseSugaredLookup = (
   expression: LookupExpression,
-  _unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  { semanticContext }: Context,
 ) =>
   either.makeRight(
     styleText(
-      keyColor,
+      semanticContext === 'apply' ? functionColor : keyColor,
       punctuation(styleText).colon.concat(
         quoteKeyPathComponentIfNecessary(expression[1].key),
       ),
@@ -350,7 +372,7 @@ const unparseSugaredLookup = (
 
 const unparseSugaredGeneralizedKeywordExpression = (
   expression: Expression,
-  unparseAtomOrMolecule: UnparseAtomOrMolecule,
+  { unparseAtomOrMolecule, semanticContext }: Context,
 ) => {
   if (
     // Not every valid keyword expression can be expressed with the generalized
@@ -372,7 +394,7 @@ const unparseSugaredGeneralizedKeywordExpression = (
       return either.map(
         either.flatMap(
           serializeIfNeeded(expression['1']),
-          unparseAtomOrMolecule,
+          unparseAtomOrMolecule(semanticContext),
         ),
         unparsedArgument => unparsedKeyword.concat(' ', unparsedArgument),
       )
