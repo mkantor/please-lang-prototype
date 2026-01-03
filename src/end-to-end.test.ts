@@ -78,7 +78,7 @@ const endToEnd = (input: string) => {
 }
 
 // These tests can't be fully-roundtripped because their output depends on
-// varying runtime state.
+// runtime state.
 testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
   [
     `@runtime { context => :identity(:context).program.start_time }`,
@@ -88,6 +88,21 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
       }
       assert(typeof output.value === 'string')
     },
+  ],
+  [
+    `{
+      my_function: n => :n
+      input: @runtime { _context => { tag: some, value: 42 } }
+      output: :input match {
+        none: _ => "missing value"
+        some: input => @if {
+          :natural_number.is(:input)
+          then: :my_function(:input)
+          else: "--input must be a natural number"
+        }
+      }
+    }.output`,
+    either.makeRight('42'),
   ],
 ])
 
@@ -637,5 +652,27 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       some: _ => b
     }`,
     either.makeRight('a'),
+  ],
+  [`(a => b => :a + :b)(1)(1)`, either.makeRight('2')],
+  [
+    `{
+      f: state => @if {
+        :state.current > :state.limit
+        then: "it works"
+        else: :f({
+          current: :state.current + 1
+          limit: :state.limit
+        })
+      }
+    }.f({ current: 0, limit: 3 })`,
+    either.makeRight('it works'),
+  ],
+  [
+    `(inner => @if {
+      :inner.a
+      then: "it works"
+      else: { @panic }
+    })({ a: true })`,
+    either.makeRight('it works'),
   ],
 ])
