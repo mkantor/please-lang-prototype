@@ -63,8 +63,16 @@ const endToEnd = (input: string) => {
 
   // These errors could be stitched into the returned `Either`'s left, but
   // that'd lead to worse test reporting.
-  assert.deepEqual(runtimeOutput, runtimeOutputFromRoundtrippingSyntaxTree)
-  assert.deepEqual(runtimeOutput, runtimeOutputFromRoundtrippingProgram)
+  assert.deepEqual(
+    runtimeOutput,
+    runtimeOutputFromRoundtrippingSyntaxTree,
+    'Unexpected syntax tree roundtrip result',
+  )
+  assert.deepEqual(
+    runtimeOutput,
+    runtimeOutputFromRoundtrippingProgram,
+    'Unexpected program roundtrip result',
+  )
 
   return runtimeOutput
 }
