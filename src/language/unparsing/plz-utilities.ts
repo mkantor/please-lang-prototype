@@ -253,7 +253,7 @@ const unparseSugaredApply = (
     const unparsedFunction = either.map(
       either.flatMap(
         serializeIfNeeded(expression[1].function),
-        unparseAtomOrMolecule(semanticContext),
+        unparseAtomOrMolecule('apply'),
       ),
       unparsedFunction =>
         needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
@@ -314,7 +314,7 @@ const unparseSugaredIndex = (
       return either.map(
         unparseKeyPathOfSugaredIndex(expression[1].query, {
           unparseAtomOrMolecule,
-          semanticContext: 'default',
+          semanticContext,
         }),
         unparsedKeyPath => unparsedObject.concat(unparsedKeyPath),
       )
