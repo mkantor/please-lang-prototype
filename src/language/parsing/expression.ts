@@ -285,6 +285,9 @@ const compactExpression: Parser<Molecule | Atom> = oneOf([
   // :f(x)
   // :a.b(1)(2)
   lazy(() => precededByColonThenAtom),
+  // @runtime { x => :x }
+  // @panic
+  lazy(() => precededByAtSign),
   // {}
   lazy(() => precededByOpeningBrace),
   // 1

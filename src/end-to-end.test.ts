@@ -473,6 +473,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }.add_ten(0)`,
     either.makeRight('10'),
   ],
+  [`1 + @if { true, 9, 1 }`, either.makeRight('10')],
+  [
+    `{
+      1 + @if
+      { true, 9, 1 }
+    }.0`,
+    either.makeRight('10'),
+  ],
   [
     `(
       :+(1)
@@ -595,12 +603,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       b: true ~ :boolean.type
       c: {} ~ :object.type
       d: { z: -42 } assume { z: :integer.type }
+      e: "not a number" assume @union { :integer.type, "not a number" }
     }`,
     either.makeRight({
       a: '42',
       b: 'true',
       c: {},
       d: { z: '-42' },
+      e: 'not a number',
     }),
   ],
   [
