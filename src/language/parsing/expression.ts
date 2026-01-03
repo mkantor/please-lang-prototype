@@ -386,7 +386,7 @@ const precededByAtSign = map(
     atSign,
     unquotedAtomParser,
     optionalTrivia,
-    optional(lazy(() => expression)),
+    optional(lazy(() => compactExpression)),
   ]),
   ([_atSign, keyword, _trivia, argument]) => ({
     0: `@${keyword}`,

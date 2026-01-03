@@ -629,4 +629,13 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+  [
+    `@runtime { context =>
+      :context.environment.lookup("not a legal environment variable name")
+    } match {
+      none: _ => a
+      some: _ => b
+    }`,
+    either.makeRight('a'),
+  ],
 ])
