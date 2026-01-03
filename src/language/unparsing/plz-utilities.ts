@@ -240,9 +240,9 @@ const unparseSugaredApply = (
         needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
           expression[1].function,
         )
-          ? openGroupingParenthesis.concat(
+          ? styleText('dim', openApplyParenthesis).concat(
               unparsedFunction,
-              closeGroupingParenthesis,
+              styleText('dim', closeApplyParenthesis),
             )
           : unparsedFunction,
     )
