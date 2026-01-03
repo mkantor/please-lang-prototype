@@ -1,6 +1,11 @@
+import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
-import type { Atom } from '../../parsing.js'
+import type { ElaborationError } from '../../errors.js'
+import type { Atom, Molecule } from '../../parsing.js'
+import { isKeywordExpressionWithArgument } from '../expression.js'
+import { serialize, type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
+import { opaqueTypesBySymbol } from './prelude-types.js'
 import { simplifyUnionType } from './subtyping.js'
 import {
   makeFunctionType,
@@ -365,6 +370,73 @@ export const updateTypeAtKeyPathIfValid = (
           }),
         ),
     })
+  }
+}
+
+export const literalTypeFromSemanticGraph = (
+  node: Molecule | SemanticGraph,
+): Either<ElaborationError, Type> => {
+  if (typeof node === 'string') {
+    return either.makeRight({
+      name: '',
+      kind: 'union',
+      members: new Set([node]),
+    })
+  } else if (typeof node === 'symbol') {
+    if (
+      node in opaqueTypesBySymbol &&
+      opaqueTypesBySymbol[node] !== undefined
+    ) {
+      return either.makeRight(opaqueTypesBySymbol[node])
+    } else {
+      return either.makeLeft({
+        kind: 'bug',
+        message: 'semantic graph contained an unknown symbol',
+      })
+    }
+  } else if (typeof node === 'function') {
+    return either.flatMap(serialize(node), literalTypeFromSemanticGraph)
+  } else {
+    if (isKeywordExpressionWithArgument('@union', node)) {
+      let members = new Set<Atom | Exclude<Type, UnionType>>()
+      for (const result of Object.values(node[1]).map(
+        literalTypeFromSemanticGraph,
+      )) {
+        if (either.isLeft(result)) {
+          return result
+        } else {
+          if (result.value.kind === 'union') {
+            for (const member of result.value.members) {
+              members.add(member)
+            }
+          } else {
+            members.add(result.value)
+          }
+        }
+      }
+      return either.makeRight({
+        name: '',
+        kind: 'union',
+        members,
+      })
+    } else {
+      // `node` is an object type.
+      const children: Writable<ObjectType['children']> = {}
+      for (const [key, value] of Object.entries(node)) {
+        const childAsTypeResult = literalTypeFromSemanticGraph(value)
+        if (either.isLeft(childAsTypeResult)) {
+          return childAsTypeResult
+        } else {
+          children[key] = childAsTypeResult.value
+        }
+      }
+
+      return either.makeRight({
+        name: '',
+        kind: 'object',
+        children,
+      })
+    }
   }
 }
 

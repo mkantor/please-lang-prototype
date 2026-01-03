@@ -16,18 +16,14 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
   'compiler',
   [
     ['Hello, world!', success('Hello, world!')],
-    [['@check', [true, ['@lookup', ['identity']]]], success('true')],
     [
       {
-        true1: ['@check', [true, ['@lookup', ['identity']]]],
+        true1: true,
         true2: [
           '@apply',
           [['@index', [['@lookup', ['boolean']], ['not']]], false],
         ],
-        false1: [
-          '@check',
-          [false, ['@index', [['@lookup', ['boolean']], ['is']]]],
-        ],
+        false1: 'false',
         false2: [
           '@apply',
           [['@index', [['@lookup', ['boolean']], ['is']]], 'not a boolean'],
@@ -64,13 +60,6 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         0: '@runtime',
         1: { function: { 0: '@lookup', 1: { key: 'identity' } } },
       }),
-    ],
-    [
-      [
-        '@check',
-        ['not a boolean', ['@index', [['@lookup', ['boolean']], ['is']]]],
-      ],
-      output => assert(either.isLeft(output)),
     ],
     [[['@lookup', ['compose']]], output => assert(either.isLeft(output))],
     [

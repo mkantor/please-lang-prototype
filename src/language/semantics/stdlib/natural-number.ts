@@ -9,6 +9,7 @@ import {
 } from './stdlib-utilities.js'
 
 export const natural_number = {
+  type: types.naturalNumber.symbol,
   is: preludeFunction(
     ['natural_number', 'is'],
     {
@@ -67,4 +68,4 @@ export const natural_number = {
         ),
       ),
   ),
-}
+} as const

@@ -181,4 +181,4 @@ export const globalFunctions = {
       }
     },
   ),
-}
+} as const

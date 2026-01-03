@@ -16,7 +16,10 @@ testCases(evaluate, input => `evaluating \`${JSON.stringify(input)}\``)(
   'evaluator',
   [
     ['Hello, world!', success('Hello, world!')],
-    [['@check', [true, ['@lookup', ['identity']]]], success('true')],
+    [
+      ['@apply', [['@lookup', ['identity']], 'Hello, world!']],
+      success('Hello, world!'),
+    ],
     [
       [
         '@check',

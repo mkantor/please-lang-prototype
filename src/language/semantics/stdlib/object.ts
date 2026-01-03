@@ -9,6 +9,7 @@ import {
 } from './stdlib-utilities.js'
 
 export const object = {
+  type: makeObjectNode({}),
   lookup: preludeFunction(
     ['object', 'lookup'],
     {
@@ -62,4 +63,4 @@ export const object = {
       }
     },
   ),
-}
+} as const

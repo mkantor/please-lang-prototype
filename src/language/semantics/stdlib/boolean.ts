@@ -1,6 +1,7 @@
 import either from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import { makeFunctionNode } from '../function-node.js'
+import { makeObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import {
@@ -13,6 +14,7 @@ const nodeIsBoolean = (node: SemanticGraph): node is BooleanNode =>
   node === 'true' || node === 'false'
 
 export const boolean = {
+  type: makeObjectNode({ 0: '@union', 1: { 0: 'false', 1: 'true' } }),
   is: preludeFunction(
     ['boolean', 'is'],
     {
@@ -110,4 +112,4 @@ export const boolean = {
       }
     },
   ),
-}
+} as const

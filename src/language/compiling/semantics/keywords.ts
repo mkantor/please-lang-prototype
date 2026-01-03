@@ -8,6 +8,7 @@ import { lookupKeywordHandler } from './keyword-handlers/lookup-handler.js'
 import { panicKeywordHandler } from './keyword-handlers/panic-handler.js'
 import { runtimeKeywordHandler } from './keyword-handlers/runtime-handler.js'
 import { todoKeywordHandler } from './keyword-handlers/todo-handler.js'
+import { unionKeywordHandler } from './keyword-handlers/union-handler.js'
 
 export const keywordHandlers: KeywordHandlers = {
   /**
@@ -54,4 +55,9 @@ export const keywordHandlers: KeywordHandlers = {
    * Ignores all properties and evaluates to an empty object.
    */
   '@todo': todoKeywordHandler,
+
+  /**
+   * Creates a type union.
+   */
+  '@union': unionKeywordHandler,
 }

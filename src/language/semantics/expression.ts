@@ -12,7 +12,10 @@ export const isExpression = (
   typeof node === 'object' &&
   typeof node[0] === 'string' &&
   /^@[^@]/.test(node['0']) &&
-  (!('1' in node) || typeof node[1] === 'object' || typeof node[1] === 'string')
+  (!('1' in node) ||
+    typeof node[1] === 'object' ||
+    typeof node[1] === 'string' ||
+    typeof node[1] === 'symbol')
 
 export const isKeywordExpressionWithArgument = <Keyword extends `@${string}`>(
   keyword: Keyword,
@@ -24,4 +27,6 @@ export const isKeywordExpressionWithArgument = <Keyword extends `@${string}`>(
   typeof node === 'object' &&
   typeof node[0] === 'string' &&
   node[0] === keyword &&
-  (typeof node[1] === 'string' || typeof node[1] === 'object')
+  (typeof node[1] === 'object' ||
+    typeof node[1] === 'string' ||
+    typeof node[1] === 'symbol')

@@ -1,6 +1,7 @@
 import type { None, Some } from '@matt.kantor/option'
 import option from '@matt.kantor/option'
 import type { Atom } from '../../parsing.js'
+import type { TypeSymbol } from '../semantic-graph.js'
 
 export type FunctionType = {
   readonly name: string
@@ -41,6 +42,7 @@ export const makeObjectType = (
 
 export type OpaqueType = {
   readonly name: string
+  readonly symbol: TypeSymbol
   readonly kind: 'opaque'
   readonly isAssignableFrom: (source: Type) => boolean
   readonly isAssignableTo: (target: Type) => boolean
@@ -49,6 +51,7 @@ export type OpaqueType = {
 // TODO: Opaque object/function types?
 export const makeOpaqueAtomType = (
   name: string,
+  symbol: TypeSymbol,
   subtyping: {
     readonly isAssignableFromLiteralType: (literalType: string) => boolean
   } & (
@@ -68,6 +71,7 @@ export const makeOpaqueAtomType = (
 ): OpaqueType => {
   const self: OpaqueType = {
     name,
+    symbol,
     kind: 'opaque',
     isAssignableFrom: source =>
       matchTypeFormat(source, {

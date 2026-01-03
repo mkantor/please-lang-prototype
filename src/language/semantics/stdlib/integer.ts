@@ -9,6 +9,7 @@ import {
 } from './stdlib-utilities.js'
 
 export const integer = {
+  type: types.integer.symbol,
   add: preludeFunction(
     ['integer', 'add'],
     {
@@ -228,4 +229,4 @@ export const integer = {
         ),
       ),
   ),
-}
+} as const
