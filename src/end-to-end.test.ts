@@ -219,6 +219,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert.deepEqual(result.value['b'], 'A')
     },
   ],
+  [':boolean.or(false)(false)', either.makeRight('false')],
+  [':boolean.or(false)(true)', either.makeRight('true')],
+  [':boolean.or(true)(false)', either.makeRight('true')],
+  [':boolean.or(true)(true)', either.makeRight('true')],
+  [':boolean.and(false)(false)', either.makeRight('false')],
+  [':boolean.and(false)(true)', either.makeRight('false')],
+  [':boolean.and(true)(false)', either.makeRight('false')],
+  [':boolean.and(true)(true)', either.makeRight('true')],
   [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
   [':atom.prepend(a)(b)', either.makeRight('ab')],
   [
