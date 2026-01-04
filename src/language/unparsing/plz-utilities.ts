@@ -259,10 +259,7 @@ const unparseSugaredApply = (
         needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
           expression[1].function,
         )
-          ? styleText('dim', openApplyParenthesis).concat(
-              unparsedFunction,
-              styleText('dim', closeApplyParenthesis),
-            )
+          ? openApplyParenthesis.concat(unparsedFunction, closeApplyParenthesis)
           : unparsedFunction,
     )
     const unparsedArgument = either.flatMap(

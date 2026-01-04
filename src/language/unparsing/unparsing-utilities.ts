@@ -36,7 +36,7 @@ export const punctuation = (styleText: typeof util.styleText) => ({
   openGroupingParenthesis: styleText('dim', '('),
   closeGroupingParenthesis: styleText('dim', ')'),
 
-  openApplyParenthesis: styleText(functionColor, '('),
-  closeApplyParenthesis: styleText(functionColor, ')'),
+  openApplyParenthesis: styleText(['dim', functionColor], '('),
+  closeApplyParenthesis: styleText(['dim', functionColor], ')'),
   arrow: styleText(functionColor, '=>'),
 })
