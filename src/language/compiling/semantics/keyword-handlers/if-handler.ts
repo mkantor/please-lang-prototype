@@ -63,25 +63,70 @@ export const ifKeywordHandler: KeywordHandler = (
           asSemanticGraph,
         )
       } else {
-        return either.flatMap(
-          serialize(elaboratedCondition),
-          elaboratedCondition => {
-            if (containsAnyUnelaboratedNodes(elaboratedCondition)) {
-              // Return an unelaborated `@if` expression.
-              return either.makeRight(
-                makeIfExpression({
-                  ...ifExpression[1],
-                  condition: elaboratedCondition,
-                }),
-              )
-            } else {
-              return either.makeLeft({
-                kind: 'invalidExpression',
-                message: 'condition was not boolean',
-              })
+        return either.flatMap(serialize(elaboratedCondition), condition => {
+          if (containsAnyUnelaboratedNodes(condition)) {
+            // The condition cannot yet be fully elaborated. Do a lightweight
+            // pass through the branches to substitute `@lookup`s for their
+            // values as much as possible. This helps in tricky situations
+            // where referenced properties that are higher up in the program
+            // get erased before the `@if` can be fully elaborated.
+            const doNotElaborate = (expression: Expression) =>
+              either.makeRight(asSemanticGraph(expression))
+
+            const contextWhichOnlyElaboratesLookups: ExpressionContext = {
+              ...context,
+              keywordHandlers: {
+                '@lookup': context.keywordHandlers['@lookup'],
+                '@apply': doNotElaborate,
+                '@check': doNotElaborate,
+                '@function': doNotElaborate,
+                '@if': doNotElaborate,
+                '@index': doNotElaborate,
+                '@panic': doNotElaborate,
+                '@runtime': doNotElaborate,
+                '@todo': doNotElaborate,
+                '@union': doNotElaborate,
+              },
             }
-          },
-        )
+
+            const thenWithElaboratedLookups = either.unwrapOrElse(
+              either.map(
+                evaluateSubexpression(
+                  subexpressionKeyPaths.then,
+                  contextWhichOnlyElaboratesLookups,
+                  ifExpression[1].then,
+                ),
+                asSemanticGraph,
+              ),
+              _error => ifExpression[1].then,
+            )
+
+            const elseWithElaboratedLookups = either.unwrapOrElse(
+              either.map(
+                evaluateSubexpression(
+                  subexpressionKeyPaths.else,
+                  contextWhichOnlyElaboratesLookups,
+                  ifExpression[1].else,
+                ),
+                asSemanticGraph,
+              ),
+              _error => ifExpression[1].else,
+            )
+
+            return either.makeRight(
+              makeIfExpression({
+                condition,
+                then: thenWithElaboratedLookups,
+                else: elseWithElaboratedLookups,
+              }),
+            )
+          } else {
+            return either.makeLeft({
+              kind: 'invalidExpression',
+              message: 'condition was not boolean',
+            })
+          }
+        })
       }
     })
   })

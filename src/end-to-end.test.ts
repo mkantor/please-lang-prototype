@@ -675,4 +675,28 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     })({ a: true })`,
     either.makeRight('it works'),
   ],
+  [
+    `(outer =>
+      (inner =>
+        @if {
+          condition: :boolean.or(:outer)(:inner.value)
+          then: { @panic }
+          else: :boolean.not(:inner.value)
+        }
+      )({ value: false })
+    )(false)`,
+    either.makeRight('true'),
+  ],
+  [
+    `(outer =>
+      (inner =>
+        @if {
+          condition: :boolean.or(:outer)(:inner.value)
+          then: "it works"
+          else: :boolean.not(:inner.value)
+        }
+      )({ value: false })
+    )(true)`,
+    either.makeRight('it works'),
+  ],
 ])
