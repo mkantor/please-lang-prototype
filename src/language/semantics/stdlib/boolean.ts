@@ -13,6 +13,8 @@ type BooleanNode = 'true' | 'false'
 const nodeIsBoolean = (node: SemanticGraph): node is BooleanNode =>
   node === 'true' || node === 'false'
 
+const booleanNodeToBoolean = (node: BooleanNode): boolean => node === 'true'
+
 export const boolean = {
   type: makeObjectNode({ 0: '@union', 1: { 0: 'false', 1: 'true' } }),
   is: preludeFunction(
@@ -68,7 +70,12 @@ export const boolean = {
                   message: 'argument was not a boolean',
                 })
               } else {
-                return either.makeRight(String(argument1 && argument2))
+                return either.makeRight(
+                  String(
+                    booleanNodeToBoolean(argument1) &&
+                      booleanNodeToBoolean(argument2),
+                  ),
+                )
               }
             },
           ),
@@ -104,7 +111,12 @@ export const boolean = {
                   message: 'argument was not a boolean',
                 })
               } else {
-                return either.makeRight(String(argument1 || argument2))
+                return either.makeRight(
+                  String(
+                    booleanNodeToBoolean(argument1) ||
+                      booleanNodeToBoolean(argument2),
+                  ),
+                )
               }
             },
           ),
