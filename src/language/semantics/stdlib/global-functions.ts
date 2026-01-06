@@ -7,12 +7,18 @@ import {
   lookupPropertyOfObjectNode,
   type ObjectNode,
 } from '../object-node.js'
-import { isSemanticGraph, type SemanticGraph } from '../semantic-graph.js'
-import { types } from '../type-system.js'
+import {
+  isSemanticGraph,
+  stringifySemanticGraphForEndUser,
+  type SemanticGraph,
+} from '../semantic-graph.js'
+import { isAssignable, types } from '../type-system.js'
+import { showType } from '../type-system/show-type.js'
 import {
   makeFunctionType,
   makeTypeParameter,
 } from '../type-system/type-formats.js'
+import { literalTypeFromSemanticGraph } from '../type-system/type-utilities.js'
 import {
   preludeFunction,
   serializeOnceAppliedFunction,
@@ -70,6 +76,52 @@ export const globalFunctions = {
               return functionToApply(argument)
             }
           },
+        ),
+      ),
+  ),
+
+  // a => something => a
+  // terminates with a `typeMismatch` error the value doesn't typecheck
+  assume: preludeFunction(
+    ['assume'],
+    {
+      parameter: A,
+      return: makeFunctionType('', {
+        parameter: types.something,
+        return: A,
+      }),
+    },
+    type =>
+      either.makeRight(
+        makeFunctionNode(
+          {
+            parameter: types.something,
+            return: A,
+          },
+          serializeOnceAppliedFunction(['assume'], type),
+          option.none,
+          value =>
+            either.flatMap(literalTypeFromSemanticGraph(value), valueAsType =>
+              either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
+                if (
+                  isAssignable({
+                    source: valueAsType,
+                    target: typeAsType,
+                  })
+                ) {
+                  return either.makeRight(value)
+                } else {
+                  return either.makeLeft({
+                    kind: 'typeMismatch',
+                    message: `the value \`${stringifySemanticGraphForEndUser(
+                      value,
+                    )}\` is not assignable to the type \`${showType(
+                      typeAsType,
+                    )}\``,
+                  })
+                }
+              }),
+            ),
         ),
       ),
   ),

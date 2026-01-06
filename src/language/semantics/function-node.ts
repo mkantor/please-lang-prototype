@@ -2,8 +2,10 @@ import either, { type Either } from '@matt.kantor/either'
 import { type Option } from '@matt.kantor/option'
 import type { Writable } from '../../utility-types.js'
 import type {
+  Bug,
   DependencyUnavailable,
   Panic,
+  TypeMismatchError,
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
@@ -14,7 +16,10 @@ import { type FunctionType } from './type-system/type-formats.js'
 
 export type FunctionNode = ((
   value: SemanticGraph,
-) => Either<DependencyUnavailable | Panic, SemanticGraph>) & {
+) => Either<
+  DependencyUnavailable | TypeMismatchError | Panic | Bug,
+  SemanticGraph
+>) & {
   readonly [nodeTag]: 'function'
   readonly parameterName: Option<Atom>
   readonly signature: FunctionType['signature']
@@ -30,11 +35,17 @@ export const makeFunctionNode = (
   parameterName: Option<Atom>,
   f: (
     value: SemanticGraph,
-  ) => Either<DependencyUnavailable | Panic, SemanticGraph>,
+  ) => Either<
+    DependencyUnavailable | TypeMismatchError | Panic | Bug,
+    SemanticGraph
+  >,
 ): FunctionNode => {
   const node: ((
     value: SemanticGraph,
-  ) => Either<DependencyUnavailable | Panic, SemanticGraph>) &
+  ) => Either<
+    DependencyUnavailable | TypeMismatchError | Panic | Bug,
+    SemanticGraph
+  >) &
     Writable<FunctionNode> = value => f(value)
   node[nodeTag] = 'function'
   node.parameterName = parameterName
