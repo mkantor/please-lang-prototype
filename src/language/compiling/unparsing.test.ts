@@ -8,6 +8,7 @@ import {
   inlinePlz,
   prettyJson,
   prettyPlz,
+  sugarFreePrettyPlz,
   unparse,
   type Notation,
 } from '../unparsing.js'
@@ -21,6 +22,7 @@ const unparsers = (value: Atom | Molecule) => {
     )
 
   const unparsedInlinePlz = unparseAndStripAnsi(inlinePlz)
+  const unparsedSugarFreePrettyPlz = unparseAndStripAnsi(sugarFreePrettyPlz)
   const unparsedPrettyPlz = unparseAndStripAnsi(prettyPlz)
   const unparsedPrettyJson = unparseAndStripAnsi(prettyJson)
 
@@ -39,6 +41,13 @@ const unparsers = (value: Atom | Molecule) => {
         return unparsedPrettyPlz
       },
     ).value,
+    sugarFreePrettyPlz: either.flatMap(
+      either.flatMap(unparsedSugarFreePrettyPlz, parse),
+      (roundtrippedValue: {}) => {
+        assert.deepEqual(compile(roundtrippedValue).value, compile(value).value)
+        return unparsedSugarFreePrettyPlz
+      },
+    ).value,
     prettyJson: either.map(unparsedPrettyJson, json => {
       assert.deepEqual(JSON.parse(json), value)
       return json
@@ -49,15 +58,32 @@ const unparsers = (value: Atom | Molecule) => {
 testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
   'unparsing',
   [
-    [{}, { inlinePlz: '{}', prettyPlz: '{}\n', prettyJson: '{}\n' }],
+    [
+      {},
+      {
+        inlinePlz: '{}',
+        prettyPlz: '{}\n',
+        sugarFreePrettyPlz: '{}\n',
+        prettyJson: '{}\n',
+      },
+    ],
 
-    ['a', { inlinePlz: 'a', prettyPlz: 'a\n', prettyJson: '"a"\n' }],
+    [
+      'a',
+      {
+        inlinePlz: 'a',
+        prettyPlz: 'a\n',
+        sugarFreePrettyPlz: 'a\n',
+        prettyJson: '"a"\n',
+      },
+    ],
 
     [
       'Hello, world!',
       {
         inlinePlz: '"Hello, world!"',
         prettyPlz: '"Hello, world!"\n',
+        sugarFreePrettyPlz: '"Hello, world!"\n',
         prettyJson: '"Hello, world!"\n',
       },
     ],
@@ -67,6 +93,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '"@test"',
         prettyPlz: '"@test"\n',
+        sugarFreePrettyPlz: '"@test"\n',
         prettyJson: '"@test"\n',
       },
     ],
@@ -76,6 +103,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '{ a }',
         prettyPlz: '{\n  a\n}\n',
+        sugarFreePrettyPlz: '{\n  0: a\n}\n',
         prettyJson: '{\n  "0": "a"\n}\n',
       },
     ],
@@ -85,6 +113,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '{ 1: a }',
         prettyPlz: '{\n  1: a\n}\n',
+        sugarFreePrettyPlz: '{\n  1: a\n}\n',
         prettyJson: '{\n  "1": "a"\n}\n',
       },
     ],
@@ -94,6 +123,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '{ a, b, 3: c, somethingElse: d }',
         prettyPlz: '{\n  a\n  b\n  3: c\n  somethingElse: d\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  0: a\n  1: b\n  3: c\n  somethingElse: d\n}\n',
         prettyJson:
           '{\n  "0": "a",\n  "1": "b",\n  "3": "c",\n  "somethingElse": "d"\n}\n',
       },
@@ -104,6 +135,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '{ a: { b: { c: d } } }',
         prettyPlz: '{\n  a: {\n    b: {\n      c: d\n    }\n  }\n}\n',
+        sugarFreePrettyPlz: '{\n  a: {\n    b: {\n      c: d\n    }\n  }\n}\n',
         prettyJson: '{\n  "a": {\n    "b": {\n      "c": "d"\n    }\n  }\n}\n',
       },
     ],
@@ -129,6 +161,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
         inlinePlz: '{ identity: a => :a, test: :identity("it works!") }',
         prettyPlz:
           '{\n  identity: a => :a\n  test: :identity("it works!")\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  identity: {\n    0: "@function"\n    1: {\n      parameter: a\n      body: {\n        0: "@lookup"\n        1: {\n          0: a\n        }\n      }\n    }\n  }\n  test: {\n    0: "@apply"\n    1: {\n      function: {\n        0: "@lookup"\n        1: {\n          0: identity\n        }\n      }\n      argument: "it works!"\n    }\n  }\n}\n',
         prettyJson:
           '{\n  "identity": {\n    "0": "@function",\n    "1": {\n      "parameter": "a",\n      "body": {\n        "0": "@lookup",\n        "1": {\n          "0": "a"\n        }\n      }\n    }\n  },\n  "test": {\n    "0": "@apply",\n    "1": {\n      "function": {\n        "0": "@lookup",\n        "1": {\n          "0": "identity"\n        }\n      },\n      "argument": "it works!"\n    }\n  }\n}\n',
       },
@@ -151,6 +185,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '(a => :a)("it works!")',
         prettyPlz: '(a => :a)("it works!")\n',
+        sugarFreePrettyPlz:
+          '{\n  0: "@apply"\n  1: {\n    function: {\n      0: "@function"\n      1: {\n        parameter: a\n        body: {\n          0: "@lookup"\n          1: {\n            0: a\n          }\n        }\n      }\n    }\n    argument: "it works!"\n  }\n}\n',
         prettyJson:
           '{\n  "0": "@apply",\n  "1": {\n    "function": {\n      "0": "@function",\n      "1": {\n        "parameter": "a",\n        "body": {\n          "0": "@lookup",\n          "1": {\n            "0": "a"\n          }\n        }\n      }\n    },\n    "argument": "it works!"\n  }\n}\n',
       },
@@ -178,6 +214,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '@runtime { context => :context.program.start_time }',
         prettyPlz: '@runtime {\n  context => :context.program.start_time\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  0: "@runtime"\n  1: {\n    0: {\n      0: "@function"\n      1: {\n        parameter: context\n        body: {\n          0: "@index"\n          1: {\n            object: {\n              0: "@lookup"\n              1: {\n                key: context\n              }\n            }\n            query: {\n              0: program\n              1: start_time\n            }\n          }\n        }\n      }\n    }\n  }\n}\n',
         prettyJson:
           '{\n  "0": "@runtime",\n  "1": {\n    "0": {\n      "0": "@function",\n      "1": {\n        "parameter": "context",\n        "body": {\n          "0": "@index",\n          "1": {\n            "object": {\n              "0": "@lookup",\n              "1": {\n                "key": "context"\n              }\n            },\n            "query": {\n              "0": "program",\n              "1": "start_time"\n            }\n          }\n        }\n      }\n    }\n  }\n}\n',
       },
@@ -203,6 +241,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
           '{ a.b: { "c \\"d\\"": { e.f: g } }, test: :"a.b"."c \\"d\\""."e.f" }',
         prettyPlz:
           '{\n  a.b: {\n    "c \\"d\\"": {\n      e.f: g\n    }\n  }\n  test: :"a.b"."c \\"d\\""."e.f"\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  a.b: {\n    "c \\"d\\"": {\n      e.f: g\n    }\n  }\n  test: {\n    0: "@index"\n    1: {\n      object: {\n        0: "@lookup"\n        1: {\n          0: a.b\n        }\n      }\n      query: {\n        0: "c \\"d\\""\n        1: e.f\n      }\n    }\n  }\n}\n',
         prettyJson:
           '{\n  "a.b": {\n    "c \\"d\\"": {\n      "e.f": "g"\n    }\n  },\n  "test": {\n    "0": "@index",\n    "1": {\n      "object": {\n        "0": "@lookup",\n        "1": {\n          "0": "a.b"\n        }\n      },\n      "query": {\n        "0": "c \\"d\\"",\n        "1": "e.f"\n      }\n    }\n  }\n}\n',
       },
@@ -230,6 +270,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '1 + 2',
         prettyPlz: '1 + 2\n',
+        sugarFreePrettyPlz:
+          '{\n  0: "@apply"\n  1: {\n    function: {\n      0: "@apply"\n      1: {\n        function: {\n          0: "@lookup"\n          1: {\n            key: +\n          }\n        }\n        argument: 2\n      }\n    }\n    argument: 1\n  }\n}\n',
         prettyJson:
           '{\n  "0": "@apply",\n  "1": {\n    "function": {\n      "0": "@apply",\n      "1": {\n        "function": {\n          "0": "@lookup",\n          "1": {\n            "key": "+"\n          }\n        },\n        "argument": "2"\n      }\n    },\n    "argument": "1"\n  }\n}\n',
       },
@@ -265,6 +307,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: 'a atom.append b',
         prettyPlz: 'a atom.append b\n',
+        sugarFreePrettyPlz:
+          '{\n  0: "@apply"\n  1: {\n    function: {\n      0: "@apply"\n      1: {\n        function: {\n          0: "@index"\n          1: {\n            object: {\n              0: "@lookup"\n              1: {\n                key: atom\n              }\n            }\n            query: {\n              0: append\n            }\n          }\n        }\n        argument: b\n      }\n    }\n    argument: a\n  }\n}\n',
         prettyJson:
           '{\n  "0": "@apply",\n  "1": {\n    "function": {\n      "0": "@apply",\n      "1": {\n        "function": {\n          "0": "@index",\n          "1": {\n            "object": {\n              "0": "@lookup",\n              "1": {\n                "key": "atom"\n              }\n            },\n            "query": {\n              "0": "append"\n            }\n          }\n        },\n        "argument": "b"\n      }\n    },\n    "argument": "a"\n  }\n}\n',
       },
@@ -389,6 +433,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
           '{ five: 5, answer: 1 + 2 - (3 + 4) < :five && :boolean.not(true) }',
         prettyPlz:
           '{\n  five: 5\n  answer: 1 + 2 - (3 + 4) < :five && :boolean.not(true)\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  five: 5\n  answer: {\n    0: "@apply"\n    1: {\n      function: {\n        0: "@apply"\n        1: {\n          function: {\n            0: "@lookup"\n            1: {\n              key: &&\n            }\n          }\n          argument: {\n            0: "@apply"\n            1: {\n              function: {\n                0: "@index"\n                1: {\n                  object: {\n                    0: "@lookup"\n                    1: {\n                      key: boolean\n                    }\n                  }\n                  query: {\n                    0: not\n                  }\n                }\n              }\n              argument: true\n            }\n          }\n        }\n      }\n      argument: {\n        0: "@apply"\n        1: {\n          function: {\n            0: "@apply"\n            1: {\n              function: {\n                0: "@lookup"\n                1: {\n                  key: <\n                }\n              }\n              argument: {\n                0: "@lookup"\n                1: {\n                  key: five\n                }\n              }\n            }\n          }\n          argument: {\n            0: "@apply"\n            1: {\n              function: {\n                0: "@apply"\n                1: {\n                  function: {\n                    0: "@lookup"\n                    1: {\n                      key: -\n                    }\n                  }\n                  argument: {\n                    0: "@apply"\n                    1: {\n                      function: {\n                        0: "@apply"\n                        1: {\n                          function: {\n                            0: "@lookup"\n                            1: {\n                              key: +\n                            }\n                          }\n                          argument: 4\n                        }\n                      }\n                      argument: 3\n                    }\n                  }\n                }\n              }\n              argument: {\n                0: "@apply"\n                1: {\n                  function: {\n                    0: "@apply"\n                    1: {\n                      function: {\n                        0: "@lookup"\n                        1: {\n                          key: +\n                        }\n                      }\n                      argument: 2\n                    }\n                  }\n                  argument: 1\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n',
         prettyJson:
           '{\n  "five": "5",\n  "answer": {\n    "0": "@apply",\n    "1": {\n      "function": {\n        "0": "@apply",\n        "1": {\n          "function": {\n            "0": "@lookup",\n            "1": {\n              "key": "&&"\n            }\n          },\n          "argument": {\n            "0": "@apply",\n            "1": {\n              "function": {\n                "0": "@index",\n                "1": {\n                  "object": {\n                    "0": "@lookup",\n                    "1": {\n                      "key": "boolean"\n                    }\n                  },\n                  "query": {\n                    "0": "not"\n                  }\n                }\n              },\n              "argument": "true"\n            }\n          }\n        }\n      },\n      "argument": {\n        "0": "@apply",\n        "1": {\n          "function": {\n            "0": "@apply",\n            "1": {\n              "function": {\n                "0": "@lookup",\n                "1": {\n                  "key": "<"\n                }\n              },\n              "argument": {\n                "0": "@lookup",\n                "1": {\n                  "key": "five"\n                }\n              }\n            }\n          },\n          "argument": {\n            "0": "@apply",\n            "1": {\n              "function": {\n                "0": "@apply",\n                "1": {\n                  "function": {\n                    "0": "@lookup",\n                    "1": {\n                      "key": "-"\n                    }\n                  },\n                  "argument": {\n                    "0": "@apply",\n                    "1": {\n                      "function": {\n                        "0": "@apply",\n                        "1": {\n                          "function": {\n                            "0": "@lookup",\n                            "1": {\n                              "key": "+"\n                            }\n                          },\n                          "argument": "4"\n                        }\n                      },\n                      "argument": "3"\n                    }\n                  }\n                }\n              },\n              "argument": {\n                "0": "@apply",\n                "1": {\n                  "function": {\n                    "0": "@apply",\n                    "1": {\n                      "function": {\n                        "0": "@lookup",\n                        "1": {\n                          "key": "+"\n                        }\n                      },\n                      "argument": "2"\n                    }\n                  },\n                  "argument": "1"\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n',
       },
@@ -478,6 +524,8 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz: '((a => :a + 1) >> (a => :a - 1))(1)',
         prettyPlz: '((a => :a + 1) >> (a => :a - 1))(1)\n',
+        sugarFreePrettyPlz:
+          '{\n  0: "@apply"\n  1: {\n    function: {\n      0: "@apply"\n      1: {\n        function: {\n          0: "@apply"\n          1: {\n            function: {\n              0: "@lookup"\n              1: {\n                key: >>\n              }\n            }\n            argument: {\n              0: "@function"\n              1: {\n                parameter: a\n                body: {\n                  0: "@apply"\n                  1: {\n                    function: {\n                      0: "@apply"\n                      1: {\n                        function: {\n                          0: "@lookup"\n                          1: {\n                            key: -\n                          }\n                        }\n                        argument: 1\n                      }\n                    }\n                    argument: {\n                      0: "@lookup"\n                      1: {\n                        key: a\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n        argument: {\n          0: "@function"\n          1: {\n            parameter: a\n            body: {\n              0: "@apply"\n              1: {\n                function: {\n                  0: "@apply"\n                  1: {\n                    function: {\n                      0: "@lookup"\n                      1: {\n                        key: +\n                      }\n                    }\n                    argument: 1\n                  }\n                }\n                argument: {\n                  0: "@lookup"\n                  1: {\n                    key: a\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n    argument: 1\n  }\n}\n',
         prettyJson:
           '{\n  "0": "@apply",\n  "1": {\n    "function": {\n      "0": "@apply",\n      "1": {\n        "function": {\n          "0": "@apply",\n          "1": {\n            "function": {\n              "0": "@lookup",\n              "1": {\n                "key": ">>"\n              }\n            },\n            "argument": {\n              "0": "@function",\n              "1": {\n                "parameter": "a",\n                "body": {\n                  "0": "@apply",\n                  "1": {\n                    "function": {\n                      "0": "@apply",\n                      "1": {\n                        "function": {\n                          "0": "@lookup",\n                          "1": {\n                            "key": "-"\n                          }\n                        },\n                        "argument": "1"\n                      }\n                    },\n                    "argument": {\n                      "0": "@lookup",\n                      "1": {\n                        "key": "a"\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        },\n        "argument": {\n          "0": "@function",\n          "1": {\n            "parameter": "a",\n            "body": {\n              "0": "@apply",\n              "1": {\n                "function": {\n                  "0": "@apply",\n                  "1": {\n                    "function": {\n                      "0": "@lookup",\n                      "1": {\n                        "key": "+"\n                      }\n                    },\n                    "argument": "1"\n                  }\n                },\n                "argument": {\n                  "0": "@lookup",\n                  "1": {\n                    "key": "a"\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    "argument": "1"\n  }\n}\n',
       },

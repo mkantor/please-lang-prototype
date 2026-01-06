@@ -31,7 +31,7 @@ type Context = {
   readonly semanticContext: SemanticContext
 }
 
-type UnparseAtomOrMolecule = (
+export type UnparseAtomOrMolecule = (
   semanticContext: SemanticContext,
 ) => (value: Atom | Molecule) => Either<UnserializableValueError, string>
 

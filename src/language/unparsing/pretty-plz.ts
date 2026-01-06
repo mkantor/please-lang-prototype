@@ -1,12 +1,12 @@
-import either, { type Either } from '@matt.kantor/either'
+import either from '@matt.kantor/either'
 import { styleText } from 'node:util'
-import type { UnserializableValueError } from '../errors.js'
-import type { Atom, Molecule } from '../parsing.js'
+import type { Molecule } from '../parsing.js'
 import {
   moleculeAsKeyValuePairStrings,
   moleculeUnparser,
   unparseAtom,
   type SemanticContext,
+  type UnparseAtomOrMolecule,
 } from './plz-utilities.js'
 import { indent, punctuation, type Notation } from './unparsing-utilities.js'
 
@@ -34,12 +34,10 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
   }
 }
 
-const unparseAtomOrMolecule =
-  (semanticContext: SemanticContext) =>
-  (value: Atom | Molecule): Either<UnserializableValueError, string> =>
-    typeof value === 'string'
-      ? unparseAtom(value)
-      : unparseMolecule(semanticContext)(value)
+const unparseAtomOrMolecule: UnparseAtomOrMolecule = semanticContext => value =>
+  typeof value === 'string'
+    ? unparseAtom(value)
+    : unparseMolecule(semanticContext)(value)
 
 const unparseMolecule = (semanticContext: SemanticContext) =>
   moleculeUnparser(semanticContext)(
