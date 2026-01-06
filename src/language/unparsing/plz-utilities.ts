@@ -22,7 +22,7 @@ import {
   type ObjectNode,
   type SemanticGraph,
 } from '../semantics.js'
-import { functionColor, keyColor, punctuation } from './unparsing-utilities.js'
+import { applyColor, keyColor, punctuation } from './unparsing-utilities.js'
 
 export type SemanticContext = 'apply' | 'default'
 
@@ -223,10 +223,7 @@ const unparseSugaredApply = (
 
       // Operators omit the leading `:`, but otherwise look like lookups
       // (possibly followed by indexes).
-      const unparsedOperator = styleText(
-        functionColor,
-        operatorLookupKey,
-      ).concat(
+      const unparsedOperator = styleText(applyColor, operatorLookupKey).concat(
         option.match(operatorIndexExpression, {
           some: operatorIndexExpression =>
             either.unwrapOrElse(
@@ -347,7 +344,7 @@ const unparseKeyPathOfSugaredIndex = (
     const { dot } = punctuation(styleText)
     return either.makeRight(
       styleText(
-        semanticContext === 'apply' ? functionColor : keyColor,
+        semanticContext === 'apply' ? applyColor : keyColor,
         dot.concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
       ),
     )
@@ -360,7 +357,7 @@ const unparseSugaredLookup = (
 ) =>
   either.makeRight(
     styleText(
-      semanticContext === 'apply' ? functionColor : keyColor,
+      semanticContext === 'apply' ? applyColor : keyColor,
       punctuation(styleText).colon.concat(
         quoteKeyPathComponentIfNecessary(expression[1].key),
       ),
