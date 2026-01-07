@@ -19,7 +19,8 @@ export const indent = (spaces: number, textToIndent: string) => {
     .replace(/(\r?\n)/g, `$1${indentation}`)
 }
 
-export const functionColor = 'redBright'
+export const applyColor = 'redBright'
+export const functionColor = 'red'
 
 export const keyColor = 'cyan'
 
@@ -36,7 +37,7 @@ export const punctuation = (styleText: typeof util.styleText) => ({
   openGroupingParenthesis: styleText('dim', '('),
   closeGroupingParenthesis: styleText('dim', ')'),
 
-  openApplyParenthesis: styleText(functionColor, '('),
-  closeApplyParenthesis: styleText(functionColor, ')'),
+  openApplyParenthesis: styleText(['dim', applyColor], '('),
+  closeApplyParenthesis: styleText(['dim', applyColor], ')'),
   arrow: styleText(functionColor, '=>'),
 })
