@@ -63,8 +63,16 @@ const endToEnd = (input: string) => {
 
   // These errors could be stitched into the returned `Either`'s left, but
   // that'd lead to worse test reporting.
-  assert.deepEqual(runtimeOutput, runtimeOutputFromRoundtrippingSyntaxTree)
-  assert.deepEqual(runtimeOutput, runtimeOutputFromRoundtrippingProgram)
+  assert.deepEqual(
+    runtimeOutput,
+    runtimeOutputFromRoundtrippingSyntaxTree,
+    'Unexpected syntax tree roundtrip result',
+  )
+  assert.deepEqual(
+    runtimeOutput,
+    runtimeOutputFromRoundtrippingProgram,
+    'Unexpected program roundtrip result',
+  )
 
   return runtimeOutput
 }
@@ -620,5 +628,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert('kind' in result.value)
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
+  ],
+  [
+    `@runtime { context =>
+      :context.environment.lookup("not a legal environment variable name")
+    } match {
+      none: _ => a
+      some: _ => b
+    }`,
+    either.makeRight('a'),
   ],
 ])
