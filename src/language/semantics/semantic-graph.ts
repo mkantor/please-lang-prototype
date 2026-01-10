@@ -7,6 +7,7 @@ import type {
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import type { Canonicalized } from '../parsing/syntax-tree.js'
+import { makeIndexExpression, makeLookupExpression } from '../semantics.js'
 import { inlinePlz, unparse } from '../unparsing.js'
 import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
@@ -172,11 +173,24 @@ export const serialize = (
         either.makeRight(node),
       function: node => serializeFunctionNode(node),
       object: node => serializeObjectNode(node),
-      typeSymbol: _node =>
-        either.makeLeft({
-          kind: 'unserializableValue',
-          message: 'symbols cannot be serialized',
-        }),
+      typeSymbol: node =>
+        either.makeRight(
+          serialize(
+            makeIndexExpression({
+              query: { 0: 'type' },
+              object: (() => {
+                switch (node) {
+                  case atomTypeSymbol:
+                    return makeLookupExpression('atom')
+                  case integerTypeSymbol:
+                    return makeLookupExpression('integer')
+                  case naturalNumberTypeSymbol:
+                    return makeLookupExpression('natural_number')
+                }
+              })(),
+            }),
+          ),
+        ),
     }),
     withPhantomData<Serialized & Canonicalized>(),
   )

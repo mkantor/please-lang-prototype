@@ -55,14 +55,10 @@ const serializeObjectPropertyValue = (
 ): Either<UnserializableValueError, Output> => {
   switch (typeof propertyValue) {
     case 'string':
+    case 'symbol':
       return serialize(propertyValue)
     case 'object':
       return serialize(makeObjectNode(propertyValue))
-    case 'symbol':
-      return either.makeLeft({
-        kind: 'unserializableValue',
-        message: 'symbols cannot be serialized',
-      })
     case 'function':
       return serializeFunctionNode(propertyValue)
   }
