@@ -1,6 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
-import type { Molecule } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import { keyPathFromObjectNodeOrMolecule } from '../key-path.js'
 import {
@@ -20,7 +19,7 @@ export type IndexExpression = ObjectNode & {
 }
 
 export const readIndexExpression = (
-  node: SemanticGraph | Molecule,
+  node: SemanticGraph,
 ): Either<ElaborationError, IndexExpression> =>
   isKeywordExpressionWithArgument('@index', node)
     ? either.flatMap(

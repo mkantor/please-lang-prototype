@@ -1,7 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  makeObjectNode,
   type Expression,
   type ExpressionContext,
   type KeywordHandler,
@@ -13,4 +12,4 @@ export const unionKeywordHandler: KeywordHandler = (
   _context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
   // This is currently only used in types and doesn't need transformation here.
-  either.makeRight(makeObjectNode(expression))
+  either.makeRight(expression)

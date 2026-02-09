@@ -1,6 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
-import type { Molecule } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
@@ -18,7 +17,7 @@ export type RuntimeExpression = ObjectNode & {
 }
 
 export const readRuntimeExpression = (
-  node: SemanticGraph | Molecule,
+  node: SemanticGraph,
 ): Either<ElaborationError, RuntimeExpression> =>
   isKeywordExpressionWithArgument('@runtime', node)
     ? either.flatMap(

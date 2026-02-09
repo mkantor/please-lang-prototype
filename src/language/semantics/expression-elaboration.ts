@@ -60,12 +60,17 @@ const elaborateWithinMolecule = (
   molecule: Molecule,
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
+  const moleculeAsSemanticGraph = asSemanticGraph(molecule)
+
   // `@if` needs to be eagerly expanded to avoid evaluating the falsy branch.
   // TODO: Handle keywords in a generalized way, without hardcoding specific
   // keywords here.
-  if (isExpression(molecule) && molecule['0'] === '@if') {
+  if (
+    isExpression(moleculeAsSemanticGraph) &&
+    moleculeAsSemanticGraph['0'] === '@if'
+  ) {
     const expandedResult = either.flatMap(
-      handleObjectNodeWhichMayBeAExpression(makeObjectNode(molecule), context),
+      handleObjectNodeWhichMayBeAExpression(moleculeAsSemanticGraph, context),
       serialize,
     )
     return either.map(expandedResult, asSemanticGraph)
@@ -176,14 +181,14 @@ const handleObjectNodeWhichMayBeAExpression = (
         context,
       )
     : /^@[^@]/.test(possibleKeyword)
-    ? either.makeLeft({
-        kind: 'unknownKeyword',
-        message: `unknown keyword: \`${possibleKeyword}\``,
-      })
-    : either.makeRight({
-        ...node,
-        0: unescapeKeywordSigil(possibleKeyword),
-      })
+      ? either.makeLeft({
+          kind: 'unknownKeyword',
+          message: `unknown keyword: \`${possibleKeyword}\``,
+        })
+      : either.makeRight({
+          ...node,
+          0: unescapeKeywordSigil(possibleKeyword),
+        })
 }
 
 const handleAtomWhichMayNotBeAKeyword = (

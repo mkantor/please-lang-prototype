@@ -1,7 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
 import type { Bug } from '../../errors.js'
-import type { Atom, Molecule } from '../../parsing.js'
+import type { Atom } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
@@ -374,7 +374,7 @@ export const updateTypeAtKeyPathIfValid = (
 }
 
 export const literalTypeFromSemanticGraph = (
-  node: SemanticGraph | Molecule,
+  node: SemanticGraph,
 ): Either<Bug, Type> => {
   if (typeof node === 'string') {
     return either.makeRight({

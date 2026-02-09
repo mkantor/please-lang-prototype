@@ -1,6 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
-import type { Molecule } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
@@ -17,7 +16,7 @@ export type IfExpression = ObjectNode & {
 }
 
 export const readIfExpression = (
-  node: SemanticGraph | Molecule,
+  node: SemanticGraph,
 ): Either<ElaborationError, IfExpression> =>
   isKeywordExpressionWithArgument('@if', node)
     ? either.map(

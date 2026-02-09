@@ -7,7 +7,11 @@ import type {
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import type { Canonicalized } from '../parsing/syntax-tree.js'
-import { makeIndexExpression, makeLookupExpression } from '../semantics.js'
+import {
+  asSemanticGraph,
+  makeIndexExpression,
+  makeLookupExpression,
+} from '../semantics.js'
 import { inlinePlz, unparse } from '../unparsing.js'
 import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
@@ -63,10 +67,11 @@ export const applyKeyPathToSemanticGraph = (
 export const containsAnyUnelaboratedNodes = (
   node: SemanticGraph | Molecule,
 ): boolean => {
+  const nodeAsSemanticGraph = asSemanticGraph(node)
   if (
-    isExpression(node) &&
-    isKeyword(node[0]) &&
-    !isExemptFromElaboration(node[0])
+    isExpression(nodeAsSemanticGraph) &&
+    isKeyword(nodeAsSemanticGraph[0]) &&
+    !isExemptFromElaboration(nodeAsSemanticGraph[0])
   ) {
     return true
   } else if (typeof node === 'object') {

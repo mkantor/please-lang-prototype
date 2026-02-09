@@ -1,6 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
-import type { Atom, Molecule } from '../../parsing.js'
+import type { Atom } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import { keyPathToMolecule, type NonEmptyKeyPath } from '../key-path.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
@@ -19,7 +19,7 @@ export type LookupExpression = ObjectNode & {
 }
 
 export const readLookupExpression = (
-  node: SemanticGraph | Molecule,
+  node: SemanticGraph,
 ): Either<ElaborationError, LookupExpression> =>
   isKeywordExpressionWithArgument('@lookup', node)
     ? either.flatMap(readArgumentsFromExpression(node, ['key']), ([key]) => {

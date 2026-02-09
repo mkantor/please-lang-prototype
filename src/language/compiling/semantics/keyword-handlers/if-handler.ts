@@ -69,9 +69,8 @@ export const ifKeywordHandler: KeywordHandler = (
             // values as much as possible. This helps in tricky situations
             // where referenced properties that are higher up in the program
             // get erased before the `@if` can be fully elaborated.
-            const doNotElaborate = (expression: Expression) =>
-              either.makeRight(asSemanticGraph(expression))
 
+            const doNotElaborate = either.makeRight
             const contextWhichOnlyElaboratesLookups: ExpressionContext = {
               ...context,
               keywordHandlers: {

@@ -1,14 +1,12 @@
-import type { Atom, Molecule } from '../parsing.js'
+import type { ObjectNode } from './object-node.js'
 import type { SemanticGraph } from './semantic-graph.js'
 
-export type Expression = {
+export type Expression = ObjectNode & {
   readonly 0: `@${string}`
-  readonly 1?: Atom | Molecule
+  readonly 1?: SemanticGraph
 }
 
-export const isExpression = (
-  node: SemanticGraph | Molecule,
-): node is Expression =>
+export const isExpression = (node: SemanticGraph): node is Expression =>
   typeof node === 'object' &&
   typeof node[0] === 'string' &&
   /^@[^@]/.test(node['0']) &&
@@ -19,10 +17,10 @@ export const isExpression = (
 
 export const isKeywordExpressionWithArgument = <Keyword extends `@${string}`>(
   keyword: Keyword,
-  node: SemanticGraph | Molecule,
-): node is {
+  node: SemanticGraph,
+): node is Expression & {
   readonly 0: Keyword
-  readonly 1: Molecule
+  readonly 1: SemanticGraph
 } =>
   typeof node === 'object' &&
   typeof node[0] === 'string' &&
