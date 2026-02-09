@@ -85,9 +85,12 @@ export const option = (value: Type) =>
   ])
 
 export const runtimeContext = makeObjectType('runtime_context', {
+  arguments: makeObjectType('', {
+    lookup: makeFunctionType('', { parameter: atom, return: option(atom) }),
+  }),
   environment: makeObjectType('', {
     lookup: makeFunctionType('', { parameter: atom, return: option(atom) }),
   }),
-  log: makeFunctionType('', { parameter: something, return: option(object) }),
+  log: makeFunctionType('', { parameter: something, return: object }),
   program: makeObjectType('', { start_time: atom }),
 })
