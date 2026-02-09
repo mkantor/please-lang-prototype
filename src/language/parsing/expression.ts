@@ -245,8 +245,8 @@ const compactDottedKeyPath = oneOrMore(compactDottedKeyPathComponent)
 const trailingIndexesAndArguments: Parser<readonly TrailingIndexOrArgument[]> =
   zeroOrMore(
     oneOf([
-      map(dottedKeyPath, query => ({ kind: 'index', query } as const)),
-      map(argument, argument => ({ kind: 'argument', argument } as const)),
+      map(dottedKeyPath, query => ({ kind: 'index', query }) as const),
+      map(argument, argument => ({ kind: 'argument', argument }) as const),
     ]),
   )
 
@@ -254,8 +254,8 @@ const compactTrailingIndexesAndArguments: Parser<
   readonly TrailingIndexOrArgument[]
 > = zeroOrMore(
   oneOf([
-    map(compactDottedKeyPath, query => ({ kind: 'index', query } as const)),
-    map(argument, argument => ({ kind: 'argument', argument } as const)),
+    map(compactDottedKeyPath, query => ({ kind: 'index', query }) as const),
+    map(argument, argument => ({ kind: 'argument', argument }) as const),
   ]),
 )
 

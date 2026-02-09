@@ -34,10 +34,11 @@ const unparseMolecule =
     }
   }
 
-const unparseAtomOrMolecule: UnparseAtomOrMolecule = semanticContext => value =>
-  typeof value === 'string'
-    ? unparseAtom(value)
-    : unparseMolecule(semanticContext)(value)
+const unparseAtomOrMolecule: UnparseAtomOrMolecule =
+  semanticContext => value =>
+    typeof value === 'string'
+      ? unparseAtom(value)
+      : unparseMolecule(semanticContext)(value)
 
 export const sugarFreePrettyPlz: Notation = {
   atom: unparseAtom,

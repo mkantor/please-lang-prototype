@@ -34,10 +34,11 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
   }
 }
 
-const unparseAtomOrMolecule: UnparseAtomOrMolecule = semanticContext => value =>
-  typeof value === 'string'
-    ? unparseAtom(value)
-    : unparseMolecule(semanticContext)(value)
+const unparseAtomOrMolecule: UnparseAtomOrMolecule =
+  semanticContext => value =>
+    typeof value === 'string'
+      ? unparseAtom(value)
+      : unparseMolecule(semanticContext)(value)
 
 const unparseMolecule = (semanticContext: SemanticContext) =>
   moleculeUnparser(semanticContext)(

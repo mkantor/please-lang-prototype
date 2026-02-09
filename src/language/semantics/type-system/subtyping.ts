@@ -345,8 +345,8 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
             return propertyType === undefined
               ? []
               : propertyType.kind === 'union'
-              ? [...propertyType.members] // flatten any existing unions in property types
-              : [propertyType]
+                ? [...propertyType.members] // flatten any existing unions in property types
+                : [propertyType]
           })
           .filter(type => type !== undefined)
         const propertyTypeAsUnion = excludeRedundantUnionTypeMembers(
