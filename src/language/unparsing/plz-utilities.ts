@@ -256,7 +256,11 @@ const unparseSugaredApply = (
         needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
           expression[1].function,
         )
-          ? openApplyParenthesis.concat(unparsedFunction, closeApplyParenthesis)
+          ? // It's an immediately-applied anonymous function.
+            openGroupingParenthesis.concat(
+              unparsedFunction,
+              closeGroupingParenthesis,
+            )
           : unparsedFunction,
     )
     const unparsedArgument = either.flatMap(
@@ -426,7 +430,7 @@ const readInfixOperation = (expression: ApplyExpression) =>
           operatorLookupKey: lookupExpression[1].key,
           operatorIndexExpression: optionalOperatorIndexExpression,
           operand2: innerApply[1].argument,
-        } as const),
+        }) as const,
     )
   })
 
