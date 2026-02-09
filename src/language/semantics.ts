@@ -52,6 +52,7 @@ export {
   makeFunctionNode,
   type FunctionNode,
 } from './semantics/function-node.js'
+export { isSemanticGraph } from './semantics/is-semantic-graph.js'
 export {
   keyPathFromObjectNodeOrMolecule,
   keyPathToMolecule,
@@ -70,7 +71,6 @@ export { nodeTag } from './semantics/semantic-graph-node-tag.js'
 export {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
-  isSemanticGraph,
   matchSemanticGraph,
   serialize,
   stringifySemanticGraphForEndUser,

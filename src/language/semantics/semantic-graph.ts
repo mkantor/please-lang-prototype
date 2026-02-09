@@ -11,6 +11,7 @@ import { makeIndexExpression, makeLookupExpression } from '../semantics.js'
 import { inlinePlz, unparse } from '../unparsing.js'
 import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
+import { isSemanticGraph } from './is-semantic-graph.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import { isExemptFromElaboration, isKeyword } from './keyword.js'
 import {
@@ -205,24 +206,6 @@ export const stringifySemanticGraphForEndUser = (
       left: error => `(unserializable value: ${error.message})`,
     },
   )
-
-export const isSemanticGraph = (
-  value:
-    | TypeSymbol
-    | Atom
-    | Molecule
-    | {
-        readonly [nodeTag]?: Exclude<
-          SemanticGraph,
-          Atom | TypeSymbol
-        >[typeof nodeTag]
-      },
-): value is SemanticGraph =>
-  typeof value === 'symbol' ||
-  typeof value === 'string' ||
-  ((typeof value === 'object' || typeof value === 'function') &&
-    nodeTag in value &&
-    typeof value[nodeTag] === 'string')
 
 const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,
