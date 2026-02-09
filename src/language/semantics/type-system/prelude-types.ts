@@ -2,7 +2,7 @@ import optionAdt from '@matt.kantor/option'
 import {
   makeFunctionType,
   makeObjectType,
-  makeOpaqueAtomType,
+  makeOpaqueType,
   makeUnionType,
   type FunctionType,
   type Type,
@@ -22,14 +22,14 @@ export const boolean = makeUnionType('boolean', ['false', 'true'])
 //      - natural_number
 
 export const atomTypeSymbol = Symbol('atom')
-export const atom = makeOpaqueAtomType('atom', atomTypeSymbol, {
+export const atom = makeOpaqueType('atom', atomTypeSymbol, {
   isAssignableFromLiteralType: (_literalType: string) => true,
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(integer),
   nearestOpaqueAssignableTo: () => optionAdt.none,
 })
 
 export const integerTypeSymbol = Symbol('integer')
-export const integer = makeOpaqueAtomType('integer', integerTypeSymbol, {
+export const integer = makeOpaqueType('integer', integerTypeSymbol, {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(naturalNumber),
@@ -37,7 +37,7 @@ export const integer = makeOpaqueAtomType('integer', integerTypeSymbol, {
 })
 
 export const naturalNumberTypeSymbol = Symbol('natural_number')
-export const naturalNumber = makeOpaqueAtomType(
+export const naturalNumber = makeOpaqueType(
   'natural_number',
   naturalNumberTypeSymbol,
   {
