@@ -222,8 +222,8 @@ export const globalFunctions = {
                     message: `case for tag '${argument.tag}' was not defined`,
                   })
                 } else {
-                  return !isFunctionNode(relevantCase.value)
-                    ? either.makeRight(relevantCase.value)
+                  return !isFunctionNode(relevantCase.value) ?
+                      either.makeRight(relevantCase.value)
                     : relevantCase.value(argument.value)
                 }
               }

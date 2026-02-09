@@ -18,16 +18,16 @@ export type IfExpression = ObjectNode & {
 export const readIfExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, IfExpression> =>
-  isKeywordExpressionWithArgument('@if', node)
-    ? either.map(
-        readArgumentsFromExpression(node, ['condition', 'then', 'else']),
-        ([condition, then, otherwise]) =>
-          makeIfExpression({ condition, then, else: otherwise }),
-      )
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not an `@if` expression',
-      })
+  isKeywordExpressionWithArgument('@if', node) ?
+    either.map(
+      readArgumentsFromExpression(node, ['condition', 'then', 'else']),
+      ([condition, then, otherwise]) =>
+        makeIfExpression({ condition, then, else: otherwise }),
+    )
+  : either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'not an `@if` expression',
+    })
 
 export const makeIfExpression = ({
   condition,

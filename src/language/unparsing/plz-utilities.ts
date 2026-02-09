@@ -118,14 +118,16 @@ export const moleculeAsKeyValuePairStrings = (
         // If the property value is something like an anonymous function or an
         // infix operation then it needs parentheses when the key is omitted. We
         // can skip the parentheses when this is the only property.
-        needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
-          propertyValue,
-        ) && entries.length !== 1
-          ? openGroupingParenthesis.concat(
-              valueAsStringResult.value,
-              closeGroupingParenthesis,
-            )
-          : valueAsStringResult.value,
+        (
+          needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
+            propertyValue,
+          ) && entries.length !== 1
+        ) ?
+          openGroupingParenthesis.concat(
+            valueAsStringResult.value,
+            closeGroupingParenthesis,
+          )
+        : valueAsStringResult.value,
       )
       ordinalPropertyKeyCounter += 1n
     } else {
@@ -142,9 +144,9 @@ export const moleculeAsKeyValuePairStrings = (
 
 export const unparseAtom = (atom: string): Right<string> =>
   either.makeRight(
-    /^@[^@]/.test(atom)
-      ? styleText(['bold', 'underline'], quoteAtomIfNecessary(atom))
-      : quoteAtomIfNecessary(atom),
+    /^@[^@]/.test(atom) ?
+      styleText(['bold', 'underline'], quoteAtomIfNecessary(atom))
+    : quoteAtomIfNecessary(atom),
   )
 
 const requiresQuotation = (atom: string): boolean =>
@@ -172,9 +174,9 @@ const quoteKeyPathComponentIfNecessary = (value: string): string => {
 const serializeIfNeeded = (
   nodeOrMolecule: SemanticGraph | Molecule,
 ): Either<UnserializableValueError, Atom | Molecule> =>
-  isSemanticGraph(nodeOrMolecule)
-    ? serialize(nodeOrMolecule)
-    : either.makeRight(nodeOrMolecule)
+  isSemanticGraph(nodeOrMolecule) ?
+    serialize(nodeOrMolecule)
+  : either.makeRight(nodeOrMolecule)
 
 const escapeStringContents = (value: string) =>
   value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
@@ -200,12 +202,12 @@ const unparseSugaredApply = (
           unparseAtomOrMolecule(semanticContext),
         ),
         unparsedOperand1 =>
-          needsParenthesesAsFirstInfixOperand(operand1)
-            ? openGroupingParenthesis.concat(
-                unparsedOperand1,
-                closeGroupingParenthesis,
-              )
-            : unparsedOperand1,
+          needsParenthesesAsFirstInfixOperand(operand1) ?
+            openGroupingParenthesis.concat(
+              unparsedOperand1,
+              closeGroupingParenthesis,
+            )
+          : unparsedOperand1,
       )
       const unparsedOperand2 = either.map(
         either.flatMap(
@@ -213,14 +215,16 @@ const unparseSugaredApply = (
           unparseAtomOrMolecule(semanticContext),
         ),
         unparsedOperand2 =>
-          needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
-            operand2,
-          )
-            ? openGroupingParenthesis.concat(
-                unparsedOperand2,
-                closeGroupingParenthesis,
-              )
-            : unparsedOperand2,
+          (
+            needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
+              operand2,
+            )
+          ) ?
+            openGroupingParenthesis.concat(
+              unparsedOperand2,
+              closeGroupingParenthesis,
+            )
+          : unparsedOperand2,
       )
 
       // Operators omit the leading `:`, but otherwise look like lookups
@@ -255,15 +259,17 @@ const unparseSugaredApply = (
         unparseAtomOrMolecule('apply'),
       ),
       unparsedFunction =>
-        needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
-          expression[1].function,
-        )
-          ? // It's an immediately-applied anonymous function.
-            openGroupingParenthesis.concat(
-              unparsedFunction,
-              closeGroupingParenthesis,
-            )
-          : unparsedFunction,
+        (
+          needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction(
+            expression[1].function,
+          )
+        ) ?
+          // It's an immediately-applied anonymous function.
+          openGroupingParenthesis.concat(
+            unparsedFunction,
+            closeGroupingParenthesis,
+          )
+        : unparsedFunction,
     )
     const unparsedArgument = either.flatMap(
       serializeIfNeeded(expression[1].argument),

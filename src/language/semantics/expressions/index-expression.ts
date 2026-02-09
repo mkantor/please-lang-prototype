@@ -21,32 +21,32 @@ export type IndexExpression = ObjectNode & {
 export const readIndexExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, IndexExpression> =>
-  isKeywordExpressionWithArgument('@index', node)
-    ? either.flatMap(
-        readArgumentsFromExpression(node, ['object', 'query']),
-        ([object, query]) => {
-          if (!isObjectNode(object)) {
-            return either.makeLeft({
-              kind: 'invalidExpression',
-              message: 'object must be an object',
-            })
-          } else if (!isObjectNode(query)) {
-            return either.makeLeft({
-              kind: 'invalidExpression',
-              message: 'query must be an object',
-            })
-          } else {
-            return either.map(
-              keyPathFromObjectNodeOrMolecule(query),
-              _validKeyPath => makeIndexExpression({ object, query }),
-            )
-          }
-        },
-      )
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not an `@index` expression',
-      })
+  isKeywordExpressionWithArgument('@index', node) ?
+    either.flatMap(
+      readArgumentsFromExpression(node, ['object', 'query']),
+      ([object, query]) => {
+        if (!isObjectNode(object)) {
+          return either.makeLeft({
+            kind: 'invalidExpression',
+            message: 'object must be an object',
+          })
+        } else if (!isObjectNode(query)) {
+          return either.makeLeft({
+            kind: 'invalidExpression',
+            message: 'query must be an object',
+          })
+        } else {
+          return either.map(
+            keyPathFromObjectNodeOrMolecule(query),
+            _validKeyPath => makeIndexExpression({ object, query }),
+          )
+        }
+      },
+    )
+  : either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'not an `@index` expression',
+    })
 
 export const makeIndexExpression = ({
   query,

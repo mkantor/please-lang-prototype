@@ -18,14 +18,16 @@ export const natural_number = {
     },
     argument =>
       either.makeRight(
-        typeof argument === 'string' &&
-          types.naturalNumber.isAssignableFrom({
-            name: '',
-            kind: 'union',
-            members: new Set([argument]),
-          })
-          ? 'true'
-          : 'false',
+        (
+          typeof argument === 'string' &&
+            types.naturalNumber.isAssignableFrom({
+              name: '',
+              kind: 'union',
+              members: new Set([argument]),
+            })
+        ) ?
+          'true'
+        : 'false',
       ),
   ),
   modulo: preludeFunction(

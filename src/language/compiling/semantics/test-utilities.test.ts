@@ -24,9 +24,9 @@ export const success = (
 ): Either<ElaborationError, ElaboratedSemanticGraph> =>
   either.makeRight(
     withPhantomData<never>()(
-      typeof expectedOutput === 'string'
-        ? expectedOutput
-        : literalMoleculeToObjectNode(expectedOutput),
+      typeof expectedOutput === 'string' ? expectedOutput : (
+        literalMoleculeToObjectNode(expectedOutput)
+      ),
     ),
   )
 
@@ -34,9 +34,9 @@ const literalMoleculeToObjectNode = (molecule: Molecule): ObjectNode => {
   const properties: Writable<Record<string, SemanticGraph>> = {}
   for (const [key, propertyValue] of Object.entries(molecule)) {
     properties[key] =
-      typeof propertyValue === 'string'
-        ? propertyValue
-        : literalMoleculeToObjectNode(propertyValue)
+      typeof propertyValue === 'string' ? propertyValue : (
+        literalMoleculeToObjectNode(propertyValue)
+      )
   }
   return makeObjectNode(properties)
 }

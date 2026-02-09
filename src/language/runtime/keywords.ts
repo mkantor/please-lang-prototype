@@ -182,18 +182,19 @@ export const keywordHandlers: KeywordHandlers = {
     ),
 }
 
-// prettier-ignore
 type TypeToNode<T extends Type> =
   T extends FunctionType ? FunctionNode
-  : T extends ObjectType
-    ? RemoveIndexSignatures<
-        ObjectNode & {
-          readonly [K in keyof T['children']]: TypeToNode<T['children'][K]>
-        }
-      >
-    : T extends UnionType & { members: Set<infer Member> } ? Member
-    : T extends OpaqueType ? string // All opaque types are atoms.
-    : T extends TypeParameter ? never // TODO
-    : never
+  : T extends ObjectType ?
+    RemoveIndexSignatures<
+      ObjectNode & {
+        readonly [K in keyof T['children']]: TypeToNode<T['children'][K]>
+      }
+    >
+  : T extends UnionType & { members: Set<infer Member> } ? Member
+  : T extends OpaqueType ?
+    string // All opaque types are atoms.
+  : T extends TypeParameter ?
+    never // TODO
+  : never
 
 type RuntimeContext = TypeToNode<typeof types.runtimeContext>

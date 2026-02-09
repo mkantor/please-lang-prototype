@@ -16,15 +16,15 @@ export type CheckExpression = ObjectNode & {
 export const readCheckExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, CheckExpression> =>
-  isKeywordExpressionWithArgument('@check', node)
-    ? either.map(
-        readArgumentsFromExpression(node, ['value', 'type']),
-        ([value, type]) => makeCheckExpression({ value, type }),
-      )
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not a `@check` expression',
-      })
+  isKeywordExpressionWithArgument('@check', node) ?
+    either.map(
+      readArgumentsFromExpression(node, ['value', 'type']),
+      ([value, type]) => makeCheckExpression({ value, type }),
+    )
+  : either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'not a `@check` expression',
+    })
 
 export const makeCheckExpression = ({
   value,

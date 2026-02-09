@@ -55,8 +55,8 @@ const lookup = ({
   if (context.location.length === 0) {
     // Check the prelude.
     const valueFromPrelude = prelude[key]
-    return valueFromPrelude === undefined
-      ? either.makeLeft({
+    return valueFromPrelude === undefined ?
+        either.makeLeft({
           kind: 'invalidExpression',
           message: `property \`${stringifyKeyForEndUser(key)}\` not found`,
         })
@@ -85,9 +85,9 @@ const lookup = ({
         isExpression,
       ),
       parent =>
-        pathToCurrentScope[pathToCurrentScope.length - 1] === '1'
-          ? option.makeSome(parent)
-          : option.none,
+        pathToCurrentScope[pathToCurrentScope.length - 1] === '1' ?
+          option.makeSome(parent)
+        : option.none,
     )
 
     type LookupResult =

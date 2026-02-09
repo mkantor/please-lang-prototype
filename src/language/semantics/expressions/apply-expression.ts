@@ -16,15 +16,15 @@ export type ApplyExpression = ObjectNode & {
 export const readApplyExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, ApplyExpression> =>
-  isKeywordExpressionWithArgument('@apply', node)
-    ? either.map(
-        readArgumentsFromExpression(node, ['function', 'argument']),
-        ([f, argument]) => makeApplyExpression({ function: f, argument }),
-      )
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not an `@apply` expression',
-      })
+  isKeywordExpressionWithArgument('@apply', node) ?
+    either.map(
+      readArgumentsFromExpression(node, ['function', 'argument']),
+      ([f, argument]) => makeApplyExpression({ function: f, argument }),
+    )
+  : either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'not an `@apply` expression',
+    })
 
 export const makeApplyExpression = ({
   function: f,

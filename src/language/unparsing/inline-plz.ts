@@ -37,9 +37,9 @@ const unparseSugarFreeMolecule = (value: Molecule) => {
 const unparseAtomOrMolecule =
   (semanticContext: SemanticContext) =>
   (value: Atom | Molecule): Either<UnserializableValueError, string> =>
-    typeof value === 'string'
-      ? unparseAtom(value)
-      : unparseMolecule(semanticContext)(value)
+    typeof value === 'string' ?
+      unparseAtom(value)
+    : unparseMolecule(semanticContext)(value)
 
 const unparseMolecule = (semanticContext: SemanticContext) =>
   moleculeUnparser(semanticContext)(

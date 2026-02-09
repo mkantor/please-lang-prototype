@@ -63,14 +63,16 @@ export const integer = {
     },
     argument =>
       either.makeRight(
-        typeof argument === 'string' &&
-          types.integer.isAssignableFrom({
-            name: '',
-            kind: 'union',
-            members: new Set([argument]),
-          })
-          ? 'true'
-          : 'false',
+        (
+          typeof argument === 'string' &&
+            types.integer.isAssignableFrom({
+              name: '',
+              kind: 'union',
+              members: new Set([argument]),
+            })
+        ) ?
+          'true'
+        : 'false',
       ),
   ),
   greater_than: preludeFunction(

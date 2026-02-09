@@ -212,9 +212,9 @@ const sugarFreeMolecule: Parser<Molecule> = map(
     _closingBrace,
   ]) => {
     const properties =
-      optionalInitialProperty === undefined
-        ? remainingProperties
-        : [optionalInitialProperty, ...remainingProperties]
+      optionalInitialProperty === undefined ? remainingProperties : (
+        [optionalInitialProperty, ...remainingProperties]
+      )
     const enumerate = makeIncrementingIndexer()
     return properties.reduce((molecule: Writable<Molecule>, [key, value]) => {
       if (key === undefined) {

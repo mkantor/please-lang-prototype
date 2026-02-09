@@ -25,9 +25,9 @@ export const testCases =
       cases.forEach(([input, check]) => {
         const testName = getTestName(input)
         test(
-          testName.length > testNameLengthLimit
-            ? `${testName.slice(0, testNameLengthLimit - 1)}…`
-            : testName,
+          testName.length > testNameLengthLimit ?
+            `${testName.slice(0, testNameLengthLimit - 1)}…`
+          : testName,
           () => {
             const output = functionToTest(input)
             const widenedCheck: unknown = check
