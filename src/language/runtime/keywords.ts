@@ -1,6 +1,7 @@
 import either from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
 import { parseArgs } from 'node:util'
+import type { RemoveIndexSignatures } from '../../utility-types.js'
 import { writeOutput } from '../cli/output.js'
 import { keywordHandlers as compilerKeywordHandlers } from '../compiling.js'
 import {
@@ -11,9 +12,19 @@ import {
   readRuntimeExpression,
   serialize,
   types,
+  type FunctionNode,
   type KeywordHandlers,
+  type ObjectNode,
+  type Type,
 } from '../semantics.js'
 import type { NonEmptyKeyPath } from '../semantics/key-path.js'
+import type {
+  FunctionType,
+  ObjectType,
+  OpaqueType,
+  TypeParameter,
+  UnionType,
+} from '../semantics/type-system/type-formats.js'
 import { prettyJson } from '../unparsing.js'
 
 const serializeFunction =
@@ -138,7 +149,7 @@ const runtimeContext = (runtimeFunctionParameterName: Option<string>) => {
     program: makeObjectNode({
       start_time: new Date().toISOString(),
     }),
-  })
+  }) satisfies RuntimeContext
 }
 
 export const keywordHandlers: KeywordHandlers = {
@@ -170,3 +181,19 @@ export const keywordHandlers: KeywordHandlers = {
       },
     ),
 }
+
+// prettier-ignore
+type TypeToNode<T extends Type> =
+  T extends FunctionType ? FunctionNode
+  : T extends ObjectType
+    ? RemoveIndexSignatures<
+        ObjectNode & {
+          readonly [K in keyof T['children']]: TypeToNode<T['children'][K]>
+        }
+      >
+    : T extends UnionType & { members: Set<infer Member> } ? Member
+    : T extends OpaqueType ? string // All opaque types are atoms.
+    : T extends TypeParameter ? never // TODO
+    : never
+
+type RuntimeContext = TypeToNode<typeof types.runtimeContext>

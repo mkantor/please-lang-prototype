@@ -29,12 +29,10 @@ export type ObjectType = {
   }
 }
 
-export const makeObjectType = (
+export const makeObjectType = <Children extends { readonly [key: Atom]: Type }>(
   name: string,
-  children: {
-    readonly [key: Atom]: Type
-  },
-): ObjectType => ({
+  children: Children,
+): ObjectType & { readonly children: Children } => ({
   name,
   kind: 'object',
   children,
@@ -48,8 +46,7 @@ export type OpaqueType = {
   readonly isAssignableTo: (target: Type) => boolean
 }
 
-// TODO: Opaque object/function types?
-export const makeOpaqueAtomType = (
+export const makeOpaqueType = (
   name: string,
   symbol: TypeSymbol,
   subtyping: {
