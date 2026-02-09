@@ -8,10 +8,7 @@ import {
   stringifySemanticGraphForEndUser,
   type SemanticGraph,
 } from '../semantic-graph.js'
-import {
-  asSemanticGraph,
-  readArgumentsFromExpression,
-} from './expression-utilities.js'
+import { readArgumentsFromExpression } from './expression-utilities.js'
 import { makeIndexExpression } from './index-expression.js'
 
 export type LookupExpression = ObjectNode & {
@@ -30,7 +27,7 @@ export const readLookupExpression = (
           return either.makeLeft({
             kind: 'invalidExpression',
             message: `lookup key must be an atom, got \`${stringifySemanticGraphForEndUser(
-              asSemanticGraph(key),
+              key,
             )}\``,
           })
         } else {
@@ -56,7 +53,7 @@ export const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
   } else {
     return makeIndexExpression({
       object: initialLookup,
-      query: keyPathToMolecule(indexes),
+      query: makeObjectNode(keyPathToMolecule(indexes)),
     })
   }
 }

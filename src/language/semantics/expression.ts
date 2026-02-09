@@ -19,7 +19,7 @@ export const isExpression = (
 
 export const isKeywordExpressionWithArgument = <Keyword extends `@${string}`>(
   keyword: Keyword,
-  node: Molecule | SemanticGraph,
+  node: SemanticGraph | Molecule,
 ): node is {
   readonly 0: Keyword
   readonly 1: Molecule

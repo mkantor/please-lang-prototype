@@ -9,8 +9,8 @@ import { readArgumentsFromExpression } from './expression-utilities.js'
 export type ApplyExpression = ObjectNode & {
   readonly 0: '@apply'
   readonly 1: {
-    readonly function: SemanticGraph | Molecule
-    readonly argument: SemanticGraph | Molecule
+    readonly function: SemanticGraph
+    readonly argument: SemanticGraph
   }
 }
 
@@ -31,8 +31,8 @@ export const makeApplyExpression = ({
   function: f,
   argument,
 }: {
-  readonly function: SemanticGraph | Molecule
-  readonly argument: SemanticGraph | Molecule
+  readonly function: SemanticGraph
+  readonly argument: SemanticGraph
 }): ApplyExpression =>
   makeObjectNode({
     0: '@apply',

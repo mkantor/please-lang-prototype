@@ -9,8 +9,8 @@ import { readArgumentsFromExpression } from './expression-utilities.js'
 export type CheckExpression = ObjectNode & {
   readonly 0: '@check'
   readonly 1: {
-    readonly value: SemanticGraph | Molecule
-    readonly type: SemanticGraph | Molecule
+    readonly value: SemanticGraph
+    readonly type: SemanticGraph
   }
 }
 
@@ -31,8 +31,8 @@ export const makeCheckExpression = ({
   value,
   type,
 }: {
-  value: SemanticGraph | Molecule
-  type: SemanticGraph | Molecule
+  value: SemanticGraph
+  type: SemanticGraph
 }): CheckExpression =>
   makeObjectNode({
     0: '@check',

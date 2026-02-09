@@ -374,7 +374,7 @@ export const updateTypeAtKeyPathIfValid = (
 }
 
 export const literalTypeFromSemanticGraph = (
-  node: Molecule | SemanticGraph,
+  node: SemanticGraph | Molecule,
 ): Either<Bug, Type> => {
   if (typeof node === 'string') {
     return either.makeRight({

@@ -1,6 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../../errors.js'
-import type { Molecule } from '../../../parsing.js'
 import {
   asSemanticGraph,
   containsAnyUnelaboratedNodes,
@@ -115,7 +114,7 @@ export const ifKeywordHandler: KeywordHandler = (
 
             return either.makeRight(
               makeIfExpression({
-                condition,
+                condition: asSemanticGraph(condition),
                 then: thenWithElaboratedLookups,
                 else: elseWithElaboratedLookups,
               }),
@@ -134,14 +133,12 @@ export const ifKeywordHandler: KeywordHandler = (
 const evaluateSubexpression = (
   subKeyPath: KeyPath,
   context: ExpressionContext,
-  subexpression: SemanticGraph | Molecule,
+  subexpression: SemanticGraph,
 ) =>
-  either.flatMap(
-    serialize(asSemanticGraph(subexpression)),
-    serializedSubexpression =>
-      elaborateWithContext(serializedSubexpression, {
-        keywordHandlers: context.keywordHandlers,
-        program: context.program,
-        location: [...context.location, ...subKeyPath],
-      }),
+  either.flatMap(serialize(subexpression), serializedSubexpression =>
+    elaborateWithContext(serializedSubexpression, {
+      keywordHandlers: context.keywordHandlers,
+      program: context.program,
+      location: [...context.location, ...subKeyPath],
+    }),
   )

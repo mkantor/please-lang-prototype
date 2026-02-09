@@ -10,9 +10,9 @@ import { readArgumentsFromExpression } from './expression-utilities.js'
 export type IfExpression = ObjectNode & {
   readonly 0: '@if'
   readonly 1: {
-    readonly condition: SemanticGraph | Molecule
-    readonly then: SemanticGraph | Molecule
-    readonly else: SemanticGraph | Molecule
+    readonly condition: SemanticGraph
+    readonly then: SemanticGraph
+    readonly else: SemanticGraph
   }
 }
 
@@ -35,9 +35,9 @@ export const makeIfExpression = ({
   then,
   else: otherwise,
 }: {
-  readonly condition: SemanticGraph | Molecule
-  readonly then: SemanticGraph | Molecule
-  readonly else: SemanticGraph | Molecule
+  readonly condition: SemanticGraph
+  readonly then: SemanticGraph
+  readonly else: SemanticGraph
 }): IfExpression =>
   makeObjectNode({
     0: '@if',

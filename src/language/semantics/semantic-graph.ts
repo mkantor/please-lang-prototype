@@ -178,7 +178,7 @@ export const serialize = (
         either.makeRight(
           serialize(
             makeIndexExpression({
-              query: { 0: 'type' },
+              query: makeObjectNode({ 0: 'type' }),
               object: (() => {
                 switch (node) {
                   case atomTypeSymbol:

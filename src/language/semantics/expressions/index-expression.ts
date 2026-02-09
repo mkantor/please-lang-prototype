@@ -9,16 +9,13 @@ import {
   type ObjectNode,
 } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
-import {
-  asSemanticGraph,
-  readArgumentsFromExpression,
-} from './expression-utilities.js'
+import { readArgumentsFromExpression } from './expression-utilities.js'
 
 export type IndexExpression = ObjectNode & {
   readonly 0: '@index'
   readonly 1: {
-    readonly object: ObjectNode | Molecule
-    readonly query: ObjectNode | Molecule
+    readonly object: ObjectNode
+    readonly query: ObjectNode
   }
 }
 
@@ -28,9 +25,7 @@ export const readIndexExpression = (
   isKeywordExpressionWithArgument('@index', node)
     ? either.flatMap(
         readArgumentsFromExpression(node, ['object', 'query']),
-        ([o, q]) => {
-          const object = asSemanticGraph(o)
-          const query = asSemanticGraph(q)
+        ([object, query]) => {
           if (!isObjectNode(object)) {
             return either.makeLeft({
               kind: 'invalidExpression',
@@ -58,8 +53,8 @@ export const makeIndexExpression = ({
   query,
   object,
 }: {
-  readonly query: ObjectNode | Molecule
-  readonly object: ObjectNode | Molecule
+  readonly query: ObjectNode
+  readonly object: ObjectNode
 }): IndexExpression =>
   makeObjectNode({
     0: '@index',

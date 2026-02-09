@@ -2,7 +2,6 @@ import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  asSemanticGraph,
   elaborateWithContext,
   makeFunctionNode,
   makeObjectNode,
@@ -41,7 +40,7 @@ const apply = (
   context: ExpressionContext,
 ): ReturnType<FunctionNode> => {
   const parameter = expression[1].parameter
-  const body = asSemanticGraph(expression[1].body)
+  const body = expression[1].body
 
   const ownKey = context.location[context.location.length - 1]
   if (ownKey === undefined) {

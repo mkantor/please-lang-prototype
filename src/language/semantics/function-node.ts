@@ -26,7 +26,7 @@ export type FunctionNode = ((
   readonly serialize: () => Either<UnserializableValueError, ObjectNode>
 }
 
-export const isFunctionNode = (node: Molecule | SemanticGraph) =>
+export const isFunctionNode = (node: SemanticGraph | Molecule) =>
   typeof node === 'function' && node[nodeTag] === 'function'
 
 export const makeFunctionNode = (

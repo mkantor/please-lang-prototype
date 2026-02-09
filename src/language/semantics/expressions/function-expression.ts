@@ -13,7 +13,7 @@ export type FunctionExpression = ObjectNode & {
   readonly 0: '@function'
   readonly 1: {
     readonly parameter: Atom
-    readonly body: SemanticGraph | Molecule
+    readonly body: SemanticGraph
   }
 }
 
@@ -29,8 +29,8 @@ export const readFunctionExpression = (
                 kind: 'invalidExpression',
                 message: 'parameter name must be an atom',
               })
-            : either.map(serialize(asSemanticGraph(body)), body =>
-                makeFunctionExpression(parameter, body),
+            : either.map(serialize(body), body =>
+                makeFunctionExpression(parameter, asSemanticGraph(body)),
               ),
       )
     : either.makeLeft({
@@ -40,7 +40,7 @@ export const readFunctionExpression = (
 
 export const makeFunctionExpression = (
   parameter: Atom,
-  body: SemanticGraph | Molecule,
+  body: SemanticGraph,
 ): FunctionExpression =>
   makeObjectNode({
     0: '@function',
