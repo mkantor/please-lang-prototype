@@ -1,4 +1,4 @@
-export const isExemptFromElaboration = (input: Keyword) => input === '@union'
+export const isExemptFromElaboration = (input: Keyword) => input === '@union' || input === '@signature'
 
 export const isKeyword = (input: string) =>
   input === '@apply' ||
@@ -9,6 +9,7 @@ export const isKeyword = (input: string) =>
   input === '@lookup' ||
   input === '@panic' ||
   input === '@runtime' ||
+  input === '@signature' ||
   input === '@todo' ||
   input === '@union'
 
