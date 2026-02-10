@@ -278,4 +278,54 @@ elaborationSuite('@check', [
     },
     output => assert(either.isLeft(output)),
   ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: {
+          0: '@signature',
+          1: {
+            parameter: {
+              0: '@index',
+              1: {
+                0: { 0: '@lookup', 1: { 0: 'boolean' } },
+                1: { 0: 'type' },
+              },
+            },
+            return: {
+              0: '@index',
+              1: {
+                0: { 0: '@lookup', 1: { 0: 'boolean' } },
+                1: { 0: 'type' },
+              },
+            },
+          },
+        },
+        value: {
+          0: '@index',
+          1: {
+            0: { 0: '@lookup', 1: { 0: 'boolean' } },
+            1: { 0: 'not' },
+          },
+        },
+      },
+    },
+    output => assert(either.isRight(output)),
+  ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: 'incorrect type',
+        value: {
+          0: '@index',
+          1: {
+            0: { 0: '@lookup', 1: { 0: 'boolean' } },
+            1: { 0: 'not' },
+          },
+        },
+      },
+    },
+    output => assert(either.isLeft(output)),
+  ],
 ])
