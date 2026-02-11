@@ -75,6 +75,16 @@ elaborationSuite('@check', [
     },
     output => assert(either.isLeft(output)),
   ],
+  [
+    {
+      0: '@check',
+      1: {
+        type: 'not a function type',
+        value: { 0: '@lookup', 1: { 0: 'identity' } },
+      },
+    },
+    output => assert(either.isLeft(output)),
+  ],
   // values with excess properties:
   [
     {

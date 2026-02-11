@@ -395,7 +395,11 @@ export const literalTypeFromSemanticGraph = (
       })
     }
   } else if (typeof node === 'function') {
-    return literalTypeFromSemanticGraph(node)
+    return either.makeRight({
+      name: '',
+      kind: 'function',
+      signature: node.signature,
+    })
   } else {
     if (isKeywordExpressionWithArgument('@union', node)) {
       let members = new Set<Atom | Exclude<Type, UnionType>>()
