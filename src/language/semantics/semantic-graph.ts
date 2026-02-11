@@ -7,10 +7,15 @@ import type {
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import type { Canonicalized } from '../parsing/syntax-tree.js'
-import { makeIndexExpression, makeLookupExpression } from '../semantics.js'
+import {
+  asSemanticGraph,
+  makeIndexExpression,
+  makeLookupExpression,
+} from '../semantics.js'
 import { inlinePlz, unparse } from '../unparsing.js'
 import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
+import { isSemanticGraph } from './is-semantic-graph.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import { isExemptFromElaboration, isKeyword } from './keyword.js'
 import {
@@ -62,10 +67,11 @@ export const applyKeyPathToSemanticGraph = (
 export const containsAnyUnelaboratedNodes = (
   node: SemanticGraph | Molecule,
 ): boolean => {
+  const nodeAsSemanticGraph = asSemanticGraph(node)
   if (
-    isExpression(node) &&
-    isKeyword(node[0]) &&
-    !isExemptFromElaboration(node[0])
+    isExpression(nodeAsSemanticGraph) &&
+    isKeyword(nodeAsSemanticGraph[0]) &&
+    !isExemptFromElaboration(nodeAsSemanticGraph[0])
   ) {
     return true
   } else if (typeof node === 'object') {
@@ -177,7 +183,7 @@ export const serialize = (
         either.makeRight(
           serialize(
             makeIndexExpression({
-              query: { 0: 'type' },
+              query: makeObjectNode({ 0: 'type' }),
               object: (() => {
                 switch (node) {
                   case atomTypeSymbol:
@@ -205,24 +211,6 @@ export const stringifySemanticGraphForEndUser = (
       left: error => `(unserializable value: ${error.message})`,
     },
   )
-
-export const isSemanticGraph = (
-  value:
-    | TypeSymbol
-    | Atom
-    | Molecule
-    | {
-        readonly [nodeTag]?: Exclude<
-          SemanticGraph,
-          Atom | TypeSymbol
-        >[typeof nodeTag]
-      },
-): value is SemanticGraph =>
-  typeof value === 'symbol' ||
-  typeof value === 'string' ||
-  ((typeof value === 'object' || typeof value === 'function') &&
-    nodeTag in value &&
-    typeof value[nodeTag] === 'string')
 
 const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,

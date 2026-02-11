@@ -1,6 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
-import type { Molecule } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import { makeObjectNode, type ObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
@@ -9,13 +8,13 @@ import { readArgumentsFromExpression } from './expression-utilities.js'
 export type ApplyExpression = ObjectNode & {
   readonly 0: '@apply'
   readonly 1: {
-    readonly function: SemanticGraph | Molecule
-    readonly argument: SemanticGraph | Molecule
+    readonly function: SemanticGraph
+    readonly argument: SemanticGraph
   }
 }
 
 export const readApplyExpression = (
-  node: SemanticGraph | Molecule,
+  node: SemanticGraph,
 ): Either<ElaborationError, ApplyExpression> =>
   isKeywordExpressionWithArgument('@apply', node)
     ? either.map(
@@ -31,8 +30,8 @@ export const makeApplyExpression = ({
   function: f,
   argument,
 }: {
-  readonly function: SemanticGraph | Molecule
-  readonly argument: SemanticGraph | Molecule
+  readonly function: SemanticGraph
+  readonly argument: SemanticGraph
 }): ApplyExpression =>
   makeObjectNode({
     0: '@apply',

@@ -3,7 +3,6 @@ import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import {
   applyKeyPathToSemanticGraph,
-  asSemanticGraph,
   containsAnyUnelaboratedNodes,
   keyPathFromObjectNodeOrMolecule,
   readIndexExpression,
@@ -27,10 +26,7 @@ export const indexKeywordHandler: KeywordHandler = (
           return either.makeRight(indexExpression)
         } else {
           return option.match(
-            applyKeyPathToSemanticGraph(
-              asSemanticGraph(indexExpression[1].object),
-              keyPath,
-            ),
+            applyKeyPathToSemanticGraph(indexExpression[1].object, keyPath),
             {
               none: () =>
                 either.makeLeft({

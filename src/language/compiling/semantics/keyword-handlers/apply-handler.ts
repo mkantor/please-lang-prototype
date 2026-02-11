@@ -1,7 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  asSemanticGraph,
   containsAnyUnelaboratedNodes,
   isFunctionNode,
   readApplyExpression,
@@ -22,11 +21,9 @@ export const applyKeywordHandler: KeywordHandler = (
         // The argument isn't ready, so keep the @apply unelaborated.
         return either.makeRight(applyExpression)
       } else {
-        const functionToApply = asSemanticGraph(applyExpression[1].function)
+        const functionToApply = applyExpression[1].function
         if (isFunctionNode(functionToApply)) {
-          const result = functionToApply(
-            asSemanticGraph(applyExpression[1].argument),
-          )
+          const result = functionToApply(applyExpression[1].argument)
           if (either.isLeft(result)) {
             if (result.value.kind === 'dependencyUnavailable') {
               // Keep the @apply unelaborated.

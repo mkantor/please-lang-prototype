@@ -2,13 +2,13 @@ import either from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { Atom } from '../../parsing.js'
 import { isFunctionNode, makeFunctionNode } from '../function-node.js'
+import { isSemanticGraph } from '../is-semantic-graph.js'
 import {
   isObjectNode,
   lookupPropertyOfObjectNode,
   type ObjectNode,
 } from '../object-node.js'
 import {
-  isSemanticGraph,
   stringifySemanticGraphForEndUser,
   type SemanticGraph,
 } from '../semantic-graph.js'

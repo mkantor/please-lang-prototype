@@ -1,7 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  asSemanticGraph,
   stringifySemanticGraphForEndUser,
   type Expression,
   type ExpressionContext,
@@ -15,5 +14,5 @@ export const panicKeywordHandler: KeywordHandler = (
 ): Either<ElaborationError, SemanticGraph> =>
   either.makeLeft({
     kind: 'panic',
-    message: stringifySemanticGraphForEndUser(asSemanticGraph(expression)),
+    message: stringifySemanticGraphForEndUser(expression),
   })

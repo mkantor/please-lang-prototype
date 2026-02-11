@@ -4,7 +4,6 @@ import type { ElaborationError } from '../../../errors.js'
 import type { Atom } from '../../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
-  asSemanticGraph,
   isExpression,
   isObjectNode,
   makeLookupExpression,
@@ -61,7 +60,7 @@ const lookup = ({
           kind: 'invalidExpression',
           message: `property \`${stringifyKeyForEndUser(key)}\` not found`,
         })
-      : either.makeRight(option.makeSome(asSemanticGraph(valueFromPrelude)))
+      : either.makeRight(option.makeSome(valueFromPrelude))
   } else {
     // Given the following program:
     // ```

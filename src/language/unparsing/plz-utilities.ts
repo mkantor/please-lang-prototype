@@ -6,6 +6,7 @@ import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { unquotedAtomParser } from '../parsing/atom.js'
 import {
+  asSemanticGraph,
   isExpression,
   isSemanticGraph,
   readApplyExpression,
@@ -51,33 +52,34 @@ export const moleculeUnparser =
     }
     switch (value['0']) {
       case '@apply':
-        return either.match(readApplyExpression(value), {
+        return either.match(readApplyExpression(asSemanticGraph(value)), {
           left: _ => unparseSugarFreeMolecule(value, context),
           right: applyExpression =>
             unparseSugaredApply(applyExpression, context),
         })
       case '@function':
-        return either.match(readFunctionExpression(value), {
+        return either.match(readFunctionExpression(asSemanticGraph(value)), {
           left: _ => unparseSugarFreeMolecule(value, context),
           right: functionExpression =>
             unparseSugaredFunction(functionExpression, context),
         })
       case '@index':
-        return either.match(readIndexExpression(value), {
+        return either.match(readIndexExpression(asSemanticGraph(value)), {
           left: _ => unparseSugarFreeMolecule(value, context),
           right: indexExpression =>
             unparseSugaredIndex(indexExpression, context),
         })
       case '@lookup':
-        return either.match(readLookupExpression(value), {
+        return either.match(readLookupExpression(asSemanticGraph(value)), {
           left: _ => unparseSugarFreeMolecule(value, context),
           right: lookupExpression =>
             unparseSugaredLookup(lookupExpression, context),
         })
       default:
-        if (isExpression(value)) {
+        const potentialKeywordExpression = asSemanticGraph(value)
+        if (isExpression(potentialKeywordExpression)) {
           const result = unparseSugaredGeneralizedKeywordExpression(
-            value,
+            potentialKeywordExpression,
             context,
           )
           return either.flatMapLeft(result, _ =>
@@ -436,12 +438,15 @@ const readInfixOperation = (expression: ApplyExpression) =>
 
 const needsParenthesesAsFirstInfixOperand = (
   expression: SemanticGraph | Molecule,
-) => either.isRight(readFunctionExpression(expression))
+) => either.isRight(readFunctionExpression(asSemanticGraph(expression)))
 
 const needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunction = (
   expression: SemanticGraph | Molecule,
 ) =>
-  either.isRight(readFunctionExpression(expression)) ||
+  either.isRight(readFunctionExpression(asSemanticGraph(expression))) ||
   either.isRight(
-    either.flatMap(readApplyExpression(expression), readInfixOperation),
+    either.flatMap(
+      readApplyExpression(asSemanticGraph(expression)),
+      readInfixOperation,
+    ),
   )

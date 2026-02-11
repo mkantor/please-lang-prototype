@@ -3,13 +3,14 @@ import option, { type Option } from '@matt.kantor/option'
 import type { Writable } from '../../utility-types.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
+import { asSemanticGraph } from './expressions/expression-utilities.js'
 import { serializeFunctionNode } from './function-node.js'
 import { nodeTag } from './semantic-graph-node-tag.js'
 import { serialize, type Output, type SemanticGraph } from './semantic-graph.js'
 
 export type ObjectNode = {
   readonly [nodeTag]: 'object'
-  readonly [key: Atom]: SemanticGraph | Molecule
+  readonly [key: Atom]: SemanticGraph
 }
 
 export const isObjectNode = (node: SemanticGraph) =>
@@ -25,14 +26,42 @@ export const lookupPropertyOfObjectNode = (
       )
     : option.none
 
+// prettier-ignore
+type PropertyValueToSemanticGraph<
+  PropertyValue extends SemanticGraph | Molecule,
+> =
+  PropertyValue extends SemanticGraph ? PropertyValue
+  : PropertyValue extends Molecule ? PropertiesToSemanticGraphs<PropertyValue>
+  : never
+
+type PropertiesToSemanticGraphs<
+  Properties extends Readonly<Record<Atom, SemanticGraph | Molecule>>,
+> = {
+  [K in keyof Properties]: PropertyValueToSemanticGraph<Properties[K]>
+}
+
 export const makeObjectNode = <
   const Properties extends Readonly<Record<Atom, SemanticGraph | Molecule>>,
 >(
   properties: Properties,
-): ObjectNode & Properties => ({
-  ...properties,
-  [nodeTag]: 'object',
-})
+): ObjectNode & PropertiesToSemanticGraphs<Properties> => {
+  const propertiesAsSemanticGraphs = Object.fromEntries(
+    Object.entries(properties).map(
+      ([key, value]) => [key, asSemanticGraph(value)] as const,
+    ),
+  ) satisfies Record<
+    Atom,
+    SemanticGraph
+  > as PropertiesToSemanticGraphs<Properties> // This type assertion assumes no excess properties are present.
+
+  // The index signature from `ObjectNode` is necessary to make this typecheck.
+  const objectNodeTagProperty: ObjectNode = { [nodeTag]: 'object' }
+
+  return {
+    ...propertiesAsSemanticGraphs,
+    ...objectNodeTagProperty,
+  }
+}
 
 export const serializeObjectNode = (
   node: ObjectNode,

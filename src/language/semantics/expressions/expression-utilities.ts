@@ -5,6 +5,7 @@ import type { Atom, Molecule } from '../../parsing.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
 import type { Expression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
+import { isSemanticGraph } from '../is-semantic-graph.js'
 import { stringifyKeyPathForEndUser } from '../key-path.js'
 import {
   lookupPropertyOfObjectNode,
@@ -13,7 +14,6 @@ import {
 } from '../object-node.js'
 import {
   applyKeyPathToSemanticGraph,
-  isSemanticGraph,
   type SemanticGraph,
 } from '../semantic-graph.js'
 

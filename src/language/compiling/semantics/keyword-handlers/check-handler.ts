@@ -1,7 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  asSemanticGraph,
   isAssignable,
   readCheckExpression,
   stringifySemanticGraphForEndUser,
@@ -18,10 +17,7 @@ export const checkKeywordHandler: KeywordHandler = (
   _context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readCheckExpression(expression), ({ 1: { value, type } }) =>
-    check({
-      value: asSemanticGraph(value),
-      type: asSemanticGraph(type),
-    }),
+    check({ value, type }),
   )
 
 const check = ({
