@@ -15,8 +15,8 @@ export const unparse = (
   notation: Notation,
 ): Either<UnserializableValueError, string> =>
   either.map(
-    typeof value === 'object'
-      ? notation.molecule(value, notation)
-      : notation.atom(value),
+    typeof value === 'object' ?
+      notation.molecule(value, notation)
+    : notation.atom(value),
     output => output.concat(notation.suffix),
   )

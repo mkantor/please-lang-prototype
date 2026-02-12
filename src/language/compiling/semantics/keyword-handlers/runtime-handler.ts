@@ -22,13 +22,15 @@ export const runtimeKeywordHandler: KeywordHandler = (
     ({ 1: { function: runtimeFunction } }) => {
       if (isFunctionNode(runtimeFunction)) {
         const runtimeFunctionSignature = runtimeFunction.signature
-        return !isAssignable({
-          source: types.runtimeContext,
-          target: replaceAllTypeParametersWithTheirConstraints(
-            runtimeFunctionSignature.parameter,
-          ),
-        })
-          ? either.makeLeft({
+        return (
+            !isAssignable({
+              source: types.runtimeContext,
+              target: replaceAllTypeParametersWithTheirConstraints(
+                runtimeFunctionSignature.parameter,
+              ),
+            })
+          ) ?
+            either.makeLeft({
               kind: 'typeMismatch',
               message:
                 '@runtime function must accept a runtime context argument',

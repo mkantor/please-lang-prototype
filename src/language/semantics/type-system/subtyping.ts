@@ -178,12 +178,12 @@ export const isAssignable = ({
         // A type parameter is only assignable to a type parameter if they are
         // the same parameter. For any other `target`, a type parameter is
         // assignable to it if its constraint is.
-        target.kind === 'parameter'
-          ? source.identity === target.identity
-          : isAssignable({
-              source: source.constraint.assignableTo,
-              target,
-            }),
+        target.kind === 'parameter' ?
+          source.identity === target.identity
+        : isAssignable({
+            source: source.constraint.assignableTo,
+            target,
+          }),
       union: source =>
         matchTypeFormat(target, {
           function: target => isUnionAssignableToNonUnion({ source, target }),
@@ -204,9 +204,9 @@ export const isAssignable = ({
                       isAssignable({
                         target: targetMember,
                         source:
-                          typeof sourceMember !== 'string'
-                            ? sourceMember
-                            : makeUnionType(sourceMember, [sourceMember]),
+                          typeof sourceMember !== 'string' ? sourceMember : (
+                            makeUnionType(sourceMember, [sourceMember])
+                          ),
                       })
                     ) {
                       return true
@@ -342,11 +342,12 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
         const typesForThisProperty = typesToMergeAsArray
           .flatMap(type => {
             const propertyType = type.children[key]
-            return propertyType === undefined
-              ? []
-              : propertyType.kind === 'union'
-              ? [...propertyType.members] // flatten any existing unions in property types
+            return (
+              propertyType === undefined ? []
+              : propertyType.kind === 'union' ?
+                [...propertyType.members] // flatten any existing unions in property types
               : [propertyType]
+            )
           })
           .filter(type => type !== undefined)
         const propertyTypeAsUnion = excludeRedundantUnionTypeMembers(

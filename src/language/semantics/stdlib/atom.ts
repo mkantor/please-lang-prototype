@@ -98,13 +98,15 @@ export const atom = {
           serializeOnceAppliedFunction(['atom', 'prepend'], atomToPrepend),
           option.none,
           atomToPrependTo =>
-            typeof atomToPrepend !== 'string' ||
-            typeof atomToPrependTo !== 'string'
-              ? either.makeLeft({
-                  kind: 'panic',
-                  message: 'prepend received a non-atom argument',
-                })
-              : either.makeRight(atomToPrepend + atomToPrependTo),
+            (
+              typeof atomToPrepend !== 'string' ||
+              typeof atomToPrependTo !== 'string'
+            ) ?
+              either.makeLeft({
+                kind: 'panic',
+                message: 'prepend received a non-atom argument',
+              })
+            : either.makeRight(atomToPrepend + atomToPrependTo),
         ),
       ),
   ),

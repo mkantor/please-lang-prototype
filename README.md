@@ -405,6 +405,7 @@ It strives to:
 The prototype implementation doesn't live up to these aspirations, but hopefully
 it approaches them over time.
 
-[^1]: Every Please program is an
-[arborescence](https://en.wikipedia.org/wiki/Arborescence_(graph_theory)) with
-edges labeled by property keys.
+[^1]:
+    Every Please program is an
+    [arborescence](<https://en.wikipedia.org/wiki/Arborescence_(graph_theory)>)
+    with edges labeled by property keys.

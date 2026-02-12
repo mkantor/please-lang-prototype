@@ -12,8 +12,7 @@ export const isKeyword = (input: string) =>
   input === '@todo' ||
   input === '@union'
 
-export type Keyword = typeof isKeyword extends (
-  input: string,
-) => input is string & infer Keyword
-  ? Keyword
+export type Keyword =
+  typeof isKeyword extends (input: string) => input is string & infer Keyword ?
+    Keyword
   : never

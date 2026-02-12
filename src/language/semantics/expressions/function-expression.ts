@@ -20,23 +20,23 @@ export type FunctionExpression = ObjectNode & {
 export const readFunctionExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, FunctionExpression> =>
-  isKeywordExpressionWithArgument('@function', node)
-    ? either.flatMap(
-        readArgumentsFromExpression(node, ['parameter', 'body']),
-        ([parameter, body]): Either<ElaborationError, FunctionExpression> =>
-          typeof parameter !== 'string'
-            ? either.makeLeft({
-                kind: 'invalidExpression',
-                message: 'parameter name must be an atom',
-              })
-            : either.map(serialize(body), body =>
-                makeFunctionExpression(parameter, asSemanticGraph(body)),
-              ),
-      )
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not a `@function` expression',
-      })
+  isKeywordExpressionWithArgument('@function', node) ?
+    either.flatMap(
+      readArgumentsFromExpression(node, ['parameter', 'body']),
+      ([parameter, body]): Either<ElaborationError, FunctionExpression> =>
+        typeof parameter !== 'string' ?
+          either.makeLeft({
+            kind: 'invalidExpression',
+            message: 'parameter name must be an atom',
+          })
+        : either.map(serialize(body), body =>
+            makeFunctionExpression(parameter, asSemanticGraph(body)),
+          ),
+    )
+  : either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'not a `@function` expression',
+    })
 
 export const makeFunctionExpression = (
   parameter: Atom,

@@ -50,9 +50,9 @@ export const elaborateWithContext = (
   context: ExpressionContext,
 ): Either<ElaborationError, ElaboratedSemanticGraph> =>
   either.map(
-    typeof program === 'string'
-      ? handleAtomWhichMayNotBeAKeyword(program)
-      : elaborateWithinMolecule(program, context),
+    typeof program === 'string' ?
+      handleAtomWhichMayNotBeAKeyword(program)
+    : elaborateWithinMolecule(program, context),
     withPhantomData<Elaborated>(),
   )
 
@@ -172,23 +172,25 @@ const handleObjectNodeWhichMayBeAExpression = (
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
   const { 0: possibleKeyword, ...possibleArguments } = node
-  return isKeyword(possibleKeyword)
-    ? context.keywordHandlers[possibleKeyword](
+  return (
+    isKeyword(possibleKeyword) ?
+      context.keywordHandlers[possibleKeyword](
         makeObjectNode({
           ...possibleArguments,
           0: possibleKeyword,
         }),
         context,
       )
-    : /^@[^@]/.test(possibleKeyword)
-      ? either.makeLeft({
-          kind: 'unknownKeyword',
-          message: `unknown keyword: \`${possibleKeyword}\``,
-        })
-      : either.makeRight({
-          ...node,
-          0: unescapeKeywordSigil(possibleKeyword),
-        })
+    : /^@[^@]/.test(possibleKeyword) ?
+      either.makeLeft({
+        kind: 'unknownKeyword',
+        message: `unknown keyword: \`${possibleKeyword}\``,
+      })
+    : either.makeRight({
+        ...node,
+        0: unescapeKeywordSigil(possibleKeyword),
+      })
+  )
 }
 
 const handleAtomWhichMayNotBeAKeyword = (

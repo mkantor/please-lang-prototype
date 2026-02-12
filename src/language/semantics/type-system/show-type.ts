@@ -26,8 +26,8 @@ export const showType = (type: Type | Atom): string => {
             for (const [key, value] of Object.entries(children)) {
               shownProperties.push(`${key}: ${showTypeImplementation(value)}`)
             }
-            return shownProperties.length === 0
-              ? '{}'
+            return shownProperties.length === 0 ?
+                '{}'
               : `{ ${shownProperties.join(', ')} }`
           },
           opaque: _ => '(unnameable type)', // all opaque types should have a non-empty `name`
@@ -40,11 +40,14 @@ export const showType = (type: Type | Atom): string => {
               // include its constraints. If the parameter's upper bound is the
               // top type then it's not really "constrained", so omit it.
 
-              const shownUpperBound = isAssignable({
-                source: types.something,
-                target: constraint.assignableTo,
-              })
-                ? ''
+              const shownUpperBound =
+                (
+                  isAssignable({
+                    source: types.something,
+                    target: constraint.assignableTo,
+                  })
+                ) ?
+                  ''
                 : ` <: ${showTypeImplementation(constraint.assignableTo)}`
 
               // Keep track so we don't mention this constraint again.
@@ -62,20 +65,20 @@ export const showType = (type: Type | Atom): string => {
             if (firstMember === undefined) {
               return types.nothing.name
             } else if (otherMembers.length === 0) {
-              return typeof firstMember === 'string'
-                ? JSON.stringify(firstMember)
+              return typeof firstMember === 'string' ?
+                  JSON.stringify(firstMember)
                 : showTypeImplementation(firstMember)
             } else {
               return `(${otherMembers.reduce<string>(
                 (renderedUnion, currentValue) =>
                   `${renderedUnion} | ${
-                    typeof currentValue === 'string'
-                      ? JSON.stringify(currentValue)
-                      : showTypeImplementation(currentValue)
+                    typeof currentValue === 'string' ?
+                      JSON.stringify(currentValue)
+                    : showTypeImplementation(currentValue)
                   }`,
-                typeof firstMember === 'string'
-                  ? JSON.stringify(firstMember)
-                  : showTypeImplementation(firstMember),
+                typeof firstMember === 'string' ?
+                  JSON.stringify(firstMember)
+                : showTypeImplementation(firstMember),
               )})`
             }
           },

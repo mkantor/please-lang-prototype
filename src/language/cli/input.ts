@@ -62,8 +62,8 @@ const parseJson = (
     jsonParseError => ({
       kind: 'invalidJson',
       message:
-        jsonParseError instanceof Error
-          ? jsonParseError.message
-          : 'Invalid JSON',
+        jsonParseError instanceof Error ?
+          jsonParseError.message
+        : 'Invalid JSON',
     }),
   )

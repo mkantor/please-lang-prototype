@@ -94,9 +94,9 @@ const containedTypeParametersImplementation = (
         [...members]
           .map(
             (member): TypeParametersByKeyPath =>
-              typeof member === 'string'
-                ? new Map()
-                : containedTypeParametersImplementation(member, root),
+              typeof member === 'string' ?
+                new Map()
+              : containedTypeParametersImplementation(member, root),
           )
           .reduce(mergeTypeParametersByKeyPath, new Map()),
     })
@@ -159,13 +159,13 @@ const findKeyPathsToTypeParameterImplementation = (
         [...members]
           .map(
             (member): Set<TypeKeyPath> =>
-              typeof member === 'string'
-                ? new Set()
-                : findKeyPathsToTypeParameterImplementation(
-                    member,
-                    typeParameterToFind,
-                    root,
-                  ),
+              typeof member === 'string' ?
+                new Set()
+              : findKeyPathsToTypeParameterImplementation(
+                  member,
+                  typeParameterToFind,
+                  root,
+                ),
           )
           .reduce(
             (accumulator, paths) => new Set([...accumulator, ...paths]),
@@ -247,8 +247,8 @@ export const supplyTypeArgument = (
                 typeParameter,
                 typeArgument,
               )
-              return substitutedMember.kind === 'union'
-                ? [...substitutedMember.members]
+              return substitutedMember.kind === 'union' ?
+                  [...substitutedMember.members]
                 : [substitutedMember]
             }
           }),

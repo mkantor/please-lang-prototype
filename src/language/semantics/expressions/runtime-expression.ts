@@ -19,29 +19,29 @@ export type RuntimeExpression = ObjectNode & {
 export const readRuntimeExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, RuntimeExpression> =>
-  isKeywordExpressionWithArgument('@runtime', node)
-    ? either.flatMap(
-        readArgumentsFromExpression(node, ['function']),
-        ([runtimeFunction]) => {
-          if (
-            !(
-              isFunctionNode(runtimeFunction) ||
-              containsAnyUnelaboratedNodes(runtimeFunction)
-            )
-          ) {
-            return either.makeLeft({
-              kind: 'invalidExpression',
-              message: 'runtime functions must compute something',
-            })
-          } else {
-            return either.makeRight(makeRuntimeExpression(runtimeFunction))
-          }
-        },
-      )
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not a `@runtime` expression',
-      })
+  isKeywordExpressionWithArgument('@runtime', node) ?
+    either.flatMap(
+      readArgumentsFromExpression(node, ['function']),
+      ([runtimeFunction]) => {
+        if (
+          !(
+            isFunctionNode(runtimeFunction) ||
+            containsAnyUnelaboratedNodes(runtimeFunction)
+          )
+        ) {
+          return either.makeLeft({
+            kind: 'invalidExpression',
+            message: 'runtime functions must compute something',
+          })
+        } else {
+          return either.makeRight(makeRuntimeExpression(runtimeFunction))
+        }
+      },
+    )
+  : either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'not a `@runtime` expression',
+    })
 
 export const makeRuntimeExpression = (f: SemanticGraph): RuntimeExpression =>
   makeObjectNode({

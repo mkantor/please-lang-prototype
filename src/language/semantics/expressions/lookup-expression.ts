@@ -21,23 +21,23 @@ export type LookupExpression = ObjectNode & {
 export const readLookupExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, LookupExpression> =>
-  isKeywordExpressionWithArgument('@lookup', node)
-    ? either.flatMap(readArgumentsFromExpression(node, ['key']), ([key]) => {
-        if (typeof key !== 'string') {
-          return either.makeLeft({
-            kind: 'invalidExpression',
-            message: `lookup key must be an atom, got \`${stringifySemanticGraphForEndUser(
-              key,
-            )}\``,
-          })
-        } else {
-          return either.makeRight(makeLookupExpression(key))
-        }
-      })
-    : either.makeLeft({
-        kind: 'invalidExpression',
-        message: 'not a `@lookup` expression',
-      })
+  isKeywordExpressionWithArgument('@lookup', node) ?
+    either.flatMap(readArgumentsFromExpression(node, ['key']), ([key]) => {
+      if (typeof key !== 'string') {
+        return either.makeLeft({
+          kind: 'invalidExpression',
+          message: `lookup key must be an atom, got \`${stringifySemanticGraphForEndUser(
+            key,
+          )}\``,
+        })
+      } else {
+        return either.makeRight(makeLookupExpression(key))
+      }
+    })
+  : either.makeLeft({
+      kind: 'invalidExpression',
+      message: 'not a `@lookup` expression',
+    })
 
 export const makeLookupExpression = (key: Atom): LookupExpression =>
   makeObjectNode({

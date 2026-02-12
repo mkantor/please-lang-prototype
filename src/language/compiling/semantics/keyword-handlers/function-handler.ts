@@ -52,9 +52,9 @@ const apply = (
 
   // TODO: Make this foolproof.
   const returnKey =
-    parameter === 'return' || ownKey === 'return'
-      ? 'return with a different key to avoid collision with a stupidly-named parameter'
-      : 'return'
+    parameter === 'return' || ownKey === 'return' ?
+      'return with a different key to avoid collision with a stupidly-named parameter'
+    : 'return'
 
   const result = either.flatMap(serialize(body), serializedBody =>
     either.flatMap(

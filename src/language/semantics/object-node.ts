@@ -20,13 +20,12 @@ export const lookupPropertyOfObjectNode = (
   key: Atom,
   node: ObjectNode,
 ): Option<SemanticGraph> =>
-  key in node && node[key] !== undefined
-    ? option.makeSome(
-        typeof node[key] === 'object' ? makeObjectNode(node[key]) : node[key],
-      )
-    : option.none
+  key in node && node[key] !== undefined ?
+    option.makeSome(
+      typeof node[key] === 'object' ? makeObjectNode(node[key]) : node[key],
+    )
+  : option.none
 
-// prettier-ignore
 type PropertyValueToSemanticGraph<
   PropertyValue extends SemanticGraph | Molecule,
 > =
