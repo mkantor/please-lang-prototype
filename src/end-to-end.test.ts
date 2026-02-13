@@ -699,4 +699,16 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     )(true)`,
     either.makeRight('it works'),
   ],
+  [
+    `(:boolean.not ~ (:boolean.type ~> :boolean.type))(false)`,
+    either.makeRight('true'),
+  ],
+  [
+    `:boolean.not ~ (:boolean.type ~> :integer.type)`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

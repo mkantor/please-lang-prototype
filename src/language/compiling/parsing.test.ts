@@ -61,6 +61,36 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
     ),
   ],
   [
+    'a ~> b',
+    either.makeRight(
+      syntaxTree({
+        '0': '@signature',
+        '1': {
+          parameter: 'a',
+          return: 'b',
+        },
+      }),
+    ),
+  ],
+  [
+    'a ~> b ~> c',
+    either.makeRight(
+      syntaxTree({
+        '0': '@signature',
+        '1': {
+          parameter: 'a',
+          return: {
+            '0': '@signature',
+            '1': {
+              parameter: 'b',
+              return: 'c',
+            },
+          },
+        },
+      }),
+    ),
+  ],
+  [
     '(a => a)(a)',
     either.makeRight(
       syntaxTree({

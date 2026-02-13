@@ -11,7 +11,6 @@ import {
   zeroOrMore,
 } from '@matt.kantor/parsing'
 import {
-  arrow,
   atSign,
   backslash,
   closingBlockCommentDelimiter,
@@ -21,10 +20,12 @@ import {
   comma,
   escapedBackslash,
   escapedQuote,
+  functionArrow,
   openingBlockCommentDelimiter,
   openingBrace,
   openingParenthesis,
   quote,
+  signatureArrow,
   singleLineCommentDelimiter,
 } from './literals.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
@@ -33,7 +34,8 @@ import { whitespace } from './trivia.js'
 export type Atom = string
 
 const atomComponentsRequiringQuotation = [
-  arrow,
+  functionArrow,
+  signatureArrow,
   atSign,
   backslash,
   closingBlockCommentDelimiter,

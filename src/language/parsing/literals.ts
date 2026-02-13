@@ -1,6 +1,7 @@
 import { literal } from '@matt.kantor/parsing'
 
-export const arrow = literal('=>')
+export const functionArrow = literal('=>')
+export const signatureArrow = literal('~>')
 export const asterisk = literal('*')
 export const atSign = literal('@')
 export const backslash = literal('\\')

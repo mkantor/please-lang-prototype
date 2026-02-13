@@ -1,4 +1,5 @@
 import {
+  flatMap,
   lazy,
   map,
   nothing,
@@ -17,14 +18,15 @@ import {
   type Atom,
 } from './atom.js'
 import {
-  arrow,
   atSign,
   closingBrace,
   colon,
   comma,
   dot,
+  functionArrow,
   newline,
   openingBrace,
+  signatureArrow,
 } from './literals.js'
 import {
   optionallySurroundedByParentheses,
@@ -75,6 +77,38 @@ const trailingIndexesAndArgumentsToExpression = (
         }
     }
   }, root)
+
+const signatureTokensToExpression = (
+  tokens: readonly [Atom | Molecule, ...(Atom | Molecule)[], Atom | Molecule],
+): Molecule | Atom => {
+  const [lastReturnType, lastParameterType, ...additionalParameterTypes] =
+    tokens.toReversed()
+
+  if (lastReturnType === undefined) {
+    throw new Error('Signature return type did not exist. This is a bug!')
+  }
+  if (lastParameterType === undefined) {
+    throw new Error('Signature parameter type did not exist. This is a bug!')
+  }
+
+  const initialSignature = {
+    0: '@signature',
+    1: {
+      parameter: lastParameterType,
+      return: lastReturnType,
+    },
+  }
+  return additionalParameterTypes.reduce(
+    (expression, additionalParameter) => ({
+      0: '@signature',
+      1: {
+        parameter: additionalParameter,
+        return: expression,
+      },
+    }),
+    initialSignature,
+  )
+}
 
 type InfixOperator = readonly [Atom, readonly TrailingIndexOrArgument[]]
 type InfixOperand = Atom | Molecule
@@ -242,6 +276,9 @@ type TrailingIndexOrArgument =
 const dottedKeyPath = oneOrMore(dottedKeyPathComponent)
 const compactDottedKeyPath = oneOrMore(compactDottedKeyPathComponent)
 
+// .a
+// (1)
+// .a(1).b.c(2)(3)
 const trailingIndexesAndArguments: Parser<readonly TrailingIndexOrArgument[]> =
   zeroOrMore(
     oneOf([
@@ -294,6 +331,29 @@ const compactExpression: Parser<Molecule | Atom> = oneOf([
   atom,
 ])
 
+// ~> z
+// ~> {}
+// ~> (1 ~> true ~> {})
+// ~> :boolean.type ~> :boolean.type ~> :boolean.type
+// ~> :integer.type
+// ~> {}
+const trailingSignatureTokens = map(
+  sequence([
+    trivia,
+    signatureArrow,
+    trivia,
+    zeroOrMore(
+      map(
+        sequence([lazy(() => expression), trivia, signatureArrow, trivia]),
+        ([parameter, _trivia1, _arrow, _trivia2]) => parameter,
+      ),
+    ),
+    lazy(() => expression),
+  ]),
+  ([_trivia1, _arrow, _trivia2, trailingParameterTypes, returnType]) =>
+    [...trailingParameterTypes, returnType] as const,
+)
+
 const trailingInfixTokens = oneOrMore(
   map(
     oneOf([
@@ -327,20 +387,20 @@ const trailingInfixTokens = oneOrMore(
   ),
 )
 
-const precededByAtomThenArrow = map(
+// a => :b
+// a => {}
+// a => (b => c => :d)
+// a => b => c => d
+// a => 1 + 1
+const precededByAtomThenFunctionArrow = map(
   sequence([
     atom,
-    // a => :b
-    // a => {}
-    // a => (b => c => :d)
-    // a => b => c => d
-    // a => 1 + 1
     trivia,
-    arrow,
+    functionArrow,
     trivia,
     zeroOrMore(
       map(
-        sequence([atom, trivia, arrow, trivia]),
+        sequence([atom, trivia, functionArrow, trivia]),
         ([parameter, _trivia1, _arrow, _trivia2]) => parameter,
       ),
     ),
@@ -439,26 +499,29 @@ const precededByOpeningBrace = map(
     ),
 )
 
-export const expression: Parser<Atom | Molecule> = map(
-  sequence([
-    oneOf([
-      precededByOpeningParenthesis,
-      precededByOpeningBrace,
-      precededByAtSign,
-      precededByColonThenAtom,
-      precededByAtomThenArrow,
-      atom,
-    ]),
-    optional(trailingInfixTokens),
+export const expression: Parser<Atom | Molecule> = flatMap(
+  oneOf([
+    precededByOpeningParenthesis,
+    precededByOpeningBrace,
+    precededByAtSign,
+    precededByColonThenAtom,
+    precededByAtomThenFunctionArrow,
+    atom,
   ]),
-  ([initialExpression, trailingInfixTokens]) => {
-    if (trailingInfixTokens === undefined) {
-      return initialExpression
-    } else {
-      return infixTokensToExpression([
-        initialExpression,
-        ...trailingInfixTokens.flat(),
-      ])
-    }
-  },
+  initialExpression =>
+    oneOf([
+      map(trailingInfixTokens, trailingInfixTokens =>
+        infixTokensToExpression([
+          initialExpression,
+          ...trailingInfixTokens.flat(),
+        ]),
+      ),
+      map(trailingSignatureTokens, trailingSignatureTokens =>
+        signatureTokensToExpression([
+          initialExpression,
+          ...trailingSignatureTokens,
+        ]),
+      ),
+      map(nothing, _ => initialExpression),
+    ]),
 )
