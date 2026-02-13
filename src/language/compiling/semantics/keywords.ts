@@ -7,6 +7,7 @@ import { indexKeywordHandler } from './keyword-handlers/index-handler.js'
 import { lookupKeywordHandler } from './keyword-handlers/lookup-handler.js'
 import { panicKeywordHandler } from './keyword-handlers/panic-handler.js'
 import { runtimeKeywordHandler } from './keyword-handlers/runtime-handler.js'
+import { signatureKeywordHandler } from './keyword-handlers/signature-handler.js'
 import { todoKeywordHandler } from './keyword-handlers/todo-handler.js'
 import { unionKeywordHandler } from './keyword-handlers/union-handler.js'
 
@@ -50,6 +51,11 @@ export const keywordHandlers: KeywordHandlers = {
    * Defers evaluation until runtime.
    */
   '@runtime': runtimeKeywordHandler,
+
+  /**
+   * Creates a function signature.
+   */
+  '@signature': signatureKeywordHandler,
 
   /**
    * Ignores all properties and evaluates to an empty object.

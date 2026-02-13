@@ -395,8 +395,16 @@ export const literalTypeFromSemanticGraph = (
       })
     }
   } else if (typeof node === 'function') {
-    return literalTypeFromSemanticGraph(node)
+    return either.makeRight({
+      name: '',
+      kind: 'function',
+      signature: node.signature,
+    })
   } else {
+    // TODO: It would be nice to use `readUnionExpression` &
+    // `readSignatureExpression` here, but directly importing values from the
+    // *-expression.ts modules causes a dependency cycle. This needs
+    // investigation.
     if (isKeywordExpressionWithArgument('@union', node)) {
       let members = new Set<Atom | Exclude<Type, UnionType>>()
       for (const result of Object.values(node[1]).map(
@@ -419,6 +427,39 @@ export const literalTypeFromSemanticGraph = (
         kind: 'union',
         members,
       })
+    } else if (isKeywordExpressionWithArgument('@signature', node)) {
+      const signature = node[1]
+      if (
+        typeof signature === 'object' &&
+        'parameter' in signature &&
+        'return' in signature
+      ) {
+        const parameterSemanticGraph = signature['parameter']
+        const returnSemanticGraph = signature['return']
+        return either.mapLeft(
+          either.flatMap(
+            literalTypeFromSemanticGraph(parameterSemanticGraph),
+            parameterType =>
+              either.map(
+                literalTypeFromSemanticGraph(returnSemanticGraph),
+                returnType => ({
+                  name: '',
+                  kind: 'function',
+                  signature: {
+                    parameter: parameterType,
+                    return: returnType,
+                  },
+                }),
+              ),
+          ),
+          error => ({ kind: 'bug', message: error.message }),
+        )
+      } else {
+        return either.makeLeft({
+          kind: 'bug',
+          message: 'signature did not have the expected structure',
+        })
+      }
     } else {
       // `node` is an object type.
       const children: Writable<ObjectType['children']> = {}

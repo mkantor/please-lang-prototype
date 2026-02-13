@@ -82,6 +82,7 @@ export const ifKeywordHandler: KeywordHandler = (
                 '@index': doNotElaborate,
                 '@panic': doNotElaborate,
                 '@runtime': doNotElaborate,
+                '@signature': doNotElaborate,
                 '@todo': doNotElaborate,
                 '@union': doNotElaborate,
               },
