@@ -27,6 +27,7 @@ import {
   newline,
   openingBrace,
   signatureArrow,
+  unionBar,
 } from './literals.js'
 import {
   optionallySurroundedByParentheses,
@@ -108,6 +109,16 @@ const signatureTokensToExpression = (
     }),
     initialSignature,
   )
+}
+
+const unionTokensToExpression = (
+  tokens: readonly [Atom | Molecule, ...(Atom | Molecule)[], Atom | Molecule],
+): Molecule | Atom => {
+  const members: Record<number, Atom | Molecule> = { ...tokens }
+  return {
+    0: '@union',
+    1: members,
+  }
 }
 
 type InfixOperator = readonly [Atom, readonly TrailingIndexOrArgument[]]
@@ -354,6 +365,26 @@ const trailingSignatureTokens = map(
     [...trailingParameterTypes, returnType] as const,
 )
 
+// | a
+// | 1 | true | {}
+// | :boolean.type | :integer.type | a
+const trailingUnionTokens = map(
+  sequence([
+    trivia,
+    unionBar,
+    trivia,
+    zeroOrMore(
+      map(
+        sequence([lazy(() => expression), trivia, unionBar, trivia]),
+        ([member, _trivia1, _bar, _trivia2]) => member,
+      ),
+    ),
+    lazy(() => expression),
+  ]),
+  ([_trivia1, _bar, _trivia2, trailingMembers, lastMember]) =>
+    [...trailingMembers, lastMember] as const,
+)
+
 const trailingInfixTokens = oneOrMore(
   map(
     oneOf([
@@ -521,6 +552,9 @@ export const expression: Parser<Atom | Molecule> = flatMap(
           initialExpression,
           ...trailingSignatureTokens,
         ]),
+      ),
+      map(trailingUnionTokens, trailingUnionTokens =>
+        unionTokensToExpression([initialExpression, ...trailingUnionTokens]),
       ),
       map(nothing, _ => initialExpression),
     ]),

@@ -27,6 +27,7 @@ import {
   quote,
   signatureArrow,
   singleLineCommentDelimiter,
+  unionBar,
 } from './literals.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
 import { whitespace } from './trivia.js'
@@ -48,6 +49,7 @@ const atomComponentsRequiringQuotation = [
   openingParenthesis,
   quote,
   singleLineCommentDelimiter,
+  unionBar,
   whitespace,
 
   // Reserved for future use:
@@ -58,11 +60,21 @@ const atomComponentsRequiringQuotation = [
   literal(';'),
 ] as const
 
+// This is less than ideal, but I want to allow these standard library functions
+// as infix operators without quotation, despite containing `|` which normally
+// requires quotation.
+const completeAtomsExemptedFromQuotationRequirements = [
+  literal('|>'),
+  literal('<|'), // Not in use by the standard library, but allowed for symmetry.
+  literal('||'),
+] as const
+
 export const atomWithAdditionalQuotationRequirements = (
   additionalQuoteRequiringComponent: Parser<unknown>,
 ) =>
   optionallySurroundedByParentheses(
     oneOf([
+      ...completeAtomsExemptedFromQuotationRequirements,
       map(
         oneOrMore(
           butNot(
@@ -111,5 +123,9 @@ const quotedAtomParser = map(
 )
 
 export const atom: Parser<Atom> = optionallySurroundedByParentheses(
-  oneOf([unquotedAtomParser, quotedAtomParser]),
+  oneOf([
+    ...completeAtomsExemptedFromQuotationRequirements,
+    unquotedAtomParser,
+    quotedAtomParser,
+  ]),
 )
