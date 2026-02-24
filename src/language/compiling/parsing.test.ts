@@ -1,4 +1,5 @@
 import either from '@matt.kantor/either'
+import assert from 'node:assert'
 import { withPhantomData } from '../../phantom-data.js'
 import { testCases } from '../../test-utilities.test.js'
 import { canonicalize, type Atom, type Molecule } from '../parsing.js'
@@ -8,7 +9,9 @@ const syntaxTree = withPhantomData<never>()<Atom | Molecule>
 
 testCases(parse, input => `parsing \`${input}\``)('parsing', [
   ['a', either.makeRight(syntaxTree('a'))],
+
   ['{}', either.makeRight(syntaxTree({}))],
+
   [
     ':a',
     either.makeRight(
@@ -18,6 +21,7 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
       }),
     ),
   ],
+
   [
     '{}.a',
     either.makeRight(
@@ -30,6 +34,7 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
       }),
     ),
   ],
+
   [
     'a => b',
     either.makeRight(
@@ -60,6 +65,7 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
       }),
     ),
   ],
+
   [
     'a ~> b',
     either.makeRight(
@@ -90,6 +96,7 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
       }),
     ),
   ],
+
   [
     '(a => a)(a)',
     either.makeRight(
@@ -108,6 +115,7 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
       }),
     ),
   ],
+
   [
     '1 + 1',
     either.makeRight(
@@ -129,6 +137,27 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
       }),
     ),
   ],
+
+  [
+    'a | b',
+    either.makeRight(
+      syntaxTree({
+        0: '@union',
+        1: { 0: 'a', 1: 'b' },
+      }),
+    ),
+  ],
+
+  // `|`s in atoms must generally be quoted, with a few exceptions.
+  ['|', result => assert(either.isLeft(result))],
+  ['"|"', either.makeRight(syntaxTree('|'))],
+  ['||', either.makeRight(syntaxTree('||'))],
+  ['|>', either.makeRight(syntaxTree('|>'))],
+  ['<|', either.makeRight(syntaxTree('<|'))],
+  ['||invalid', result => assert(either.isLeft(result))],
+  ['invalid||', result => assert(either.isLeft(result))],
+  ['"||valid"', either.makeRight(syntaxTree('||valid'))],
+  ['"valid||"', either.makeRight(syntaxTree('valid||'))],
 ])
 
 testCases(canonicalize, input => `canonicalizing \`${JSON.stringify(input)}\``)(
