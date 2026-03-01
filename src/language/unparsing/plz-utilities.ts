@@ -2,7 +2,7 @@ import either, { type Either, type Right } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import parsing from '@matt.kantor/parsing'
 import { styleText } from 'node:util'
-import type { UnserializableValueError } from '../errors.js'
+import type { ElaborationError, UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { unquotedAtomParser } from '../parsing/atom.js'
 import {
@@ -44,50 +44,33 @@ export const moleculeUnparser =
       expression: Molecule,
       context: Context,
     ) => Either<UnserializableValueError, string>,
-  ) =>
-  (value: Molecule): Either<UnserializableValueError, string> => {
-    const context: Context = {
-      unparseAtomOrMolecule,
-      semanticContext,
-    }
-    switch (value['0']) {
-      case '@apply':
-        return either.match(readApplyExpression(asSemanticGraph(value)), {
-          left: _ => unparseSugarFreeMolecule(value, context),
-          right: applyExpression =>
-            unparseSugaredApply(applyExpression, context),
-        })
-      case '@function':
-        return either.match(readFunctionExpression(asSemanticGraph(value)), {
-          left: _ => unparseSugarFreeMolecule(value, context),
-          right: functionExpression =>
-            unparseSugaredFunction(functionExpression, context),
-        })
-      case '@index':
-        return either.match(readIndexExpression(asSemanticGraph(value)), {
-          left: _ => unparseSugarFreeMolecule(value, context),
-          right: indexExpression =>
-            unparseSugaredIndex(indexExpression, context),
-        })
-      case '@lookup':
-        return either.match(readLookupExpression(asSemanticGraph(value)), {
-          left: _ => unparseSugarFreeMolecule(value, context),
-          right: lookupExpression =>
-            unparseSugaredLookup(lookupExpression, context),
-        })
-      default:
-        const potentialKeywordExpression = asSemanticGraph(value)
-        if (isExpression(potentialKeywordExpression)) {
-          const result = unparseSugaredGeneralizedKeywordExpression(
-            potentialKeywordExpression,
-            context,
-          )
-          return either.flatMapLeft(result, _ =>
-            unparseSugarFreeMolecule(value, context),
-          )
-        } else {
-          return unparseSugarFreeMolecule(value, context)
-        }
+  ) => {
+    const context: Context = { unparseAtomOrMolecule, semanticContext }
+    const sugar = unparseSugaredExpression(context, unparseSugarFreeMolecule)
+    return (value: Molecule): Either<UnserializableValueError, string> => {
+      switch (value['0']) {
+        case '@apply':
+          return sugar(value, readApplyExpression, unparseSugaredApply)
+        case '@function':
+          return sugar(value, readFunctionExpression, unparseSugaredFunction)
+        case '@index':
+          return sugar(value, readIndexExpression, unparseSugaredIndex)
+        case '@lookup':
+          return sugar(value, readLookupExpression, unparseSugaredLookup)
+        default:
+          const potentialKeywordExpression = asSemanticGraph(value)
+          if (isExpression(potentialKeywordExpression)) {
+            const result = unparseSugaredGeneralizedKeywordExpression(
+              potentialKeywordExpression,
+              context,
+            )
+            return either.flatMapLeft(result, _ =>
+              unparseSugarFreeMolecule(value, context),
+            )
+          } else {
+            return unparseSugarFreeMolecule(value, context)
+          }
+      }
     }
   }
 
@@ -286,6 +269,34 @@ const unparseSugaredApply = (
     )
   })
 }
+
+const unparseSugaredExpression =
+  (
+    context: Context,
+    unparseSugarFreeMolecule: (
+      expression: Molecule,
+      context: Context,
+    ) => Either<UnserializableValueError, string>,
+  ) =>
+  <
+    SpecificExpression extends ObjectNode & {
+      readonly 0: `@${string}`
+      readonly 1?: {}
+    },
+  >(
+    value: Molecule,
+    readSpecificExpression: (
+      node: SemanticGraph,
+    ) => Either<ElaborationError, SpecificExpression>,
+    unparseSpecificExpression: (
+      expression: SpecificExpression,
+      context: Context,
+    ) => Either<UnserializableValueError, string>,
+  ) =>
+    either.match(readSpecificExpression(asSemanticGraph(value)), {
+      left: _ => unparseSugarFreeMolecule(value, context),
+      right: expression => unparseSpecificExpression(expression, context),
+    })
 
 const unparseSugaredFunction = (
   expression: FunctionExpression,
