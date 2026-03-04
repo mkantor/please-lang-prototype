@@ -32,6 +32,7 @@ export const punctuation = (styleText: typeof util.styleText) => ({
   quote: styleText('dim', '"'),
   colon: styleText('dim', ':'),
   comma: styleText('dim', ','),
+  unionBar: styleText('dim', '|'),
   openBrace: styleText('dim', '{'),
   closeBrace: styleText('dim', '}'),
   openGroupingParenthesis: styleText('dim', '('),
@@ -39,5 +40,6 @@ export const punctuation = (styleText: typeof util.styleText) => ({
 
   openApplyParenthesis: styleText(['dim', applyColor], '('),
   closeApplyParenthesis: styleText(['dim', applyColor], ')'),
-  arrow: styleText(functionColor, '=>'),
+  functionArrow: styleText(functionColor, '=>'),
+  signatureArrow: styleText(functionColor, '~>'),
 })
