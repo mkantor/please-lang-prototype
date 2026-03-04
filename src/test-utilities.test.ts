@@ -1,6 +1,11 @@
 import assert from 'node:assert'
 import test, { suite } from 'node:test'
 
+// Disable colors. This yields more readable test failure messages, at the cost
+// of not being able to test colors.
+delete process.env['FORCE_COLOR']
+process.env['NO_COLOR'] = 'true'
+
 type UnknownFunction = (...args: never) => unknown
 
 const testNameLengthLimit = 100
