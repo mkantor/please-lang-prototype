@@ -342,12 +342,11 @@ const compactExpression: Parser<Molecule | Atom> = oneOf([
   atom,
 ])
 
-// ~> z
+// ~> a
 // ~> {}
 // ~> (1 ~> true ~> {})
 // ~> :boolean.type ~> :boolean.type ~> :boolean.type
 // ~> :integer.type
-// ~> {}
 const trailingSignatureTokens = map(
   sequence([
     trivia,
