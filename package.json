@@ -18,7 +18,7 @@
     "test-update-snapshots": "npm run build:tests && node --test --no-experimental-strip-types --test-update-snapshots"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.5.0",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3"
   },
@@ -26,7 +26,7 @@
     "@matt.kantor/either": "^1.2.0",
     "@matt.kantor/option": "^1.0.0",
     "@matt.kantor/parsing": "^2.0.0",
-    "strip-ansi": "^7.1.2"
+    "strip-ansi": "^7.2.0"
   },
   "engines": {
     "node": ">=22.18"
