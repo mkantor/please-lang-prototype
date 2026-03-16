@@ -14,12 +14,14 @@ import { nodeTag } from './semantic-graph-node-tag.js'
 import { serialize, type Output, type SemanticGraph } from './semantic-graph.js'
 import { type FunctionType } from './type-system/type-formats.js'
 
-export type FunctionNode = ((
+export type FunctionNodeCallSignature = (
   value: SemanticGraph,
 ) => Either<
   DependencyUnavailable | TypeMismatchError | Panic | Bug,
   SemanticGraph
->) & {
+>
+
+export type FunctionNode = FunctionNodeCallSignature & {
   readonly [nodeTag]: 'function'
   readonly parameterName: Option<Atom>
   readonly signature: FunctionType['signature']

@@ -5,7 +5,10 @@ import {
   keyPathToLookupExpression,
   makeApplyExpression,
 } from '../../semantics.js'
-import { makeFunctionNode } from '../function-node.js'
+import {
+  makeFunctionNode,
+  type FunctionNodeCallSignature,
+} from '../function-node.js'
 import { type NonEmptyKeyPath } from '../key-path.js'
 import {
   containsAnyUnelaboratedNodes,
@@ -14,14 +17,8 @@ import {
 import { type FunctionType } from '../type-system/type-formats.js'
 
 const handleUnavailableDependencies =
-  (
-    f: (
-      argument: SemanticGraph,
-    ) => Either<DependencyUnavailable | Panic, SemanticGraph>,
-  ) =>
-  (
-    argument: SemanticGraph,
-  ): Either<DependencyUnavailable | Panic, SemanticGraph> => {
+  (f: FunctionNodeCallSignature) =>
+  (argument: SemanticGraph): ReturnType<FunctionNodeCallSignature> => {
     if (containsAnyUnelaboratedNodes(argument)) {
       return either.makeLeft({
         kind: 'dependencyUnavailable',
@@ -55,16 +52,67 @@ export const serializeTwiceAppliedFunction =
       }),
     )
 
-export const preludeFunction = (
+export const preludeFunctionArity1 = (
   keyPath: NonEmptyKeyPath,
   signature: FunctionType['signature'],
-  f: (
-    value: SemanticGraph,
-  ) => Either<DependencyUnavailable | Panic, SemanticGraph>,
+  f: FunctionNodeCallSignature,
 ) =>
   makeFunctionNode(
     signature,
     () => either.makeRight(keyPathToLookupExpression(keyPath)),
     option.none,
     handleUnavailableDependencies(f),
+  )
+
+export const preludeFunctionArity2 = (
+  keyPath: NonEmptyKeyPath,
+  signature1: FunctionType['signature'],
+  signature2: FunctionType['signature'],
+  f: (
+    argument1: SemanticGraph,
+  ) => Either<DependencyUnavailable | Panic, FunctionNodeCallSignature>,
+) =>
+  preludeFunctionArity1(keyPath, signature1, argument1 =>
+    either.map(f(argument1), f1 =>
+      makeFunctionNode(
+        signature2,
+        serializeOnceAppliedFunction(keyPath, argument1),
+        option.none,
+        handleUnavailableDependencies(f1),
+      ),
+    ),
+  )
+
+export const preludeFunctionArity3 = (
+  keyPath: NonEmptyKeyPath,
+  signature1: FunctionType['signature'],
+  signature2: FunctionType['signature'],
+  signature3: FunctionType['signature'],
+  f: (
+    argument1: SemanticGraph,
+  ) => Either<
+    DependencyUnavailable | Panic,
+    (
+      argument2: SemanticGraph,
+    ) => Either<DependencyUnavailable | Panic, FunctionNodeCallSignature>
+  >,
+) =>
+  preludeFunctionArity1(keyPath, signature1, argument1 =>
+    either.map(f(argument1), f1 =>
+      makeFunctionNode(
+        signature2,
+        serializeOnceAppliedFunction(keyPath, argument1),
+        option.none,
+        handleUnavailableDependencies(argument2 =>
+          either.map(f1(argument2), f2 =>
+            makeFunctionNode(
+              signature3,
+              serializeTwiceAppliedFunction(keyPath, argument1, argument2),
+              option.none,
+              handleUnavailableDependencies(f2),
+            ),
+          ),
+        ),
+      ),
+    ),
   )

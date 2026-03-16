@@ -1,7 +1,7 @@
 import either from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { Atom } from '../../parsing.js'
-import { isFunctionNode, makeFunctionNode } from '../function-node.js'
+import { isFunctionNode } from '../function-node.js'
 import { isSemanticGraph } from '../is-semantic-graph.js'
 import {
   isObjectNode,
@@ -20,9 +20,9 @@ import {
 } from '../type-system/type-formats.js'
 import { literalTypeFromSemanticGraph } from '../type-system/type-utilities.js'
 import {
-  preludeFunction,
-  serializeOnceAppliedFunction,
-  serializeTwiceAppliedFunction,
+  preludeFunctionArity1,
+  preludeFunctionArity2,
+  preludeFunctionArity3,
 } from './stdlib-utilities.js'
 
 const A = makeTypeParameter('a', { assignableTo: types.something })
@@ -41,13 +41,13 @@ const nodeIsTagged = (node: SemanticGraph): node is TaggedNode =>
   node['value'] !== undefined
 
 export const globalFunctions = {
-  identity: preludeFunction(
+  identity: preludeFunctionArity1(
     ['identity'],
     { parameter: A, return: A },
     either.makeRight,
   ),
 
-  apply: preludeFunction(
+  apply: preludeFunctionArity2(
     ['apply'],
     {
       // a => ((a => b) => b)
@@ -57,32 +57,26 @@ export const globalFunctions = {
         return: B,
       }),
     },
+    {
+      parameter: types.functionType,
+      return: types.something,
+    },
     argument =>
-      either.makeRight(
-        makeFunctionNode(
-          {
-            parameter: types.functionType,
-            return: types.something,
-          },
-          serializeOnceAppliedFunction(['apply'], argument),
-          option.none,
-          functionToApply => {
-            if (!isFunctionNode(functionToApply)) {
-              return either.makeLeft({
-                kind: 'panic',
-                message: 'expected a function',
-              })
-            } else {
-              return functionToApply(argument)
-            }
-          },
-        ),
-      ),
+      either.makeRight(functionToApply => {
+        if (!isFunctionNode(functionToApply)) {
+          return either.makeLeft({
+            kind: 'panic',
+            message: 'expected a function',
+          })
+        } else {
+          return functionToApply(argument)
+        }
+      }),
   ),
 
   // a => something => a
   // terminates with a `typeMismatch` error the value doesn't typecheck
-  assume: preludeFunction(
+  assume: preludeFunctionArity2(
     ['assume'],
     {
       parameter: A,
@@ -91,44 +85,47 @@ export const globalFunctions = {
         return: A,
       }),
     },
+    {
+      parameter: types.something,
+      return: A,
+    },
     type =>
-      either.makeRight(
-        makeFunctionNode(
-          {
-            parameter: types.something,
-            return: A,
-          },
-          serializeOnceAppliedFunction(['assume'], type),
-          option.none,
-          value =>
-            either.flatMap(literalTypeFromSemanticGraph(value), valueAsType =>
-              either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
-                if (
-                  isAssignable({
-                    source: valueAsType,
-                    target: typeAsType,
-                  })
-                ) {
-                  return either.makeRight(value)
-                } else {
-                  return either.makeLeft({
-                    kind: 'typeMismatch',
-                    message: `the value \`${stringifySemanticGraphForEndUser(
-                      value,
-                    )}\` is not assignable to the type \`${showType(
-                      typeAsType,
-                    )}\``,
-                  })
-                }
-              }),
-            ),
+      either.makeRight(value =>
+        either.flatMap(literalTypeFromSemanticGraph(value), valueAsType =>
+          either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
+            if (
+              isAssignable({
+                source: valueAsType,
+                target: typeAsType,
+              })
+            ) {
+              return either.makeRight(value)
+            } else {
+              return either.makeLeft({
+                kind: 'typeMismatch',
+                message: `the value \`${stringifySemanticGraphForEndUser(
+                  value,
+                )}\` is not assignable to the type \`${showType(typeAsType)}\``,
+              })
+            }
+          }),
         ),
       ),
   ),
 
   // (b => c) => (a => b) => (a => c)
-  flow: preludeFunction(
+  flow: preludeFunctionArity3(
     ['flow'],
+    {
+      // TODO
+      parameter: types.something,
+      return: types.something,
+    },
+    {
+      // TODO
+      parameter: types.something,
+      return: types.something,
+    },
     {
       // TODO
       parameter: types.something,
@@ -141,49 +138,29 @@ export const globalFunctions = {
           message: 'argument must be a function',
         })
       } else {
-        return either.makeRight(
-          makeFunctionNode(
-            {
-              // TODO
-              parameter: types.something,
-              return: types.something,
-            },
-            serializeOnceAppliedFunction(['flow'], secondFunction),
-            option.none,
-            firstFunction => {
-              if (!isFunctionNode(firstFunction)) {
-                return either.makeLeft({
-                  kind: 'panic',
-                  message: 'argument must be a function',
-                })
-              } else {
-                return either.makeRight(
-                  makeFunctionNode(
-                    {
-                      // TODO
-                      parameter: types.something,
-                      return: types.something,
-                    },
-                    serializeTwiceAppliedFunction(
-                      ['flow'],
-                      secondFunction,
-                      firstFunction,
-                    ),
-                    option.none,
-                    argument =>
-                      either.flatMap(firstFunction(argument), secondFunction),
-                  ),
-                )
-              }
-            },
-          ),
-        )
+        return either.makeRight(firstFunction => {
+          if (!isFunctionNode(firstFunction)) {
+            return either.makeLeft({
+              kind: 'panic',
+              message: 'argument must be a function',
+            })
+          } else {
+            return either.makeRight(argument =>
+              either.flatMap(firstFunction(argument), secondFunction),
+            )
+          }
+        })
       }
     },
   ),
 
-  match: preludeFunction(
+  match: preludeFunctionArity2(
     ['match'],
+    {
+      // TODO
+      parameter: types.something,
+      return: types.something,
+    },
     {
       // TODO
       parameter: types.something,
@@ -196,40 +173,26 @@ export const globalFunctions = {
           message: 'match cases must be an object',
         })
       } else {
-        return either.makeRight(
-          makeFunctionNode(
-            {
-              // TODO
-              parameter: types.something,
-              return: types.something,
-            },
-            serializeOnceAppliedFunction(['match'], cases),
-            option.none,
-            argument => {
-              if (!nodeIsTagged(argument)) {
-                return either.makeLeft({
-                  kind: 'panic',
-                  message: 'argument was not tagged',
-                })
-              } else {
-                const relevantCase = lookupPropertyOfObjectNode(
-                  argument.tag,
-                  cases,
-                )
-                if (option.isNone(relevantCase)) {
-                  return either.makeLeft({
-                    kind: 'panic',
-                    message: `case for tag '${argument.tag}' was not defined`,
-                  })
-                } else {
-                  return !isFunctionNode(relevantCase.value) ?
-                      either.makeRight(relevantCase.value)
-                    : relevantCase.value(argument.value)
-                }
-              }
-            },
-          ),
-        )
+        return either.makeRight(argument => {
+          if (!nodeIsTagged(argument)) {
+            return either.makeLeft({
+              kind: 'panic',
+              message: 'argument was not tagged',
+            })
+          } else {
+            const relevantCase = lookupPropertyOfObjectNode(argument.tag, cases)
+            if (option.isNone(relevantCase)) {
+              return either.makeLeft({
+                kind: 'panic',
+                message: `case for tag '${argument.tag}' was not defined`,
+              })
+            } else {
+              return !isFunctionNode(relevantCase.value) ?
+                  either.makeRight(relevantCase.value)
+                : relevantCase.value(argument.value)
+            }
+          }
+        })
       }
     },
   ),
