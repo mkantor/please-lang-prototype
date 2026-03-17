@@ -4,7 +4,10 @@ import {
   asSemanticGraph,
   containsAnyUnelaboratedNodes,
   elaborateWithContext,
+  isExpression,
+  isObjectNode,
   makeIfExpression,
+  makeObjectNode,
   readIfExpression,
   serialize,
   type Expression,
@@ -112,11 +115,31 @@ export const ifKeywordHandler: KeywordHandler = (
               _error => ifExpression[1].else,
             )
 
+            const elaborateNestedIfLookups = (
+              branch: SemanticGraph,
+            ): SemanticGraph =>
+              isExpression(branch) && branch['0'] === '@if' ?
+                either.unwrapOrElse(
+                  ifKeywordHandler(branch, contextWhichOnlyElaboratesLookups),
+                  _error => branch,
+                )
+              : isExpression(branch) && branch['0'] === '@function' ? branch
+              : isObjectNode(branch) ?
+                makeObjectNode(
+                  Object.fromEntries(
+                    Object.entries(branch).map(([key, value]) => [
+                      key,
+                      elaborateNestedIfLookups(value),
+                    ]),
+                  ),
+                )
+              : branch
+
             return either.makeRight(
               makeIfExpression({
                 condition: asSemanticGraph(condition),
-                then: thenWithElaboratedLookups,
-                else: elseWithElaboratedLookups,
+                then: elaborateNestedIfLookups(thenWithElaboratedLookups),
+                else: elaborateNestedIfLookups(elseWithElaboratedLookups),
               }),
             )
           } else {

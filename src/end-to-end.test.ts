@@ -104,6 +104,21 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
     }.output`,
     either.makeRight('42'),
   ],
+  [
+    `(a => {
+      my_function: b => @if {
+        :b > :a
+        then: @panic "should not go down this branch"
+        else: 2 + @if {
+          :b > 1
+          then: @panic "should not go down this branch either"
+          else: 3
+        }
+      }
+      return: :my_function(0)
+    })(2).return`,
+    either.makeRight('5'),
+  ],
 ])
 
 testCases(endToEnd, code => code)('end-to-end tests', [
