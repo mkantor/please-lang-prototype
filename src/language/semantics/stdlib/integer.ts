@@ -120,7 +120,7 @@ export const integer = {
       parameter: types.integer,
       return: makeFunctionType('', {
         parameter: types.integer,
-        return: types.integer,
+        return: types.boolean,
       }),
     },
     {
@@ -160,7 +160,7 @@ export const integer = {
       parameter: types.integer,
       return: makeFunctionType('', {
         parameter: types.integer,
-        return: types.integer,
+        return: types.boolean,
       }),
     },
     {
