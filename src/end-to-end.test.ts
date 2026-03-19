@@ -119,6 +119,28 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
     })(2).return`,
     either.makeRight('5'),
   ],
+  [
+    `{
+      count: limit => {
+        count_internal: state => @if {
+          :state.current > :limit
+          then: :state.output
+          else: :count_internal({
+            output: :state.output atom.append :state.current atom.append @if {
+              :state.current > 1
+              then: " (greater than one) "
+              else: " (not greater than one) "
+            }
+            current: :state.current + 1
+          })
+        }
+        return: :count_internal({ current: 0, output: "" })
+      }.return
+    }.count(2)`,
+    either.makeRight(
+      '0 (not greater than one) 1 (not greater than one) 2 (greater than one) ',
+    ),
+  ],
 ])
 
 testCases(endToEnd, code => code)('end-to-end tests', [
