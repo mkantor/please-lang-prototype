@@ -105,11 +105,9 @@ const elaborateWithinMolecule = (
             [...context.location, key],
             _ => elaborationResult.value,
           )
-          if (either.isLeft(programUpdateResult)) {
-            // Immediately bail on error.
-            return elaborationResult
+          if (either.isRight(programUpdateResult)) {
+            updatedProgram = programUpdateResult.value
           }
-          updatedProgram = programUpdateResult.value
           possibleExpressionAsObjectNode[updatedKey] = elaborationResult.value
         }
       }
