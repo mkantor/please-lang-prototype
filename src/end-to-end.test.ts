@@ -752,4 +752,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     `{ 1 integer.equals 1, 1 integer.equals 2 }`,
     either.makeRight({ 0: 'true', 1: 'false' }),
   ],
+  [
+    `{ b: 1, c: 1, d: 1 } object.overlay { a: 1, b: 2, c: 3 }`,
+    either.makeRight({ a: '1', b: '2', c: '3', d: '1' }),
+  ],
 ])

@@ -42,4 +42,36 @@ export const object = {
       }
     },
   ),
+  overlay: preludeFunctionArity2(
+    ['object', 'overlay'],
+    {
+      // TODO
+      parameter: types.object,
+      return: types.something,
+    },
+    {
+      // TODO
+      parameter: types.object,
+      return: types.something,
+    },
+    object2 => {
+      if (typeof object2 !== 'object') {
+        return either.makeLeft({
+          kind: 'panic',
+          message: 'argument was not an object',
+        })
+      } else {
+        return either.makeRight(object1 => {
+          if (!isObjectNode(object1)) {
+            return either.makeLeft({
+              kind: 'panic',
+              message: 'argument was not an object',
+            })
+          } else {
+            return either.makeRight({ ...object1, ...object2 })
+          }
+        })
+      }
+    },
+  ),
 } as const
