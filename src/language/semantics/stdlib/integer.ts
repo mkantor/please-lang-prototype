@@ -54,6 +54,46 @@ export const integer = {
       }
     },
   ),
+  equals: preludeFunctionArity2(
+    ['integer', 'equals'],
+    {
+      parameter: types.integer,
+      return: makeFunctionType('', {
+        parameter: types.integer,
+        return: types.boolean,
+      }),
+    },
+    {
+      parameter: types.integer,
+      return: types.boolean,
+    },
+    number2 => {
+      if (
+        typeof number2 !== 'string' ||
+        !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+      ) {
+        return either.makeLeft({
+          kind: 'panic',
+          message: 'argument was not an integer',
+        })
+      } else {
+        return either.makeRight(number1 => {
+          if (
+            typeof number1 !== 'string' ||
+            !types.integer.isAssignableFrom(makeUnionType('', [number1]))
+          ) {
+            return either.makeLeft({
+              kind: 'panic',
+              message: 'argument was not an integer',
+            })
+          } else {
+            // TODO: See comment in `integer.add`.
+            return either.makeRight(String(BigInt(number1) === BigInt(number2)))
+          }
+        })
+      }
+    },
+  ),
   is: preludeFunctionArity1(
     ['integer', 'is'],
     {

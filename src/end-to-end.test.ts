@@ -748,4 +748,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+  [
+    `{ 1 integer.equals 1, 1 integer.equals 2 }`,
+    either.makeRight({ 0: 'true', 1: 'false' }),
+  ],
 ])
