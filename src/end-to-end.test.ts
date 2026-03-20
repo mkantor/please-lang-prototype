@@ -756,4 +756,5 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     `{ b: 1, c: 1, d: 1 } object.overlay { a: 1, b: 2, c: 3 }`,
     either.makeRight({ a: '1', b: '2', c: '3', d: '1' }),
   ],
+  [`:object.from_property(key)(value)`, either.makeRight({ key: 'value' })],
 ])
