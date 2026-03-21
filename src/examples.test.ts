@@ -20,6 +20,12 @@ const additionalCommandLineArguments: Readonly<
     '--input="not a number"',
     '--input=-1',
   ],
+  'fizzbuzz.plz': [
+    '--input=5',
+    '--input="not a number"',
+    // TODO: Test more inputs (I need to optimize first; this example is
+    // horrendously slow).
+  ],
   // It'd be nice to test CLI arguments for `lookup-environment-variable.plz`
   // too, but I'd need to set a stable/known environment variable to keep the
   // tests portable across different systems.

@@ -1,0 +1,39 @@
+{
+  fizzbuzz: limit => {
+    fizzbuzz_internal: state => @if {
+      :state.current > :limit
+      then: :state.output
+      else: :fizzbuzz_internal({
+        output: :state.output object.overlay :object.from_property(:state.current)(@if {
+          (:state.current % 3 integer.equals 0) && (:state.current % 5 integer.equals 0)
+          then: FizzBuzz
+          else: @if {
+            (:state.current % 3 integer.equals 0)
+            then: Fizz
+            else: @if {
+              :state.current % 5 integer.equals 0
+              then: Buzz
+              else: :state.current
+            }
+          }
+        })
+        current: :state.current + 1
+      })
+    }
+    internal_return: :fizzbuzz_internal({ current: 1, output: {} })
+  }.internal_return
+
+  input: @runtime { context =>
+    // read --input from command-line arguments
+    :context.arguments.lookup(input)
+  }
+
+  output: :input match {
+    none: _ => "missing --input argument"
+    some: input => @if {
+      :natural_number.is(:input)
+      then: :fizzbuzz(:input)
+      else: "--input must be a natural number"
+    }
+  }
+}.output

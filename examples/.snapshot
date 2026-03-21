@@ -83,6 +83,82 @@ exports[`examples > fibonacci.plz > stdout 1`] = `
 
 `;
 
+exports[`examples > fizzbuzz.plz > --input=5 > stderr 1`] = `
+
+`;
+
+exports[`examples > fizzbuzz.plz > --input=5 > stdout 1`] = `
+{
+  1: 1
+  2: 2
+  3: Fizz
+  4: 4
+  5: Buzz
+}
+
+`;
+
+exports[`examples > fizzbuzz.plz > --input=\"not a number\" > stderr 1`] = `
+
+`;
+
+exports[`examples > fizzbuzz.plz > --input=\"not a number\" > stdout 1`] = `
+"--input must be a natural number"
+
+`;
+
+exports[`examples > fizzbuzz.plz > roundtripped syntax tree 1`] = `
+{
+  fizzbuzz: limit => {
+    fizzbuzz_internal: state => @if {
+      (:state.current > :limit)
+      then: :state.output
+      else: :fizzbuzz_internal({
+        output: :state.output object.overlay (@if {
+          (:state.current % 3 integer.equals 0 && (:state.current % 5 integer.equals 0))
+          then: FizzBuzz
+          else: @if {
+            (:state.current % 3 integer.equals 0)
+            then: Fizz
+            else: @if {
+              (:state.current % 5 integer.equals 0)
+              then: Buzz
+              else: :state.current
+            }
+          }
+        } object.from_property :state.current)
+        current: :state.current + 1
+      })
+    }
+    internal_return: :fizzbuzz_internal({
+      current: 1
+      output: {}
+    })
+  }.internal_return
+  input: @runtime {
+    context => :context.arguments.lookup(input)
+  }
+  output: :input match {
+    none: _ => "missing --input argument"
+    some: input => @if {
+      :natural_number.is(:input)
+      then: :fizzbuzz(:input)
+      else: "--input must be a natural number"
+    }
+  }
+}.output
+
+`;
+
+exports[`examples > fizzbuzz.plz > stderr 1`] = `
+
+`;
+
+exports[`examples > fizzbuzz.plz > stdout 1`] = `
+"missing --input argument"
+
+`;
+
 exports[`examples > kitchen-sink.plz > roundtripped syntax tree 1`] = `
 {
   foo: bar
