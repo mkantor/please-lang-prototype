@@ -748,4 +748,13 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+  [
+    `{ 1 integer.equals 1, 1 integer.equals 2 }`,
+    either.makeRight({ 0: 'true', 1: 'false' }),
+  ],
+  [
+    `{ b: 1, c: 1, d: 1 } object.overlay { a: 1, b: 2, c: 3 }`,
+    either.makeRight({ a: '1', b: '2', c: '3', d: '1' }),
+  ],
+  [`:object.from_property(key)(value)`, either.makeRight({ key: 'value' })],
 ])

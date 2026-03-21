@@ -42,4 +42,61 @@ export const object = {
       }
     },
   ),
+  from_property: preludeFunctionArity2(
+    ['object', 'from_property'],
+    {
+      // TODO
+      parameter: types.atom,
+      return: types.something,
+    },
+    {
+      // TODO
+      parameter: types.something,
+      return: types.something,
+    },
+    key => {
+      if (typeof key !== 'string') {
+        return either.makeLeft({
+          kind: 'panic',
+          message: 'key was not an atom',
+        })
+      } else {
+        return either.makeRight(value =>
+          either.makeRight(makeObjectNode({ [key]: value })),
+        )
+      }
+    },
+  ),
+  overlay: preludeFunctionArity2(
+    ['object', 'overlay'],
+    {
+      // TODO
+      parameter: types.object,
+      return: types.something,
+    },
+    {
+      // TODO
+      parameter: types.object,
+      return: types.something,
+    },
+    object2 => {
+      if (typeof object2 !== 'object') {
+        return either.makeLeft({
+          kind: 'panic',
+          message: 'argument was not an object',
+        })
+      } else {
+        return either.makeRight(object1 => {
+          if (!isObjectNode(object1)) {
+            return either.makeLeft({
+              kind: 'panic',
+              message: 'argument was not an object',
+            })
+          } else {
+            return either.makeRight({ ...object1, ...object2 })
+          }
+        })
+      }
+    },
+  ),
 } as const
