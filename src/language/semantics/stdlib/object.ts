@@ -5,6 +5,7 @@ import { preludeFunctionArity2 } from './stdlib-utilities.js'
 
 export const object = {
   type: makeObjectNode({}),
+
   lookup: preludeFunctionArity2(
     ['object', 'lookup'],
     {
@@ -42,6 +43,7 @@ export const object = {
       }
     },
   ),
+
   from_property: preludeFunctionArity2(
     ['object', 'from_property'],
     {
@@ -67,6 +69,7 @@ export const object = {
       }
     },
   ),
+
   overlay: preludeFunctionArity2(
     ['object', 'overlay'],
     {

@@ -8,6 +8,7 @@ import {
 
 export const natural_number = {
   type: types.naturalNumber.symbol,
+
   is: preludeFunctionArity1(
     ['natural_number', 'is'],
     {
@@ -28,6 +29,7 @@ export const natural_number = {
         : 'false',
       ),
   ),
+
   modulo: preludeFunctionArity2(
     ['natural_number', 'modulo'],
     {

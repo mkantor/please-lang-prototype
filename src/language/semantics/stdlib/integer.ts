@@ -8,6 +8,7 @@ import {
 
 export const integer = {
   type: types.integer.symbol,
+
   add: preludeFunctionArity2(
     ['integer', 'add'],
     {
@@ -54,6 +55,7 @@ export const integer = {
       }
     },
   ),
+
   equals: preludeFunctionArity2(
     ['integer', 'equals'],
     {
@@ -94,6 +96,7 @@ export const integer = {
       }
     },
   ),
+
   is: preludeFunctionArity1(
     ['integer', 'is'],
     {
@@ -114,6 +117,7 @@ export const integer = {
         : 'false',
       ),
   ),
+
   greater_than: preludeFunctionArity2(
     ['integer', 'greater_than'],
     {
@@ -154,6 +158,7 @@ export const integer = {
       }
     },
   ),
+
   less_than: preludeFunctionArity2(
     ['integer', 'less_than'],
     {
@@ -194,6 +199,7 @@ export const integer = {
       }
     },
   ),
+
   multiply: preludeFunctionArity2(
     ['integer', 'multiply'],
     {
@@ -234,6 +240,7 @@ export const integer = {
       }
     },
   ),
+
   subtract: preludeFunctionArity2(
     ['integer', 'subtract'],
     {

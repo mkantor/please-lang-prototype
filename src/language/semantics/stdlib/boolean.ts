@@ -15,6 +15,7 @@ const booleanNodeToBoolean = (node: BooleanNode): boolean => node === 'true'
 
 export const boolean = {
   type: makeObjectNode({ 0: '@union', 1: { 0: 'false', 1: 'true' } }),
+
   is: preludeFunctionArity1(
     ['boolean', 'is'],
     {
@@ -23,6 +24,7 @@ export const boolean = {
     },
     argument => either.makeRight(nodeIsBoolean(argument) ? 'true' : 'false'),
   ),
+
   not: preludeFunctionArity1(
     ['boolean', 'not'],
     {
@@ -40,6 +42,7 @@ export const boolean = {
       }
     },
   ),
+
   and: preludeFunctionArity2(
     ['boolean', 'and'],
     {
@@ -75,6 +78,7 @@ export const boolean = {
       }
     },
   ),
+
   or: preludeFunctionArity2(
     ['boolean', 'or'],
     {
