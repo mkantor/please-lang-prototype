@@ -57,10 +57,6 @@ export const globalFunctions = {
         return: B,
       }),
     },
-    {
-      parameter: types.functionType,
-      return: types.something,
-    },
     argument =>
       either.makeRight(functionToApply => {
         if (!isFunctionNode(functionToApply)) {
@@ -84,10 +80,6 @@ export const globalFunctions = {
         parameter: types.something,
         return: A,
       }),
-    },
-    {
-      parameter: types.something,
-      return: A,
     },
     type =>
       either.makeRight(value =>
@@ -119,17 +111,13 @@ export const globalFunctions = {
     {
       // TODO
       parameter: types.something,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.something,
+        return: makeFunctionType('', {
+          parameter: types.something,
+          return: types.something,
+        }),
+      }),
     },
     secondFunction => {
       if (!isFunctionNode(secondFunction)) {
@@ -159,12 +147,10 @@ export const globalFunctions = {
     {
       // TODO
       parameter: types.something,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.something,
+        return: types.something,
+      }),
     },
     cases => {
       if (!isObjectNode(cases)) {

@@ -14,7 +14,7 @@ import {
   containsAnyUnelaboratedNodes,
   type SemanticGraph,
 } from '../semantic-graph.js'
-import { type FunctionType } from '../type-system/type-formats.js'
+import { type FunctionType, type Type } from '../type-system/type-formats.js'
 
 const handleUnavailableDependencies =
   (f: FunctionNodeCallSignature) =>
@@ -66,16 +66,18 @@ export const preludeFunctionArity1 = (
 
 export const preludeFunctionArity2 = (
   keyPath: NonEmptyKeyPath,
-  signature1: FunctionType['signature'],
-  signature2: FunctionType['signature'],
+  signature: {
+    readonly parameter: Type
+    readonly return: FunctionType
+  },
   f: (
     argument1: SemanticGraph,
   ) => Either<DependencyUnavailable | Panic, FunctionNodeCallSignature>,
 ) =>
-  preludeFunctionArity1(keyPath, signature1, argument1 =>
+  preludeFunctionArity1(keyPath, signature, argument1 =>
     either.map(f(argument1), f1 =>
       makeFunctionNode(
-        signature2,
+        signature.return.signature,
         serializeOnceAppliedFunction(keyPath, argument1),
         option.none,
         handleUnavailableDependencies(f1),
@@ -85,9 +87,15 @@ export const preludeFunctionArity2 = (
 
 export const preludeFunctionArity3 = (
   keyPath: NonEmptyKeyPath,
-  signature1: FunctionType['signature'],
-  signature2: FunctionType['signature'],
-  signature3: FunctionType['signature'],
+  signature: {
+    readonly parameter: Type
+    readonly return: FunctionType & {
+      readonly signature: {
+        readonly parameter: Type
+        readonly return: FunctionType
+      }
+    }
+  },
   f: (
     argument1: SemanticGraph,
   ) => Either<
@@ -97,16 +105,16 @@ export const preludeFunctionArity3 = (
     ) => Either<DependencyUnavailable | Panic, FunctionNodeCallSignature>
   >,
 ) =>
-  preludeFunctionArity1(keyPath, signature1, argument1 =>
+  preludeFunctionArity1(keyPath, signature, argument1 =>
     either.map(f(argument1), f1 =>
       makeFunctionNode(
-        signature2,
+        signature.return.signature,
         serializeOnceAppliedFunction(keyPath, argument1),
         option.none,
         handleUnavailableDependencies(argument2 =>
           either.map(f1(argument2), f2 =>
             makeFunctionNode(
-              signature3,
+              signature.return.signature.return.signature,
               serializeTwiceAppliedFunction(keyPath, argument1, argument2),
               option.none,
               handleUnavailableDependencies(f2),

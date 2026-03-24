@@ -15,10 +15,6 @@ export const atom = {
         return: types.atom,
       }),
     },
-    {
-      parameter: types.atom,
-      return: types.atom,
-    },
     atomToAppend => {
       if (typeof atomToAppend !== 'string') {
         return either.makeLeft({
@@ -53,10 +49,6 @@ export const atom = {
         return: types.boolean,
       }),
     },
-    {
-      parameter: types.atom,
-      return: types.boolean,
-    },
     atom2 => {
       if (typeof atom2 !== 'string') {
         return either.makeLeft({
@@ -86,10 +78,6 @@ export const atom = {
         parameter: types.atom,
         return: types.atom,
       }),
-    },
-    {
-      parameter: types.atom,
-      return: types.atom,
     },
     atomToPrepend => {
       if (typeof atomToPrepend !== 'string') {

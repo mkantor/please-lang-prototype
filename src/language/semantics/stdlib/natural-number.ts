@@ -39,10 +39,6 @@ export const natural_number = {
         return: types.naturalNumber,
       }),
     },
-    {
-      parameter: types.naturalNumber,
-      return: types.naturalNumber,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||

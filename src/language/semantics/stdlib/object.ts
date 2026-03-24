@@ -1,6 +1,7 @@
 import either from '@matt.kantor/either'
 import { isObjectNode, makeObjectNode } from '../object-node.js'
 import { types } from '../type-system.js'
+import { makeFunctionType } from '../type-system/type-formats.js'
 import { preludeFunctionArity2 } from './stdlib-utilities.js'
 
 export const object = {
@@ -11,12 +12,10 @@ export const object = {
     {
       // TODO
       parameter: types.atom,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.something,
+        return: types.something,
+      }),
     },
     key => {
       if (typeof key !== 'string') {
@@ -49,12 +48,10 @@ export const object = {
     {
       // TODO
       parameter: types.atom,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.something,
+        return: types.something,
+      }),
     },
     key => {
       if (typeof key !== 'string') {
@@ -75,12 +72,10 @@ export const object = {
     {
       // TODO
       parameter: types.object,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.object,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.object,
+        return: types.something,
+      }),
     },
     object2 => {
       if (typeof object2 !== 'object') {

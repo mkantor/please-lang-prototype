@@ -18,10 +18,6 @@ export const integer = {
         return: types.integer,
       }),
     },
-    {
-      parameter: types.integer,
-      return: types.integer,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -64,10 +60,6 @@ export const integer = {
         parameter: types.integer,
         return: types.boolean,
       }),
-    },
-    {
-      parameter: types.integer,
-      return: types.boolean,
     },
     number2 => {
       if (
@@ -127,10 +119,6 @@ export const integer = {
         return: types.boolean,
       }),
     },
-    {
-      parameter: types.integer,
-      return: types.boolean,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -167,10 +155,6 @@ export const integer = {
         parameter: types.integer,
         return: types.boolean,
       }),
-    },
-    {
-      parameter: types.integer,
-      return: types.boolean,
     },
     number2 => {
       if (
@@ -209,10 +193,6 @@ export const integer = {
         return: types.integer,
       }),
     },
-    {
-      parameter: types.integer,
-      return: types.integer,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -249,10 +229,6 @@ export const integer = {
         parameter: types.integer,
         return: types.integer,
       }),
-    },
-    {
-      parameter: types.integer,
-      return: types.integer,
     },
     number2 => {
       if (

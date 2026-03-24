@@ -2,6 +2,7 @@ import either from '@matt.kantor/either'
 import { makeObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
+import { makeFunctionType } from '../type-system/type-formats.js'
 import {
   preludeFunctionArity1,
   preludeFunctionArity2,
@@ -47,11 +48,10 @@ export const boolean = {
     ['boolean', 'and'],
     {
       parameter: types.boolean,
-      return: types.boolean,
-    },
-    {
-      parameter: types.boolean,
-      return: types.integer,
+      return: makeFunctionType('', {
+        parameter: types.boolean,
+        return: types.integer,
+      }),
     },
     argument2 => {
       if (!nodeIsBoolean(argument2)) {
@@ -83,11 +83,10 @@ export const boolean = {
     ['boolean', 'or'],
     {
       parameter: types.boolean,
-      return: types.boolean,
-    },
-    {
-      parameter: types.boolean,
-      return: types.integer,
+      return: makeFunctionType('', {
+        parameter: types.boolean,
+        return: types.integer,
+      }),
     },
     argument2 => {
       if (!nodeIsBoolean(argument2)) {
