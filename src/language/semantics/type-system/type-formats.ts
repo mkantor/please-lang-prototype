@@ -12,10 +12,12 @@ export type FunctionType = {
   }
 }
 
-export const makeFunctionType = (
+export const makeFunctionType = <Signature extends FunctionType['signature']>(
   name: string,
-  signature: FunctionType['signature'],
-): FunctionType => ({
+  signature: Signature,
+): FunctionType & {
+  readonly signature: Signature
+} => ({
   name,
   kind: 'function',
   signature,
