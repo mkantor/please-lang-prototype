@@ -16,6 +16,7 @@ import { isAssignable, types } from '../type-system.js'
 import { showType } from '../type-system/show-type.js'
 import {
   makeFunctionType,
+  makeObjectType,
   makeTypeParameter,
 } from '../type-system/type-formats.js'
 import { literalTypeFromSemanticGraph } from '../type-system/type-utilities.js'
@@ -151,9 +152,12 @@ export const globalFunctions = {
     ['match'],
     {
       // TODO
-      parameter: types.something,
+      parameter: types.object,
       return: makeFunctionType('', {
-        parameter: types.something,
+        parameter: makeObjectType('', {
+          tag: types.atom,
+          value: types.something,
+        }),
         return: types.something,
       }),
     },
