@@ -46,7 +46,7 @@ export const natural_number = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`modulo` expected a natural number',
         })
       } else {
         return either.makeRight(number1 => {
@@ -56,7 +56,7 @@ export const natural_number = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`modulo` expected a natural number',
             })
           } else {
             return either.makeRight(String(BigInt(number1) % BigInt(number2)))

@@ -47,10 +47,10 @@ export const globalFunctions = {
     either.makeRight,
   ),
 
+  // a ~> ((a ~> b) ~> b)
   apply: preludeFunctionArity2(
     ['apply'],
     {
-      // a ~> ((a ~> b) ~> b)
       parameter: A,
       return: makeFunctionType('', {
         parameter: makeFunctionType('', { parameter: A, return: B }),
@@ -62,7 +62,7 @@ export const globalFunctions = {
         if (!isFunctionNode(functionToApply)) {
           return either.makeLeft({
             kind: 'panic',
-            message: 'expected a function',
+            message: '`apply` expected a function',
           })
         } else {
           return functionToApply(argument)
@@ -128,14 +128,14 @@ export const globalFunctions = {
       if (!isFunctionNode(secondFunction)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument must be a function',
+          message: '`flow` expected a function',
         })
       } else {
         return either.makeRight(firstFunction => {
           if (!isFunctionNode(firstFunction)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument must be a function',
+              message: '`flow` expected a function',
             })
           } else {
             return either.makeRight(argument =>
@@ -161,14 +161,14 @@ export const globalFunctions = {
       if (!isObjectNode(cases)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'match cases must be an object',
+          message: '`match` cases must be an object',
         })
       } else {
         return either.makeRight(argument => {
           if (!nodeIsTagged(argument)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not tagged',
+              message: '`match` argument was not tagged',
             })
           } else {
             const relevantCase = lookupPropertyOfObjectNode(argument.tag, cases)

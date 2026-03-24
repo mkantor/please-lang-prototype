@@ -36,7 +36,7 @@ export const boolean = {
       if (!nodeIsBoolean(argument)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not a boolean',
+          message: '`not` expected a boolean',
         })
       } else {
         return either.makeRight(argument === 'true' ? 'false' : 'true')
@@ -57,14 +57,14 @@ export const boolean = {
       if (!nodeIsBoolean(argument2)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not a boolean',
+          message: '`and` expected a boolean',
         })
       } else {
         return either.makeRight(argument1 => {
           if (!nodeIsBoolean(argument1)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not a boolean',
+              message: '`and` expected a boolean',
             })
           } else {
             return either.makeRight(
@@ -92,14 +92,14 @@ export const boolean = {
       if (!nodeIsBoolean(argument2)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not a boolean',
+          message: '`or` expected a boolean',
         })
       } else {
         return either.makeRight(argument1 => {
           if (!nodeIsBoolean(argument1)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not a boolean',
+              message: '`or` expected a boolean',
             })
           } else {
             return either.makeRight(

@@ -19,14 +19,14 @@ export const atom = {
       if (typeof atomToAppend !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'append received a non-atom argument',
+          message: '`append` expected an atom',
         })
       } else {
         return either.makeRight(atomToAppendTo => {
           if (typeof atomToAppendTo !== 'string') {
             return either.makeLeft({
               kind: 'panic',
-              message: 'append received a non-atom argument',
+              message: '`append` expected an atom',
             })
           } else {
             return either.makeRight(atomToAppendTo + atomToAppend)
@@ -53,14 +53,14 @@ export const atom = {
       if (typeof atom2 !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'equal received a non-atom argument',
+          message: '`equal` expected an atom',
         })
       } else {
         return either.makeRight(atom1 => {
           if (typeof atom1 !== 'string') {
             return either.makeLeft({
               kind: 'panic',
-              message: 'equal received a non-atom argument',
+              message: '`equal` expected an atom',
             })
           } else {
             return either.makeRight(String(atom1 === atom2))
@@ -83,14 +83,14 @@ export const atom = {
       if (typeof atomToPrepend !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'prepend received a non-atom argument',
+          message: '`prepend` expected an atom',
         })
       } else {
         return either.makeRight(atomToPrependTo => {
           if (typeof atomToPrependTo !== 'string') {
             return either.makeLeft({
               kind: 'panic',
-              message: 'prepend received a non-atom argument',
+              message: '`prepend` expected an atom',
             })
           } else {
             return either.makeRight(atomToPrepend + atomToPrependTo)

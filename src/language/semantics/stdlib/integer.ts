@@ -25,7 +25,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`add` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -35,7 +35,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`add` expected an integer',
             })
           } else {
             // FIXME: It's wasteful to always convert here.
@@ -68,7 +68,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not an integer',
+          message: '`equals` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -78,7 +78,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not an integer',
+              message: '`equals` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -126,7 +126,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`greater_than` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -136,7 +136,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`greater_than` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -163,7 +163,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`less_than` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -173,7 +173,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`less_than` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -200,7 +200,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`multiply` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -210,7 +210,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`multiply` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -237,7 +237,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`subtract` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -247,7 +247,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`subtract` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.

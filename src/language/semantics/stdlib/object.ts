@@ -21,14 +21,14 @@ export const object = {
       if (typeof key !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'key was not an atom',
+          message: '`lookup` key was not an atom',
         })
       } else {
         return either.makeRight(argument => {
           if (!isObjectNode(argument)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not an object',
+              message: '`lookup` expected an object',
             })
           } else {
             const propertyValue = argument[key]
@@ -57,7 +57,7 @@ export const object = {
       if (typeof key !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'key was not an atom',
+          message: '`from_property` key was not an atom',
         })
       } else {
         return either.makeRight(value =>
@@ -81,14 +81,14 @@ export const object = {
       if (typeof object2 !== 'object') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not an object',
+          message: '`overlay` expected an object',
         })
       } else {
         return either.makeRight(object1 => {
           if (!isObjectNode(object1)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not an object',
+              message: '`overlay` expected an object',
             })
           } else {
             return either.makeRight({ ...object1, ...object2 })
