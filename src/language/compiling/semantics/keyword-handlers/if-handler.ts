@@ -68,7 +68,7 @@ export const ifKeywordHandler: KeywordHandler = (
         return either.flatMap(serialize(elaboratedCondition), condition => {
           if (containsAnyUnelaboratedNodes(condition)) {
             // The condition cannot yet be fully elaborated. Do a lightweight
-            // pass through the branches to substitute `@lookup`s for their
+            // pass through the branches to substitute `@lookup`s/`@index`es for
             // values as much as possible. This helps in tricky situations
             // where referenced properties that are higher up in the program
             // get erased before the `@if` can be fully elaborated.
@@ -78,11 +78,11 @@ export const ifKeywordHandler: KeywordHandler = (
               ...context,
               keywordHandlers: {
                 '@lookup': context.keywordHandlers['@lookup'],
+                '@index': context.keywordHandlers['@index'],
                 '@apply': doNotElaborate,
                 '@check': doNotElaborate,
                 '@function': doNotElaborate,
                 '@if': doNotElaborate,
-                '@index': doNotElaborate,
                 '@panic': doNotElaborate,
                 '@runtime': doNotElaborate,
                 '@signature': doNotElaborate,

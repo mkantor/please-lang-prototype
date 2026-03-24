@@ -20,6 +20,13 @@ const additionalCommandLineArguments: Readonly<
     '--input="not a number"',
     '--input=-1',
   ],
+  'fizzbuzz.plz': [
+    '--input=0',
+    '--input=5',
+    '--input=15',
+    '--input="not a number"',
+    '--input=-1',
+  ],
   // It'd be nice to test CLI arguments for `lookup-environment-variable.plz`
   // too, but I'd need to set a stable/known environment variable to keep the
   // tests portable across different systems.
