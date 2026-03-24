@@ -13,7 +13,7 @@ export const object = {
       // TODO
       parameter: types.atom,
       return: makeFunctionType('', {
-        parameter: types.something,
+        parameter: types.object,
         return: types.something,
       }),
     },
@@ -50,7 +50,7 @@ export const object = {
       parameter: types.atom,
       return: makeFunctionType('', {
         parameter: types.something,
-        return: types.something,
+        return: types.object,
       }),
     },
     key => {
@@ -74,7 +74,7 @@ export const object = {
       parameter: types.object,
       return: makeFunctionType('', {
         parameter: types.object,
-        return: types.something,
+        return: types.object,
       }),
     },
     object2 => {

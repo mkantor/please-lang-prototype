@@ -50,7 +50,7 @@ export const boolean = {
       parameter: types.boolean,
       return: makeFunctionType('', {
         parameter: types.boolean,
-        return: types.integer,
+        return: types.boolean,
       }),
     },
     argument2 => {
@@ -85,7 +85,7 @@ export const boolean = {
       parameter: types.boolean,
       return: makeFunctionType('', {
         parameter: types.boolean,
-        return: types.integer,
+        return: types.boolean,
       }),
     },
     argument2 => {

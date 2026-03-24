@@ -50,7 +50,7 @@ export const globalFunctions = {
   apply: preludeFunctionArity2(
     ['apply'],
     {
-      // a => ((a => b) => b)
+      // a ~> ((a ~> b) ~> b)
       parameter: A,
       return: makeFunctionType('', {
         parameter: makeFunctionType('', { parameter: A, return: B }),
@@ -70,7 +70,7 @@ export const globalFunctions = {
       }),
   ),
 
-  // a => something => a
+  // a ~> something ~> a
   // terminates with a `typeMismatch` error the value doesn't typecheck
   assume: preludeFunctionArity2(
     ['assume'],
@@ -105,17 +105,22 @@ export const globalFunctions = {
       ),
   ),
 
-  // (b => c) => (a => b) => (a => c)
+  // (b ~> c) ~> (a ~> b) ~> (a ~> c)
   flow: preludeFunctionArity3(
     ['flow'],
     {
-      // TODO
-      parameter: types.something,
+      parameter: makeFunctionType('', {
+        parameter: B,
+        return: C,
+      }),
       return: makeFunctionType('', {
-        parameter: types.something,
+        parameter: makeFunctionType('', {
+          parameter: A,
+          return: B,
+        }),
         return: makeFunctionType('', {
-          parameter: types.something,
-          return: types.something,
+          parameter: A,
+          return: C,
         }),
       }),
     },
