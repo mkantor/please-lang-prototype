@@ -28,11 +28,15 @@ export type FunctionNode = FunctionNodeCallSignature & {
   readonly serialize: () => Either<UnserializableValueError, ObjectNode>
 }
 
+export type FunctionNodeWithSignature<
+  Signature extends FunctionType['signature'],
+> = FunctionNode & { readonly signature: Signature }
+
 export const isFunctionNode = (node: SemanticGraph) =>
   typeof node === 'function' && node[nodeTag] === 'function'
 
-export const makeFunctionNode = (
-  signature: FunctionType['signature'],
+export const makeFunctionNode = <Signature extends FunctionType['signature']>(
+  signature: Signature,
   serialize: FunctionNode['serialize'],
   parameterName: Option<Atom>,
   f: (
@@ -41,14 +45,14 @@ export const makeFunctionNode = (
     DependencyUnavailable | TypeMismatchError | Panic | Bug,
     SemanticGraph
   >,
-): FunctionNode => {
+): FunctionNodeWithSignature<Signature> => {
   const node: ((
     value: SemanticGraph,
   ) => Either<
     DependencyUnavailable | TypeMismatchError | Panic | Bug,
     SemanticGraph
   >) &
-    Writable<FunctionNode> = value => f(value)
+    Writable<FunctionNodeWithSignature<Signature>> = value => f(value)
   node[nodeTag] = 'function'
   node.parameterName = parameterName
   node.signature = signature
