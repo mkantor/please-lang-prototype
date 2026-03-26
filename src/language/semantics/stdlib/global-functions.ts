@@ -16,6 +16,7 @@ import { isAssignable, types } from '../type-system.js'
 import { showType } from '../type-system/show-type.js'
 import {
   makeFunctionType,
+  makeObjectType,
   makeTypeParameter,
 } from '../type-system/type-formats.js'
 import { literalTypeFromSemanticGraph } from '../type-system/type-utilities.js'
@@ -47,26 +48,22 @@ export const globalFunctions = {
     either.makeRight,
   ),
 
+  // a ~> ((a ~> b) ~> b)
   apply: preludeFunctionArity2(
     ['apply'],
     {
-      // a => ((a => b) => b)
       parameter: A,
       return: makeFunctionType('', {
         parameter: makeFunctionType('', { parameter: A, return: B }),
         return: B,
       }),
     },
-    {
-      parameter: types.functionType,
-      return: types.something,
-    },
     argument =>
       either.makeRight(functionToApply => {
         if (!isFunctionNode(functionToApply)) {
           return either.makeLeft({
             kind: 'panic',
-            message: 'expected a function',
+            message: '`apply` expected a function',
           })
         } else {
           return functionToApply(argument)
@@ -74,7 +71,7 @@ export const globalFunctions = {
       }),
   ),
 
-  // a => something => a
+  // a ~> something ~> a
   // terminates with a `typeMismatch` error the value doesn't typecheck
   assume: preludeFunctionArity2(
     ['assume'],
@@ -84,10 +81,6 @@ export const globalFunctions = {
         parameter: types.something,
         return: A,
       }),
-    },
-    {
-      parameter: types.something,
-      return: A,
     },
     type =>
       either.makeRight(value =>
@@ -113,36 +106,37 @@ export const globalFunctions = {
       ),
   ),
 
-  // (b => c) => (a => b) => (a => c)
+  // (b ~> c) ~> (a ~> b) ~> (a ~> c)
   flow: preludeFunctionArity3(
     ['flow'],
     {
-      // TODO
-      parameter: types.something,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      parameter: makeFunctionType('', {
+        parameter: B,
+        return: C,
+      }),
+      return: makeFunctionType('', {
+        parameter: makeFunctionType('', {
+          parameter: A,
+          return: B,
+        }),
+        return: makeFunctionType('', {
+          parameter: A,
+          return: C,
+        }),
+      }),
     },
     secondFunction => {
       if (!isFunctionNode(secondFunction)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument must be a function',
+          message: '`flow` expected a function',
         })
       } else {
         return either.makeRight(firstFunction => {
           if (!isFunctionNode(firstFunction)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument must be a function',
+              message: '`flow` expected a function',
             })
           } else {
             return either.makeRight(argument =>
@@ -158,26 +152,27 @@ export const globalFunctions = {
     ['match'],
     {
       // TODO
-      parameter: types.something,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      parameter: types.object,
+      return: makeFunctionType('', {
+        parameter: makeObjectType('', {
+          tag: types.atom,
+          value: types.something,
+        }),
+        return: types.something,
+      }),
     },
     cases => {
       if (!isObjectNode(cases)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'match cases must be an object',
+          message: '`match` cases must be an object',
         })
       } else {
         return either.makeRight(argument => {
           if (!nodeIsTagged(argument)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not tagged',
+              message: '`match` argument was not tagged',
             })
           } else {
             const relevantCase = lookupPropertyOfObjectNode(argument.tag, cases)

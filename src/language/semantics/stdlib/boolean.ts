@@ -2,6 +2,7 @@ import either from '@matt.kantor/either'
 import { makeObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
+import { makeFunctionType } from '../type-system/type-formats.js'
 import {
   preludeFunctionArity1,
   preludeFunctionArity2,
@@ -15,6 +16,7 @@ const booleanNodeToBoolean = (node: BooleanNode): boolean => node === 'true'
 
 export const boolean = {
   type: makeObjectNode({ 0: '@union', 1: { 0: 'false', 1: 'true' } }),
+
   is: preludeFunctionArity1(
     ['boolean', 'is'],
     {
@@ -23,6 +25,7 @@ export const boolean = {
     },
     argument => either.makeRight(nodeIsBoolean(argument) ? 'true' : 'false'),
   ),
+
   not: preludeFunctionArity1(
     ['boolean', 'not'],
     {
@@ -33,35 +36,35 @@ export const boolean = {
       if (!nodeIsBoolean(argument)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not a boolean',
+          message: '`not` expected a boolean',
         })
       } else {
         return either.makeRight(argument === 'true' ? 'false' : 'true')
       }
     },
   ),
+
   and: preludeFunctionArity2(
     ['boolean', 'and'],
     {
       parameter: types.boolean,
-      return: types.boolean,
-    },
-    {
-      parameter: types.boolean,
-      return: types.integer,
+      return: makeFunctionType('', {
+        parameter: types.boolean,
+        return: types.boolean,
+      }),
     },
     argument2 => {
       if (!nodeIsBoolean(argument2)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not a boolean',
+          message: '`and` expected a boolean',
         })
       } else {
         return either.makeRight(argument1 => {
           if (!nodeIsBoolean(argument1)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not a boolean',
+              message: '`and` expected a boolean',
             })
           } else {
             return either.makeRight(
@@ -75,28 +78,28 @@ export const boolean = {
       }
     },
   ),
+
   or: preludeFunctionArity2(
     ['boolean', 'or'],
     {
       parameter: types.boolean,
-      return: types.boolean,
-    },
-    {
-      parameter: types.boolean,
-      return: types.integer,
+      return: makeFunctionType('', {
+        parameter: types.boolean,
+        return: types.boolean,
+      }),
     },
     argument2 => {
       if (!nodeIsBoolean(argument2)) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not a boolean',
+          message: '`or` expected a boolean',
         })
       } else {
         return either.makeRight(argument1 => {
           if (!nodeIsBoolean(argument1)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not a boolean',
+              message: '`or` expected a boolean',
             })
           } else {
             return either.makeRight(

@@ -1,34 +1,34 @@
 import either from '@matt.kantor/either'
 import { isObjectNode, makeObjectNode } from '../object-node.js'
 import { types } from '../type-system.js'
+import { makeFunctionType } from '../type-system/type-formats.js'
 import { preludeFunctionArity2 } from './stdlib-utilities.js'
 
 export const object = {
   type: makeObjectNode({}),
+
   lookup: preludeFunctionArity2(
     ['object', 'lookup'],
     {
       // TODO
       parameter: types.atom,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.object,
+        return: types.something,
+      }),
     },
     key => {
       if (typeof key !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'key was not an atom',
+          message: '`lookup` key was not an atom',
         })
       } else {
         return either.makeRight(argument => {
           if (!isObjectNode(argument)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not an object',
+              message: '`lookup` expected an object',
             })
           } else {
             const propertyValue = argument[key]
@@ -42,23 +42,22 @@ export const object = {
       }
     },
   ),
+
   from_property: preludeFunctionArity2(
     ['object', 'from_property'],
     {
       // TODO
       parameter: types.atom,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.something,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.something,
+        return: types.object,
+      }),
     },
     key => {
       if (typeof key !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'key was not an atom',
+          message: '`from_property` key was not an atom',
         })
       } else {
         return either.makeRight(value =>
@@ -67,30 +66,29 @@ export const object = {
       }
     },
   ),
+
   overlay: preludeFunctionArity2(
     ['object', 'overlay'],
     {
       // TODO
       parameter: types.object,
-      return: types.something,
-    },
-    {
-      // TODO
-      parameter: types.object,
-      return: types.something,
+      return: makeFunctionType('', {
+        parameter: types.object,
+        return: types.object,
+      }),
     },
     object2 => {
       if (typeof object2 !== 'object') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not an object',
+          message: '`overlay` expected an object',
         })
       } else {
         return either.makeRight(object1 => {
           if (!isObjectNode(object1)) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not an object',
+              message: '`overlay` expected an object',
             })
           } else {
             return either.makeRight({ ...object1, ...object2 })

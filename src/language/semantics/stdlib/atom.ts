@@ -5,6 +5,7 @@ import { preludeFunctionArity2 } from './stdlib-utilities.js'
 
 export const atom = {
   type: types.atom.symbol,
+
   append: preludeFunctionArity2(
     ['atom', 'append'],
     {
@@ -14,22 +15,18 @@ export const atom = {
         return: types.atom,
       }),
     },
-    {
-      parameter: types.atom,
-      return: types.atom,
-    },
     atomToAppend => {
       if (typeof atomToAppend !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'append received a non-atom argument',
+          message: '`append` expected an atom',
         })
       } else {
         return either.makeRight(atomToAppendTo => {
           if (typeof atomToAppendTo !== 'string') {
             return either.makeLeft({
               kind: 'panic',
-              message: 'append received a non-atom argument',
+              message: '`append` expected an atom',
             })
           } else {
             return either.makeRight(atomToAppendTo + atomToAppend)
@@ -38,6 +35,7 @@ export const atom = {
       }
     },
   ),
+
   // Note that this is simple string equality; e.g. `:atom.equal(1)(01)`
   // is `false`. For this reason it should not be aliased as a global `==`
   // operator or similar as its behavior may not be what users expect for all
@@ -51,22 +49,18 @@ export const atom = {
         return: types.boolean,
       }),
     },
-    {
-      parameter: types.atom,
-      return: types.boolean,
-    },
     atom2 => {
       if (typeof atom2 !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'equal received a non-atom argument',
+          message: '`equal` expected an atom',
         })
       } else {
         return either.makeRight(atom1 => {
           if (typeof atom1 !== 'string') {
             return either.makeLeft({
               kind: 'panic',
-              message: 'equal received a non-atom argument',
+              message: '`equal` expected an atom',
             })
           } else {
             return either.makeRight(String(atom1 === atom2))
@@ -75,6 +69,7 @@ export const atom = {
       }
     },
   ),
+
   prepend: preludeFunctionArity2(
     ['atom', 'prepend'],
     {
@@ -84,22 +79,18 @@ export const atom = {
         return: types.atom,
       }),
     },
-    {
-      parameter: types.atom,
-      return: types.atom,
-    },
     atomToPrepend => {
       if (typeof atomToPrepend !== 'string') {
         return either.makeLeft({
           kind: 'panic',
-          message: 'prepend received a non-atom argument',
+          message: '`prepend` expected an atom',
         })
       } else {
         return either.makeRight(atomToPrependTo => {
           if (typeof atomToPrependTo !== 'string') {
             return either.makeLeft({
               kind: 'panic',
-              message: 'prepend received a non-atom argument',
+              message: '`prepend` expected an atom',
             })
           } else {
             return either.makeRight(atomToPrepend + atomToPrependTo)

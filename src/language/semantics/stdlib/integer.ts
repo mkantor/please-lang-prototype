@@ -8,6 +8,7 @@ import {
 
 export const integer = {
   type: types.integer.symbol,
+
   add: preludeFunctionArity2(
     ['integer', 'add'],
     {
@@ -17,10 +18,6 @@ export const integer = {
         return: types.integer,
       }),
     },
-    {
-      parameter: types.integer,
-      return: types.integer,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -28,7 +25,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`add` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -38,7 +35,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`add` expected an integer',
             })
           } else {
             // FIXME: It's wasteful to always convert here.
@@ -54,6 +51,7 @@ export const integer = {
       }
     },
   ),
+
   equals: preludeFunctionArity2(
     ['integer', 'equals'],
     {
@@ -63,10 +61,6 @@ export const integer = {
         return: types.boolean,
       }),
     },
-    {
-      parameter: types.integer,
-      return: types.boolean,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -74,7 +68,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'argument was not an integer',
+          message: '`equals` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -84,7 +78,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'argument was not an integer',
+              message: '`equals` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -94,6 +88,7 @@ export const integer = {
       }
     },
   ),
+
   is: preludeFunctionArity1(
     ['integer', 'is'],
     {
@@ -114,18 +109,15 @@ export const integer = {
         : 'false',
       ),
   ),
+
   greater_than: preludeFunctionArity2(
     ['integer', 'greater_than'],
     {
       parameter: types.integer,
       return: makeFunctionType('', {
         parameter: types.integer,
-        return: types.integer,
+        return: types.boolean,
       }),
-    },
-    {
-      parameter: types.integer,
-      return: types.boolean,
     },
     number2 => {
       if (
@@ -134,7 +126,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`greater_than` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -144,7 +136,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`greater_than` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -154,18 +146,15 @@ export const integer = {
       }
     },
   ),
+
   less_than: preludeFunctionArity2(
     ['integer', 'less_than'],
     {
       parameter: types.integer,
       return: makeFunctionType('', {
         parameter: types.integer,
-        return: types.integer,
+        return: types.boolean,
       }),
-    },
-    {
-      parameter: types.integer,
-      return: types.boolean,
     },
     number2 => {
       if (
@@ -174,7 +163,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`less_than` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -184,7 +173,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`less_than` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -194,6 +183,7 @@ export const integer = {
       }
     },
   ),
+
   multiply: preludeFunctionArity2(
     ['integer', 'multiply'],
     {
@@ -203,10 +193,6 @@ export const integer = {
         return: types.integer,
       }),
     },
-    {
-      parameter: types.integer,
-      return: types.integer,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -214,7 +200,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`multiply` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -224,7 +210,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`multiply` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -234,6 +220,7 @@ export const integer = {
       }
     },
   ),
+
   subtract: preludeFunctionArity2(
     ['integer', 'subtract'],
     {
@@ -243,10 +230,6 @@ export const integer = {
         return: types.integer,
       }),
     },
-    {
-      parameter: types.integer,
-      return: types.integer,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -254,7 +237,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`subtract` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -264,7 +247,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`subtract` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.

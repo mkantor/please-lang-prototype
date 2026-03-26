@@ -8,6 +8,7 @@ import {
 
 export const natural_number = {
   type: types.naturalNumber.symbol,
+
   is: preludeFunctionArity1(
     ['natural_number', 'is'],
     {
@@ -28,6 +29,7 @@ export const natural_number = {
         : 'false',
       ),
   ),
+
   modulo: preludeFunctionArity2(
     ['natural_number', 'modulo'],
     {
@@ -37,10 +39,6 @@ export const natural_number = {
         return: types.naturalNumber,
       }),
     },
-    {
-      parameter: types.naturalNumber,
-      return: types.naturalNumber,
-    },
     number2 => {
       if (
         typeof number2 !== 'string' ||
@@ -48,7 +46,7 @@ export const natural_number = {
       ) {
         return either.makeLeft({
           kind: 'panic',
-          message: 'numbers must be atoms',
+          message: '`modulo` expected a natural number',
         })
       } else {
         return either.makeRight(number1 => {
@@ -58,7 +56,7 @@ export const natural_number = {
           ) {
             return either.makeLeft({
               kind: 'panic',
-              message: 'numbers must be atoms',
+              message: '`modulo` expected a natural number',
             })
           } else {
             return either.makeRight(String(BigInt(number1) % BigInt(number2)))
