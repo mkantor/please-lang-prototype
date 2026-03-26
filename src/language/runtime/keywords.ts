@@ -18,12 +18,13 @@ import {
   type Type,
 } from '../semantics.js'
 import type { NonEmptyKeyPath } from '../semantics/key-path.js'
-import type {
-  FunctionType,
-  ObjectType,
-  OpaqueType,
-  TypeParameter,
-  UnionType,
+import {
+  makeTypeParameter,
+  type FunctionType,
+  type ObjectType,
+  type OpaqueType,
+  type TypeParameter,
+  type UnionType,
 } from '../semantics/type-system/type-formats.js'
 import { prettyJson } from '../unparsing.js'
 
@@ -43,6 +44,8 @@ const serializeFunction =
     )
     return () => serialize
   }
+
+const A = makeTypeParameter('a', { assignableTo: types.something })
 
 const runtimeContext = (runtimeFunctionParameterName: Option<string>) => {
   const serializeRuntimeContextFunction = serializeFunction(
@@ -128,8 +131,8 @@ const runtimeContext = (runtimeFunctionParameterName: Option<string>) => {
     }),
     log: makeFunctionNode(
       {
-        parameter: types.something,
-        return: types.object,
+        parameter: A,
+        return: A,
       },
       serializeRuntimeContextFunction(['log']),
       option.none,
