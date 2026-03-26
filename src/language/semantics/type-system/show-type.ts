@@ -20,7 +20,7 @@ export const showType = (type: Type | Atom): string => {
           }) =>
             `${showTypeImplementation(
               parameterType,
-            )} => ${showTypeImplementation(returnType)}`,
+            )} ~> ${showTypeImplementation(returnType)}`,
           object: ({ children }) => {
             const shownProperties: string[] = []
             for (const [key, value] of Object.entries(children)) {

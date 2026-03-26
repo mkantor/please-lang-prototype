@@ -70,7 +70,7 @@ export const readArgumentsFromExpression = <
         const requiredKeySummary = `\`${keyword}\` or \`${position}\``
         return either.makeLeft({
           kind: 'invalidExpression',
-          message: `missing required property ${requiredKeySummary}`,
+          message: `missing required property ${requiredKeySummary} within ${expression['0']} expression`,
         })
       } else {
         expressionArguments.push(argument.value)

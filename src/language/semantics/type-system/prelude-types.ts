@@ -3,6 +3,7 @@ import {
   makeFunctionType,
   makeObjectType,
   makeOpaqueType,
+  makeTypeParameter,
   makeUnionType,
   type FunctionType,
   type Type,
@@ -84,6 +85,8 @@ export const option = (value: Type) =>
     }),
   ])
 
+const A = makeTypeParameter('a', { assignableTo: something })
+
 export const runtimeContext = makeObjectType('runtime_context', {
   arguments: makeObjectType('', {
     lookup: makeFunctionType('', { parameter: atom, return: option(atom) }),
@@ -91,6 +94,6 @@ export const runtimeContext = makeObjectType('runtime_context', {
   environment: makeObjectType('', {
     lookup: makeFunctionType('', { parameter: atom, return: option(atom) }),
   }),
-  log: makeFunctionType('', { parameter: something, return: object }),
+  log: makeFunctionType('', { parameter: A, return: A }),
   program: makeObjectType('', { start_time: atom }),
 })
