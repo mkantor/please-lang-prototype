@@ -186,7 +186,7 @@ export const keywordHandlers: KeywordHandlers = {
 }
 
 type TypeToNode<T extends Type> =
-  T extends FunctionType ? FunctionNode
+  T extends FunctionType ? FunctionNode & { readonly signature: T['signature'] }
   : T extends ObjectType ?
     RemoveIndexSignatures<
       ObjectNode & {
