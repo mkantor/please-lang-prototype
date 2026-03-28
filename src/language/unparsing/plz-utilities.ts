@@ -24,6 +24,10 @@ import {
   type SemanticGraph,
 } from '../semantics.js'
 import {
+  readCheckExpression,
+  type CheckExpression,
+} from '../semantics/expressions/check-expression.js'
+import {
   readSignatureExpression,
   type SignatureExpression,
 } from '../semantics/expressions/signature-expression.js'
@@ -59,6 +63,8 @@ export const moleculeUnparser =
       switch (value['0']) {
         case '@apply':
           return sugar(value, readApplyExpression, unparseSugaredApply)
+        case '@check':
+          return sugar(value, readCheckExpression, unparseSugaredCheck)
         case '@function':
           return sugar(value, readFunctionExpression, unparseSugaredFunction)
         case '@index':
@@ -399,6 +405,50 @@ const unparseSugaredLookup = (
     ),
   )
 
+const unparseSugaredCheck = (
+  expression: CheckExpression,
+  { unparseAtomOrMolecule }: Context,
+) => {
+  const { openGroupingParenthesis, closeGroupingParenthesis, tilde } =
+    punctuation(styleText)
+  return either.flatMap(
+    either.map(
+      either.flatMap(
+        serializeIfNeeded(expression[1].value),
+        unparseAtomOrMolecule('default'),
+      ),
+      valueAsString =>
+        needsParenthesesAsFirstInfixOperand(expression[1].value) ?
+          openGroupingParenthesis.concat(
+            valueAsString,
+            closeGroupingParenthesis,
+          )
+        : valueAsString,
+    ),
+    valueAsString =>
+      either.map(
+        either.flatMap(
+          serializeIfNeeded(expression[1].type),
+          unparseAtomOrMolecule('default'),
+        ),
+        typeAsString => {
+          const possiblyParenthesizedType =
+            (
+              needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunctionOrUnionMember(
+                expression[1].type,
+              )
+            ) ?
+              openGroupingParenthesis.concat(
+                typeAsString,
+                closeGroupingParenthesis,
+              )
+            : typeAsString
+          return [valueAsString, tilde, possiblyParenthesizedType].join(' ')
+        },
+      ),
+  )
+}
+
 const unparseSugaredSignature = (
   expression: SignatureExpression,
   { unparseAtomOrMolecule }: Context,
@@ -536,6 +586,7 @@ const readInfixOperation = (expression: ApplyExpression) =>
 const needsParenthesesAsFirstInfixOperand = (
   expression: SemanticGraph | Molecule,
 ) =>
+  either.isRight(readCheckExpression(asSemanticGraph(expression))) ||
   either.isRight(readFunctionExpression(asSemanticGraph(expression))) ||
   either.isRight(readSignatureExpression(asSemanticGraph(expression)))
 

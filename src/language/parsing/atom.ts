@@ -27,6 +27,7 @@ import {
   quote,
   signatureArrow,
   singleLineCommentDelimiter,
+  tilde,
   unionBar,
 } from './literals.js'
 import { optionallySurroundedByParentheses } from './parentheses.js'
@@ -49,6 +50,7 @@ const atomComponentsRequiringQuotation = [
   openingParenthesis,
   quote,
   singleLineCommentDelimiter,
+  tilde,
   unionBar,
   whitespace,
 

@@ -721,4 +721,5 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight({ a: '1', b: '2', c: '3', d: '1' }),
   ],
   [`:object.from_property(key)(value)`, either.makeRight({ key: 'value' })],
+  [`(1 + 1) ~ :integer.type`, either.makeRight('2')],
 ])
