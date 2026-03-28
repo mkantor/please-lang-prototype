@@ -6,6 +6,7 @@ import test, { snapshot, suite } from 'node:test'
 import stripAnsi from 'strip-ansi'
 import { parse } from './language/parsing/parser.js'
 import { prettyPlz, unparse } from './language/unparsing.js'
+import { unparseAndRoundtripSyntaxTree } from './test-utilities.test.js'
 
 // All examples will be tested with no additional command-line arguments. To
 // also test with specific sets of arguments, add them here:
@@ -98,7 +99,7 @@ const snapshotTestRoundtrippedSourceCode = async (filePath: string) => {
   })
 
   const roundTrippedSyntaxTreeOrError = either.flatMap(
-    parse(sourceCode),
+    either.flatMap(parse(sourceCode), unparseAndRoundtripSyntaxTree),
     parsedProgram => either.map(unparse(parsedProgram, prettyPlz), stripAnsi),
   ).value
 

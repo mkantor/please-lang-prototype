@@ -106,6 +106,9 @@ export const unparseAndRoundtrip = unparseAndRoundtripWithMultipleNotations(
   parseAndCompileAndRun,
 )
 
+export const unparseAndRoundtripSyntaxTree =
+  unparseAndRoundtripWithMultipleNotations(parse)
+
 export type ProgramResult = Either<
   ParseError | CompilationError | RuntimeError,
   Atom | Molecule
