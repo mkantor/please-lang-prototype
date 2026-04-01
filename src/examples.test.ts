@@ -3,7 +3,7 @@ import { exec } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import test, { snapshot, suite } from 'node:test'
-import stripAnsi from 'strip-ansi'
+import { stripVTControlCharacters } from 'node:util'
 import { parse } from './language/parsing/parser.js'
 import { prettyPlz, unparse } from './language/unparsing.js'
 import { unparseAndRoundtripSyntaxTree } from './test-utilities.test.js'
@@ -100,7 +100,8 @@ const snapshotTestRoundtrippedSourceCode = async (filePath: string) => {
 
   const roundTrippedSyntaxTreeOrError = either.flatMap(
     either.flatMap(parse(sourceCode), unparseAndRoundtripSyntaxTree),
-    parsedProgram => either.map(unparse(parsedProgram, prettyPlz), stripAnsi),
+    parsedProgram =>
+      either.map(unparse(parsedProgram, prettyPlz), stripVTControlCharacters),
   ).value
 
   return test('roundtripped syntax tree', t =>

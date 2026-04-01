@@ -1,6 +1,6 @@
 import either from '@matt.kantor/either'
 import assert from 'node:assert'
-import stripAnsi from 'strip-ansi'
+import { stripVTControlCharacters } from 'node:util'
 import { testCases } from '../../test-utilities.test.js'
 import { type Atom, type Molecule } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
@@ -18,7 +18,7 @@ const unparsers = (value: Atom | Molecule) => {
   const unparseAndStripAnsi = (notation: Notation) =>
     either.map(
       unparse(value, notation),
-      stripAnsi, // terminal styling is not currently tested
+      stripVTControlCharacters, // terminal styling is not currently tested
     )
 
   const unparsedInlinePlz = unparseAndStripAnsi(inlinePlz)
