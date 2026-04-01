@@ -212,7 +212,7 @@ exports[`examples > kitchen-sink.plz > roundtripped syntax tree 1`] = `
     green
     blue
   }
-  two: 1 + 1
+  two: (1 + 1) ~ :integer.type
   add_one: :integer.add(1)
   three: :add_one(:two)
   function: x => {

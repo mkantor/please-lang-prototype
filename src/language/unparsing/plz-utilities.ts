@@ -24,6 +24,10 @@ import {
   type SemanticGraph,
 } from '../semantics.js'
 import {
+  readCheckExpression,
+  type CheckExpression,
+} from '../semantics/expressions/check-expression.js'
+import {
   readSignatureExpression,
   type SignatureExpression,
 } from '../semantics/expressions/signature-expression.js'
@@ -59,6 +63,8 @@ export const moleculeUnparser =
       switch (value['0']) {
         case '@apply':
           return sugar(value, readApplyExpression, unparseSugaredApply)
+        case '@check':
+          return sugar(value, readCheckExpression, unparseSugaredCheck)
         case '@function':
           return sugar(value, readFunctionExpression, unparseSugaredFunction)
         case '@index':
@@ -113,11 +119,7 @@ export const moleculeAsKeyValuePairStrings = (
         // If the property value is something like an anonymous function or an
         // infix operation then it needs parentheses when the key is omitted. We
         // can skip the parentheses when this is the only property.
-        (
-          needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunctionOrUnionMember(
-            propertyValue,
-          ) && entries.length !== 1
-        ) ?
+        isNonCompactExpression(propertyValue) && entries.length !== 1 ?
           openGroupingParenthesis.concat(
             valueAsStringResult.value,
             closeGroupingParenthesis,
@@ -225,7 +227,7 @@ const unparseSugaredApply = (
           unparseAtomOrMolecule(semanticContext),
         ),
         unparsedOperand1 =>
-          needsParenthesesAsFirstInfixOperand(operand1) ?
+          isTightlyBoundNonCompactExpression(operand1) ?
             openGroupingParenthesis.concat(
               unparsedOperand1,
               closeGroupingParenthesis,
@@ -238,11 +240,7 @@ const unparseSugaredApply = (
           unparseAtomOrMolecule(semanticContext),
         ),
         unparsedOperand2 =>
-          (
-            needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunctionOrUnionMember(
-              operand2,
-            )
-          ) ?
+          isNonCompactExpression(operand2) ?
             openGroupingParenthesis.concat(
               unparsedOperand2,
               closeGroupingParenthesis,
@@ -282,11 +280,7 @@ const unparseSugaredApply = (
         unparseAtomOrMolecule('apply'),
       ),
       unparsedFunction =>
-        (
-          needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunctionOrUnionMember(
-            expression[1].function,
-          )
-        ) ?
+        isNonCompactExpression(expression[1].function) ?
           // It's an immediately-applied anonymous function.
           openGroupingParenthesis.concat(
             unparsedFunction,
@@ -399,6 +393,46 @@ const unparseSugaredLookup = (
     ),
   )
 
+const unparseSugaredCheck = (
+  expression: CheckExpression,
+  { unparseAtomOrMolecule }: Context,
+) => {
+  const { openGroupingParenthesis, closeGroupingParenthesis, tilde } =
+    punctuation(styleText)
+  return either.flatMap(
+    either.map(
+      either.flatMap(
+        serializeIfNeeded(expression[1].value),
+        unparseAtomOrMolecule('default'),
+      ),
+      valueAsString =>
+        isNonCompactExpression(expression[1].value) ?
+          openGroupingParenthesis.concat(
+            valueAsString,
+            closeGroupingParenthesis,
+          )
+        : valueAsString,
+    ),
+    valueAsString =>
+      either.map(
+        either.flatMap(
+          serializeIfNeeded(expression[1].type),
+          unparseAtomOrMolecule('default'),
+        ),
+        typeAsString => {
+          const possiblyParenthesizedType =
+            isNonCompactExpression(expression[1].type) ?
+              openGroupingParenthesis.concat(
+                typeAsString,
+                closeGroupingParenthesis,
+              )
+            : typeAsString
+          return [valueAsString, tilde, possiblyParenthesizedType].join(' ')
+        },
+      ),
+  )
+}
+
 const unparseSugaredSignature = (
   expression: SignatureExpression,
   { unparseAtomOrMolecule }: Context,
@@ -441,11 +475,7 @@ const unparseSugaredUnion = (
           ),
           memberAsString => {
             const possiblyParenthesizedMember =
-              (
-                needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunctionOrUnionMember(
-                  member,
-                )
-              ) ?
+              isNonCompactExpression(member) ?
                 openGroupingParenthesis.concat(
                   memberAsString,
                   closeGroupingParenthesis,
@@ -533,19 +563,19 @@ const readInfixOperation = (expression: ApplyExpression) =>
     )
   })
 
-const needsParenthesesAsFirstInfixOperand = (
+const isTightlyBoundNonCompactExpression = (
   expression: SemanticGraph | Molecule,
 ) =>
+  either.isRight(readCheckExpression(asSemanticGraph(expression))) ||
   either.isRight(readFunctionExpression(asSemanticGraph(expression))) ||
   either.isRight(readSignatureExpression(asSemanticGraph(expression)))
 
-const needsParenthesesAsSecondInfixOperandOrImmediatelyAppliedFunctionOrUnionMember =
-  (expression: SemanticGraph | Molecule) =>
-    needsParenthesesAsFirstInfixOperand(expression) ||
-    either.isRight(readUnionExpression(asSemanticGraph(expression))) ||
-    either.isRight(
-      either.flatMap(
-        readApplyExpression(asSemanticGraph(expression)),
-        readInfixOperation,
-      ),
-    )
+const isNonCompactExpression = (expression: SemanticGraph | Molecule) =>
+  isTightlyBoundNonCompactExpression(expression) ||
+  either.isRight(readUnionExpression(asSemanticGraph(expression))) ||
+  either.isRight(
+    either.flatMap(
+      readApplyExpression(asSemanticGraph(expression)),
+      readInfixOperation,
+    ),
+  )

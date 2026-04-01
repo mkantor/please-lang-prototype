@@ -21,6 +21,7 @@ export const indent = (spaces: number, textToIndent: string) => {
 
 export const applyColor = 'redBright'
 export const functionColor = 'red'
+export const checkColor = 'yellowBright'
 
 export const keyColor = 'cyan'
 
@@ -42,4 +43,6 @@ export const punctuation = (styleText: typeof util.styleText) => ({
   closeApplyParenthesis: styleText(['dim', applyColor], ')'),
   functionArrow: styleText(functionColor, '=>'),
   signatureArrow: styleText(functionColor, '~>'),
+
+  tilde: styleText(checkColor, '~'),
 })

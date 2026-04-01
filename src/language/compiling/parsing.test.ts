@@ -98,6 +98,38 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
   ],
 
   [
+    'a ~ b',
+    either.makeRight(
+      syntaxTree({
+        '0': '@check',
+        '1': {
+          value: 'a',
+          type: 'b',
+        },
+      }),
+    ),
+  ],
+
+  [
+    ':a ~ :integer.type',
+    either.makeRight(
+      syntaxTree({
+        '0': '@check',
+        '1': {
+          value: { '0': '@lookup', '1': { key: 'a' } },
+          type: {
+            '0': '@index',
+            '1': {
+              object: { '0': '@lookup', '1': { key: 'integer' } },
+              query: { '0': 'type' },
+            },
+          },
+        },
+      }),
+    ),
+  ],
+
+  [
     '(a => a)(a)',
     either.makeRight(
       syntaxTree({

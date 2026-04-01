@@ -27,6 +27,7 @@ import {
   newline,
   openingBrace,
   signatureArrow,
+  tilde,
   unionBar,
 } from './literals.js'
 import {
@@ -384,6 +385,23 @@ const trailingUnionTokens = map(
     [...trailingMembers, lastMember] as const,
 )
 
+// ~ a
+// ~ {}
+// ~ (:boolean.type | :integer.type)
+// ~ (a ~> b)
+const trailingCheckToken = map(
+  sequence([trivia, tilde, trivia, compactExpression]),
+  ([_trivia1, _tilde, _trivia2, type]) => type,
+)
+
+const checkTokenToExpression = (
+  value: Atom | Molecule,
+  type: Atom | Molecule,
+): Molecule => ({
+  0: '@check',
+  1: { value, type },
+})
+
 const trailingInfixTokens = oneOrMore(
   map(
     oneOf([
@@ -551,6 +569,9 @@ export const expression: Parser<Atom | Molecule> = flatMap(
           initialExpression,
           ...trailingSignatureTokens,
         ]),
+      ),
+      map(trailingCheckToken, trailingCheckType =>
+        checkTokenToExpression(initialExpression, trailingCheckType),
       ),
       map(trailingUnionTokens, trailingUnionTokens =>
         unionTokensToExpression([initialExpression, ...trailingUnionTokens]),
