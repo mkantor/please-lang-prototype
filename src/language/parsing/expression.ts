@@ -375,7 +375,25 @@ const trailingUnionTokens = map(
     trivia,
     zeroOrMore(
       map(
-        sequence([lazy(() => expression), trivia, unionBar, trivia]),
+        sequence([
+          // Don't use `expression` here (which also parses unions) to avoid
+          // greedily consuming `|` and following tokens (which should belong to
+          // the enclosing union). For example, `a | b | c` should be parsed as
+          // a flat union rather than `a | (b | c)`; these are semantically
+          // equivalent but are distinct syntax trees which can cause
+          // bugs/confusion.
+          flatMap(
+            lazy(() => expressionWhichMayHaveTrailingExpressions),
+            initialExpression =>
+              oneOf([
+                ...trailingExpressionsExceptUnion(initialExpression),
+                map(nothing, _ => initialExpression),
+              ]),
+          ),
+          trivia,
+          unionBar,
+          trivia,
+        ]),
         ([member, _trivia1, _bar, _trivia2]) => member,
       ),
     ),
@@ -547,35 +565,51 @@ const precededByOpeningBrace = map(
     ),
 )
 
+const expressionWhichMayHaveTrailingExpressions = oneOf([
+  precededByOpeningParenthesis,
+  precededByOpeningBrace,
+  precededByAtSign,
+  precededByColonThenAtom,
+  precededByAtomThenFunctionArrow,
+  atom,
+])
+
+const trailingInfixExpression = (initialExpression: string | Molecule) =>
+  map(trailingInfixTokens, trailingInfixTokens =>
+    infixTokensToExpression([initialExpression, ...trailingInfixTokens.flat()]),
+  )
+
+const trailingSignatureExpression = (initialExpression: string | Molecule) =>
+  map(trailingSignatureTokens, trailingSignatureTokens =>
+    signatureTokensToExpression([
+      initialExpression,
+      ...trailingSignatureTokens,
+    ]),
+  )
+
+const trailingCheckExpression = (initialExpression: string | Molecule) =>
+  map(trailingCheckToken, trailingCheckType =>
+    checkTokenToExpression(initialExpression, trailingCheckType),
+  )
+
+const trailingUnionExpression = (initialExpression: string | Molecule) =>
+  map(trailingUnionTokens, trailingUnionTokens =>
+    unionTokensToExpression([initialExpression, ...trailingUnionTokens]),
+  )
+
+const trailingExpressionsExceptUnion = (initialExpression: string | Molecule) =>
+  [
+    trailingInfixExpression(initialExpression),
+    trailingSignatureExpression(initialExpression),
+    trailingCheckExpression(initialExpression),
+  ] as const
+
 export const expression: Parser<Atom | Molecule> = flatMap(
-  oneOf([
-    precededByOpeningParenthesis,
-    precededByOpeningBrace,
-    precededByAtSign,
-    precededByColonThenAtom,
-    precededByAtomThenFunctionArrow,
-    atom,
-  ]),
+  expressionWhichMayHaveTrailingExpressions,
   initialExpression =>
     oneOf([
-      map(trailingInfixTokens, trailingInfixTokens =>
-        infixTokensToExpression([
-          initialExpression,
-          ...trailingInfixTokens.flat(),
-        ]),
-      ),
-      map(trailingSignatureTokens, trailingSignatureTokens =>
-        signatureTokensToExpression([
-          initialExpression,
-          ...trailingSignatureTokens,
-        ]),
-      ),
-      map(trailingCheckToken, trailingCheckType =>
-        checkTokenToExpression(initialExpression, trailingCheckType),
-      ),
-      map(trailingUnionTokens, trailingUnionTokens =>
-        unionTokensToExpression([initialExpression, ...trailingUnionTokens]),
-      ),
+      ...trailingExpressionsExceptUnion(initialExpression),
+      trailingUnionExpression(initialExpression),
       map(nothing, _ => initialExpression),
     ]),
 )

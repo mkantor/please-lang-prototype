@@ -722,4 +722,56 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [`:object.from_property(key)(value)`, either.makeRight({ key: 'value' })],
   [`(1 + 1) ~ :integer.type`, either.makeRight('2')],
+  [
+    // `true | (false || true) | false`
+    'true | false || true | false',
+    either.makeRight({
+      0: '@union',
+      // TODO: Consider normalizing away the duplicate `true`s.
+      1: { 0: 'true', 1: 'true', 2: 'false' },
+    }),
+  ],
+  [
+    // `true | (false ~> (true | false))`
+    'true | false ~> true | false',
+    either.makeRight({
+      '0': '@union',
+      '1': {
+        '0': 'true',
+        '1': {
+          '0': '@signature',
+          '1': {
+            parameter: 'false',
+            return: { '0': '@union', '1': { '0': 'true', '1': 'false' } },
+          },
+        },
+      },
+    }),
+  ],
+  [
+    // `true | (false => (true | false))`
+    'true | false => true | false',
+    either.makeRight({
+      '0': '@union',
+      '1': {
+        '0': 'true',
+        '1': {
+          '0': '@function',
+          '1': {
+            parameter: 'false',
+            body: { '0': '@union', '1': { '0': 'true', '1': 'false' } },
+          },
+        },
+      },
+    }),
+  ],
+  [
+    // `false | (true ~ true) | false`
+    'false | true ~ true | false',
+    either.makeRight({
+      '0': '@union',
+      // TODO: Consider normalizing away the duplicate `false`s.
+      '1': { '0': 'false', '1': 'true', '2': 'false' },
+    }),
+  ],
 ])
