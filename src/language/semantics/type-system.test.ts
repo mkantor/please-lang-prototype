@@ -1,4 +1,5 @@
 import { testCases } from '../../test-utilities.test.js'
+import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import {
   atom,
   boolean,
@@ -20,6 +21,7 @@ import {
   type Type,
   type UnionType,
 } from './type-system/type-formats.js'
+import { applyKeyPathToType } from './type-system/type-utilities.js'
 
 const typeAssignabilitySuite = testCases(
   ([source, target]: [source: Type, target: Type]) =>
@@ -1198,5 +1200,98 @@ typeAssignabilitySuite('generic function types (not assignable)', [
       }),
     ],
     false,
+  ],
+])
+
+const applyKeyPathSuite = testCases(
+  // For now non-atom key paths are not exposed in the language (e.g. you cannot
+  // dynamically refer to function parameters/returns). If that changes, this
+  // will need to be updated.
+  ([type, keyPath]: [type: Type, keyPath: KeyPath]) =>
+    showType(applyKeyPathToType(type, keyPath)),
+  ([type, keyPath]) =>
+    `applying key path \`${stringifyKeyPathForEndUser(keyPath)}\` to \`${showType(type)}\``,
+)
+
+applyKeyPathSuite('applyKeyPathToType with empty key path', [
+  [[atom, []], showType(atom)],
+  [[nothing, []], showType(nothing)],
+  [[something, []], showType(something)],
+  [
+    [makeObjectType('', { a: atom }), []],
+    showType(makeObjectType('', { a: atom })),
+  ],
+  [
+    [makeFunctionType('', { parameter: atom, return: something }), []],
+    showType(makeFunctionType('', { parameter: atom, return: something })),
+  ],
+])
+
+applyKeyPathSuite('applyKeyPathToType with object types', [
+  [[makeObjectType('', { a: atom, b: integer }), ['a']], showType(atom)],
+  [[makeObjectType('', { a: atom, b: integer }), ['b']], showType(integer)],
+  [[makeObjectType('', { a: atom }), ['z']], showType(nothing)],
+  [
+    [
+      makeObjectType('', {
+        a: makeObjectType('', { b: makeUnionType('', ['hello']) }),
+      }),
+      ['a', 'b'],
+    ],
+    showType(makeUnionType('', ['hello'])),
+  ],
+  [[makeObjectType('', { a: atom }), ['a', 'b']], showType(nothing)],
+])
+
+applyKeyPathSuite('applyKeyPathToType with non-object types', [
+  [
+    [makeFunctionType('', { parameter: atom, return: something }), ['a']],
+    showType(nothing),
+  ],
+  [[atom, ['a']], showType(nothing)],
+  [[integer, ['a']], showType(nothing)],
+  [[A, ['a']], showType(nothing)],
+])
+
+applyKeyPathSuite('applyKeyPathToType with union types', [
+  [
+    [
+      makeUnionType('', [
+        makeObjectType('', { a: makeUnionType('', ['x']) }),
+        makeObjectType('', { a: makeUnionType('', ['y']) }),
+      ]),
+      ['a'],
+    ],
+    showType(makeUnionType('', ['x', 'y'])),
+  ],
+  [
+    [
+      makeUnionType('', [
+        makeObjectType('', { a: makeUnionType('', ['x']) }),
+        'some_atom',
+      ]),
+      ['a'],
+    ],
+    showType(makeUnionType('', ['x'])),
+  ],
+  [
+    [
+      makeUnionType('', [
+        makeObjectType('', { b: atom }),
+        makeObjectType('', { c: atom }),
+      ]),
+      ['a'],
+    ],
+    showType(nothing),
+  ],
+  [
+    [
+      makeUnionType('', [
+        makeObjectType('', { a: integer }),
+        makeFunctionType('', { parameter: atom, return: atom }),
+      ]),
+      ['a'],
+    ],
+    showType(integer),
   ],
 ])

@@ -44,6 +44,103 @@ export type TypeParametersByKeyPath = Map<
   }
 >
 
+/**
+ * Drill into `type` using the given `keyPath`, returning the bottom type
+ * (`nothing`) whenever no match is found. When drilling into union types, union
+ * members for which the given `keyPath` isn't applicable are filtered out.
+ */
+export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
+  const [firstKey, ...remainingKeyPath] = keyPath
+  if (firstKey === undefined) {
+    // If the key path is empty, this is the type we're looking for.
+    return type
+  } else {
+    return matchTypeFormat(type, {
+      function: type => {
+        if (typeof firstKey === 'string') {
+          // Functions do not have properties.
+          return types.nothing
+        } else {
+          switch (firstKey) {
+            case functionParameter:
+              return makeFunctionType(type.name, {
+                parameter: applyKeyPathToType(
+                  type.signature.parameter,
+                  remainingKeyPath,
+                ),
+                return: type.signature.return,
+              })
+            case functionReturn:
+              return makeFunctionType(type.name, {
+                parameter: type.signature.parameter,
+                return: applyKeyPathToType(
+                  type.signature.return,
+                  remainingKeyPath,
+                ),
+              })
+            case typeParameterAssignableToConstraint:
+              // Functions aren't type parameters.
+              return types.nothing
+          }
+        }
+      },
+      object: type => {
+        if (typeof firstKey === 'string') {
+          const child = type.children[firstKey]
+          if (child === undefined) {
+            return types.nothing
+          } else {
+            return applyKeyPathToType(child, remainingKeyPath)
+          }
+        } else {
+          // Objects have properties, not parameters/returns/constraints/etc.
+          return types.nothing
+        }
+      },
+      opaque: _type => types.nothing,
+      parameter: type => {
+        if (typeof firstKey === 'string') {
+          // Type parameters do not have properties.
+          // TODO: Though perhaps I should drill into the constraint here?
+          return types.nothing
+        } else {
+          switch (firstKey) {
+            case typeParameterAssignableToConstraint:
+              return makeTypeParameter(type.name, {
+                assignableTo: applyKeyPathToType(
+                  type.constraint.assignableTo,
+                  remainingKeyPath,
+                ),
+              })
+            case functionParameter:
+            case functionReturn:
+              // Type parameters aren't function types.
+              // TODO: Though perhaps I should drill into the constraint here?
+              return types.nothing
+          }
+        }
+      },
+      union: type => {
+        return makeUnionType(
+          type.name,
+          [...type.members].flatMap(member => {
+            if (typeof member === 'string') {
+              return []
+            } else {
+              const manipulatedMember = applyKeyPathToType(member, keyPath)
+              if (manipulatedMember.kind === 'union') {
+                return [...manipulatedMember.members]
+              } else {
+                return [manipulatedMember]
+              }
+            }
+          }),
+        )
+      },
+    })
+  }
+}
+
 export const containedTypeParameters = (type: Type): TypeParametersByKeyPath =>
   containedTypeParametersImplementation(type, [])
 
