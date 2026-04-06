@@ -2,6 +2,7 @@ import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
+import { inlineSugarFreePrettyPlz } from '../../unparsing.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
 import type { Expression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
@@ -14,6 +15,7 @@ import {
 } from '../object-node.js'
 import {
   applyKeyPathToSemanticGraph,
+  stringifySemanticGraphForEndUser,
   type SemanticGraph,
 } from '../semantic-graph.js'
 
@@ -70,7 +72,10 @@ export const readArgumentsFromExpression = <
         const requiredKeySummary = `\`${keyword}\` or \`${position}\``
         return either.makeLeft({
           kind: 'invalidExpression',
-          message: `missing required property ${requiredKeySummary} within ${expression['0']} expression`,
+          message: `missing required property ${requiredKeySummary} within ${expression['0']} expression: \`${stringifySemanticGraphForEndUser(
+            expression,
+            inlineSugarFreePrettyPlz,
+          )}\``,
         })
       } else {
         expressionArguments.push(argument.value)
