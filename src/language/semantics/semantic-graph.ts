@@ -12,7 +12,7 @@ import {
   makeIndexExpression,
   makeLookupExpression,
 } from '../semantics.js'
-import { inlinePlz, unparse } from '../unparsing.js'
+import { inlinePlz, unparse, type Notation } from '../unparsing.js'
 import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { isSemanticGraph } from './is-semantic-graph.js'
@@ -203,9 +203,10 @@ export const serialize = (
 
 export const stringifySemanticGraphForEndUser = (
   graph: SemanticGraph,
+  notation: Notation = inlinePlz,
 ): string =>
   either.match(
-    either.flatMap(serialize(graph), output => unparse(output, inlinePlz)),
+    either.flatMap(serialize(graph), output => unparse(output, notation)),
     {
       right: stringifiedOutput => stringifiedOutput,
       left: error => `(unserializable value: ${error.message})`,
