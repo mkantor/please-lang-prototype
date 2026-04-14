@@ -348,4 +348,6 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  ['@if { true, true, 42 } ~ :boolean.type', success('true')],
 ])
