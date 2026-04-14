@@ -10,6 +10,7 @@ import type { KeyPath } from './key-path.js'
 import { isKeyword, type Keyword } from './keyword.js'
 import { makeObjectNode, type ObjectNode } from './object-node.js'
 import {
+  containsAnyUnelaboratedNodes,
   extractStringValueIfPossible,
   serialize,
   updateValueAtKeyPathInSemanticGraph,
@@ -24,6 +25,7 @@ export type ExpressionContext = {
   readonly keywordHandlers: KeywordHandlers
   readonly location: KeyPath
   readonly program: SemanticGraph
+  readonly skipReelaboration?: true | undefined
 }
 
 export type KeywordElaborationResult = Either<ElaborationError, SemanticGraph>
@@ -79,6 +81,8 @@ const elaborateWithinMolecule = (
       {},
     )
     let updatedProgram = context.program
+    const keysNeedingReelaboration = new Set<Atom>()
+    let moleculeIsKeywordExpression = false
 
     for (let [key, value] of Object.entries(molecule)) {
       const keyUpdateResult = handleAtomWhichMayNotBeAKeyword(key)
@@ -89,11 +93,18 @@ const elaborateWithinMolecule = (
         const updatedKey = keyUpdateResult.value
         if (typeof value === 'string') {
           possibleExpressionAsObjectNode[updatedKey] = value
+          if (key === '0' && isKeyword(value)) {
+            moleculeIsKeywordExpression = true
+          }
         } else {
           const elaborationResult = elaborateWithinMolecule(value, {
             keywordHandlers: context.keywordHandlers,
             location: [...context.location, key],
             program: updatedProgram,
+            skipReelaboration:
+              context.skipReelaboration || moleculeIsKeywordExpression ?
+                true
+              : undefined,
           })
           if (either.isLeft(elaborationResult)) {
             // Immediately bail on error.
@@ -109,6 +120,12 @@ const elaborateWithinMolecule = (
             updatedProgram = programUpdateResult.value
           }
           possibleExpressionAsObjectNode[updatedKey] = elaborationResult.value
+          if (
+            typeof elaborationResult.value !== 'string' &&
+            containsAnyUnelaboratedNodes(elaborationResult.value)
+          ) {
+            keysNeedingReelaboration.add(updatedKey)
+          }
         }
       }
     }
@@ -134,6 +151,68 @@ const elaborateWithinMolecule = (
         } else {
           const updatedValue = valueUpdateResult.value
           possibleExpressionAsObjectNode[key] = updatedValue
+        }
+      }
+    }
+
+    // Re-elaborate nodes which are still not fully-elaborated now that sibling
+    // properties have been processed. This resolves forward references where a
+    // `@lookup` is elaborated before its target (e.g. in a program like
+    // `{ a: :b, b: :identity(42) }`, the `:b` lookup originally resolved to the
+    // raw `:identity` application rather than its return value, and this
+    // behavior could sneakily arise even in programs without explicit forward
+    // references (such as `{ a: :identity(42), 999: :a }`), because JavaScript
+    // runtimes iterate over integer keys before others).
+    //
+    // Re-elaboration repeats until a fixed point is reached where no progress
+    // is made (a chain of forward references may require multiple passes, and
+    // cycles like `{ a: :a }` simply don't make progress). Only properties
+    // whose elaboration produced unelaborated nodes are re-elaborated.
+    //
+    // The nested `elaborateWithContext` call uses `skipReelaboration` to
+    // prevent cascading: without it, each re-elaborated subtree would run
+    // its own re-elaboration loops, causing exponential blowup in recursive
+    // programs.
+    //
+    // TODO: Consider less-imperative/more-functional approaches for this (and
+    // also for elaboration as a whole).
+    if (!context.skipReelaboration && !moleculeIsKeywordExpression) {
+      let madeProgress = true
+      while (madeProgress && keysNeedingReelaboration.size > 0) {
+        madeProgress = false
+        for (const key of [...keysNeedingReelaboration]) {
+          const value = possibleExpressionAsObjectNode[key]
+          if (value === undefined) {
+            keysNeedingReelaboration.delete(key)
+            continue
+          }
+          const serialized = serialize(value)
+          if (either.isLeft(serialized)) {
+            continue
+          }
+          const reelaborationResult = elaborateWithContext(serialized.value, {
+            keywordHandlers: context.keywordHandlers,
+            location: [...context.location, key],
+            program: updatedProgram,
+            skipReelaboration: true,
+          })
+          if (
+            either.isLeft(reelaborationResult) ||
+            containsAnyUnelaboratedNodes(reelaborationResult.value)
+          ) {
+            continue
+          }
+          possibleExpressionAsObjectNode[key] = reelaborationResult.value
+          const programUpdateResult = updateValueAtKeyPathInSemanticGraph(
+            updatedProgram,
+            [...context.location, key],
+            _ => reelaborationResult.value,
+          )
+          if (either.isRight(programUpdateResult)) {
+            updatedProgram = programUpdateResult.value
+          }
+          keysNeedingReelaboration.delete(key)
+          madeProgress = true
         }
       }
     }

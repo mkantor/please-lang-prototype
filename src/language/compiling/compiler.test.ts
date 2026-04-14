@@ -171,6 +171,10 @@ testCases(compile, input => `compiling \`${JSON.stringify(input)}\``)(
         },
       }),
     ],
+    [
+      { a: ['@lookup', ['b']], b: ['@index', [[42], ['0']]] },
+      success({ a: '42', b: '42' }),
+    ],
   ],
 )
 
@@ -183,6 +187,29 @@ testCases(
   parseAndCompile,
   input => `parsing & compiling \`${JSON.stringify(input)}\``,
 )('parser + compiler', [
+  ['{ a: :b, b: :c, c: 42 }', success({ a: '42', b: '42', c: '42' })],
+
+  [
+    '{ a: false, b: { :a, a: true } }',
+    success({ a: 'false', b: { 0: 'true', a: 'true' } }),
+  ],
+
+  ['{ a: :b, b: { 42 }.0 }', success({ a: '42', b: '42' })],
+
+  ['{ a: :b, b: :identity(42) }', success({ a: '42', b: '42' })],
+
+  ['{ a: @if { true, true, 42 }, :a }', success({ a: 'true', '0': 'true' })],
+
+  [
+    '{ a: @if { true, true, 42 }, b: :a, :b }',
+    success({ a: 'true', b: 'true', '0': 'true' }),
+  ],
+
+  [
+    '{ a: :identity(1), b: :identity(2), :a, :b }',
+    success({ a: '1', b: '2', '0': '1', '1': '2' }),
+  ],
+
   [
     '@runtime { _ => 42 ~ :integer.type }',
     success({
