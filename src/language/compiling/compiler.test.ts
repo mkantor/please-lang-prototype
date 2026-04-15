@@ -327,4 +327,25 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    '{ a: @runtime { context => :context.program.start_time }, :a ~ :atom.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '@runtime { context => { a: :context.program.start_time, b: :a, :b ~ :atom.type } }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '{ a: @runtime { context => :context.program.start_time }, b: :a, :b ~ :atom.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

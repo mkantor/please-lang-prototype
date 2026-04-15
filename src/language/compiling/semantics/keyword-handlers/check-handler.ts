@@ -33,6 +33,7 @@ import {
   makeObjectType,
   type Type,
 } from '../../../semantics/type-system/type-formats.js'
+import { lookup } from './lookup-handler.js'
 
 const isEnclosedInRuntimeExpression = (
   program: SemanticGraph,
@@ -104,6 +105,8 @@ const resolveParameterTypes = (
 const inferType = (
   node: SemanticGraph,
   parameterTypes: ReadonlyMap<Atom, Type>,
+  lookingUpKeys: ReadonlySet<Atom>,
+  context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
   if (
     typeof node === 'string' ||
@@ -113,19 +116,43 @@ const inferType = (
     return literalTypeFromSemanticGraph(node)
   }
 
-  // @lookup: check if it refers to a parameter, if so resolve type.
+  // @lookup: check if it directly refers to a function parameter. If so, use
+  // the parameter's type. Otherwise, resolve the @lookup, then recur.
   const lookupResult = readLookupExpression(node)
   if (either.isRight(lookupResult)) {
     const key = lookupResult.value[1].key
-    const type = parameterTypes.get(key) ?? types.something // TODO: Be more specific in non-parameter cases?
-    return either.makeRight(type)
+    const paramType = parameterTypes.get(key)
+    if (paramType !== undefined) {
+      return either.makeRight(paramType)
+    } else if (!lookingUpKeys.has(key)) {
+      const lookupResult = lookup({ key, context })
+      if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
+        return inferType(
+          lookupResult.value.value,
+          parameterTypes,
+          new Set([...lookingUpKeys, key]),
+          context,
+        )
+      } else {
+        // Fall back to the top type.
+        return either.makeRight(types.something)
+      }
+    } else {
+      // Fall back to the top type.
+      return either.makeRight(types.something)
+    }
   }
 
   // @index: infer object type, look up appropriate type by key path.
   const indexResult = readIndexExpression(node)
   if (either.isRight(indexResult)) {
     return either.flatMap(
-      inferType(indexResult.value[1].object, parameterTypes),
+      inferType(
+        indexResult.value[1].object,
+        parameterTypes,
+        lookingUpKeys,
+        context,
+      ),
       objectType =>
         either.map(
           keyPathFromObjectNodeOrMolecule(indexResult.value[1].query),
@@ -151,6 +178,8 @@ const inferType = (
       return inferType(
         functionExpressionResult.value[1].body,
         updatedParameterTypes,
+        lookingUpKeys,
+        context,
       )
     }
     return either.makeRight(types.something)
@@ -162,7 +191,12 @@ const inferType = (
     // Infer unelaborated descendants' types.
     const children: Record<string, Type> = {}
     for (const [key, value] of Object.entries(node)) {
-      const childTypeResult = inferType(value, parameterTypes)
+      const childTypeResult = inferType(
+        value,
+        parameterTypes,
+        lookingUpKeys,
+        context,
+      )
       if (either.isLeft(childTypeResult)) {
         return childTypeResult
       }
@@ -184,7 +218,7 @@ const check = ({
   readonly context: ExpressionContext
 }): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(
-    inferType(value, resolveParameterTypes(context)),
+    inferType(value, resolveParameterTypes(context), new Set(), context),
     valueAsType =>
       either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
         if (

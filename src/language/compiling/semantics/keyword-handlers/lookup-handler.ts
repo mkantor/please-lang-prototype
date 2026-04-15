@@ -45,7 +45,7 @@ export const lookupKeywordHandler: KeywordHandler = (
 /**
  * Recursively search upwards in lexical scope for the given `key`.
  */
-const lookup = ({
+export const lookup = ({
   context,
   key,
 }: {
