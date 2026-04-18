@@ -396,4 +396,25 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    '{ a: 42, b: _ => :a, :b(_) ~ :integer.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '{ a: 42, b: _ => :a }.b(_) ~ :integer.type',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '{ a: _ => 42, b: :a, :b(_) ~ :integer.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
