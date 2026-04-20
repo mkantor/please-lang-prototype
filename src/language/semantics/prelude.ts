@@ -8,10 +8,10 @@ import { object } from './stdlib/object.js'
 
 export const prelude = makeObjectNode({
   ...globalFunctions,
-  boolean: makeObjectNode(boolean),
-  natural_number: makeObjectNode(natural_number),
-  integer: makeObjectNode(integer),
   atom: makeObjectNode(atom),
+  boolean: makeObjectNode(boolean),
+  integer: makeObjectNode(integer),
+  natural_number: makeObjectNode(natural_number),
   object: makeObjectNode(object),
 
   // Aliases:
