@@ -90,6 +90,8 @@ const resolveParameterTypes = (
               ) ?
                 types.runtimeContext
               : types.something
+
+            // Side-effect: add the parameter.
             parameterTypes.set(parameterName, parameterType)
           }
         }
@@ -213,14 +215,12 @@ const inferType = (
         either.flatMap(runtimeFunction.serialize(), readFunctionExpression)
       : readFunctionExpression(runtimeFunction)
     if (either.isRight(functionExpressionResult)) {
-      const updatedParameterTypes = new Map(parameterTypes)
-      updatedParameterTypes.set(
-        functionExpressionResult.value[1].parameter,
-        types.runtimeContext,
-      )
       return inferType(
         functionExpressionResult.value[1].body,
-        updatedParameterTypes,
+        new Map([
+          ...parameterTypes,
+          [functionExpressionResult.value[1].parameter, types.runtimeContext],
+        ]),
         lookingUpKeys,
         context,
       )
