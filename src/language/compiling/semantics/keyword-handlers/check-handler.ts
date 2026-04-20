@@ -31,6 +31,7 @@ import {
 } from '../../../semantics/type-system.js'
 import { showType } from '../../../semantics/type-system/show-type.js'
 import {
+  makeFunctionType,
   makeObjectType,
   type Type,
 } from '../../../semantics/type-system/type-formats.js'
@@ -153,6 +154,32 @@ const inferType = (
   lookingUpKeys: ReadonlySet<Atom>,
   context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
+  // @function: infer return type from the body.
+  const functionExpressionResult =
+    isFunctionNode(node) ?
+      either.flatMap(node.serialize(), readFunctionExpression)
+    : readFunctionExpression(node)
+  if (either.isRight(functionExpressionResult)) {
+    const { parameter, body } = functionExpressionResult.value[1]
+
+    // TODO: Implement syntax for explicit parameter type annotations, as well
+    // as eventually supporting contextual inference of un-annotated parameters.
+    const parameterType = types.something
+
+    return either.map(
+      inferType(
+        body,
+        new Map([...parameterTypes, [parameter, parameterType]]),
+        lookingUpKeys,
+        context,
+      ),
+      returnType =>
+        makeFunctionType('', { parameter: parameterType, return: returnType }),
+    )
+  }
+
+  // TODO: Once the @function handler uses real type signatures, move this
+  // before the @function case above.
   if (
     typeof node === 'string' ||
     typeof node === 'symbol' ||
