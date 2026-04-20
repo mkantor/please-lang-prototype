@@ -125,9 +125,9 @@ const inferReturnType = (
 
   // Resolve `@lookup`s and recurse so indirectly-referenced functions (e.g.
   // `{ a: _ => 42, b: :a, :b(_) /* <- this */ }`) can be resolved.
-  const lookupResult = readLookupExpression(f)
-  if (either.isRight(lookupResult)) {
-    const key = lookupResult.value[1].key
+  const lookupExpressionResult = readLookupExpression(f)
+  if (either.isRight(lookupExpressionResult)) {
+    const key = lookupExpressionResult.value[1].key
     if (!lookingUpKeys.has(key)) {
       const lookupResult = lookup({ key, context })
       if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
@@ -161,9 +161,9 @@ const inferType = (
 
   // @lookup: check if it directly refers to a function parameter. If so, use
   // the parameter's type. Otherwise, resolve the @lookup, then recur.
-  const lookupResult = readLookupExpression(node)
-  if (either.isRight(lookupResult)) {
-    const key = lookupResult.value[1].key
+  const lookupExpressionResult = readLookupExpression(node)
+  if (either.isRight(lookupExpressionResult)) {
+    const key = lookupExpressionResult.value[1].key
     const paramType = parameterTypes.get(key)
     if (paramType !== undefined) {
       return either.makeRight(paramType)
@@ -187,27 +187,27 @@ const inferType = (
   }
 
   // @index: infer object type, look up appropriate type by key path.
-  const indexResult = readIndexExpression(node)
-  if (either.isRight(indexResult)) {
+  const indexExpressionResult = readIndexExpression(node)
+  if (either.isRight(indexExpressionResult)) {
     return either.flatMap(
       inferType(
-        indexResult.value[1].object,
+        indexExpressionResult.value[1].object,
         parameterTypes,
         lookingUpKeys,
         context,
       ),
       objectType =>
         either.map(
-          keyPathFromObjectNodeOrMolecule(indexResult.value[1].query),
+          keyPathFromObjectNodeOrMolecule(indexExpressionResult.value[1].query),
           keyPath => applyKeyPathToType(objectType, keyPath),
         ),
     )
   }
 
   // @runtime: infer return type of the contained function.
-  const runtimeResult = readRuntimeExpression(node)
-  if (either.isRight(runtimeResult)) {
-    const runtimeFunction = runtimeResult.value[1].function
+  const runtimeExpressionResult = readRuntimeExpression(node)
+  if (either.isRight(runtimeExpressionResult)) {
+    const runtimeFunction = runtimeExpressionResult.value[1].function
     const functionExpressionResult =
       isFunctionNode(runtimeFunction) ?
         either.flatMap(runtimeFunction.serialize(), readFunctionExpression)
@@ -229,10 +229,10 @@ const inferType = (
   }
 
   // @apply: infer the return type from the function being applied.
-  const applyResult = readApplyExpression(node)
-  if (either.isRight(applyResult)) {
+  const applyExpressionResult = readApplyExpression(node)
+  if (either.isRight(applyExpressionResult)) {
     return inferReturnType(
-      applyResult.value[1].function,
+      applyExpressionResult.value[1].function,
       parameterTypes,
       lookingUpKeys,
       context,
