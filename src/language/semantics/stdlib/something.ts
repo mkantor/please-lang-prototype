@@ -3,7 +3,7 @@ import { types } from '../type-system.js'
 import { preludeFunctionArity1 } from './stdlib-utilities.js'
 
 export const something = {
-  // TODO: Add `type`.
+  type: types.somethingTypeSymbol,
 
   is: preludeFunctionArity1(
     ['something', 'is'],

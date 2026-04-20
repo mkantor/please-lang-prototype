@@ -5,7 +5,7 @@ import type { Atom } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
-import { opaqueTypesBySymbol } from './prelude-types.js'
+import { typesBySymbol } from './prelude-types.js'
 import { simplifyUnionType } from './subtyping.js'
 import {
   makeFunctionType,
@@ -480,11 +480,8 @@ export const literalTypeFromSemanticGraph = (
       members: new Set([node]),
     })
   } else if (typeof node === 'symbol') {
-    if (
-      node in opaqueTypesBySymbol &&
-      opaqueTypesBySymbol[node] !== undefined
-    ) {
-      return either.makeRight(opaqueTypesBySymbol[node])
+    if (node in typesBySymbol && typesBySymbol[node] !== undefined) {
+      return either.makeRight(typesBySymbol[node])
     } else {
       return either.makeLeft({
         kind: 'bug',

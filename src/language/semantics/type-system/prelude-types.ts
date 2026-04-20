@@ -49,12 +49,6 @@ export const naturalNumber = makeOpaqueType(
   },
 )
 
-export const opaqueTypesBySymbol = {
-  [atom.symbol]: atom,
-  [integer.symbol]: integer,
-  [naturalNumber.symbol]: naturalNumber,
-}
-
 export const object = makeObjectType('object', {})
 
 // `functionType` and `something` reference each other directly, so we need to
@@ -72,6 +66,17 @@ Object.assign(
   something,
   makeUnionType('something', [functionType, atom, object]) satisfies UnionType,
 )
+
+// Despite not being opaque, `something` gets a type symbol to avoid
+// complications in value space stemming from its circular definition.
+export const somethingTypeSymbol = Symbol('something')
+
+export const typesBySymbol = {
+  [atomTypeSymbol]: atom,
+  [integerTypeSymbol]: integer,
+  [naturalNumberTypeSymbol]: naturalNumber,
+  [somethingTypeSymbol]: something,
+}
 
 export const option = (value: Type) =>
   makeUnionType('option', [

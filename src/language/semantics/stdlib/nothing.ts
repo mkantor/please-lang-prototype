@@ -1,9 +1,10 @@
 import either from '@matt.kantor/either'
+import { makeObjectNode } from '../object-node.js'
 import { types } from '../type-system.js'
 import { preludeFunctionArity1 } from './stdlib-utilities.js'
 
 export const nothing = {
-  // TODO: Add `type`.
+  type: makeObjectNode({ 0: '@union', 1: {} }),
 
   is: preludeFunctionArity1(
     ['nothing', 'is'],

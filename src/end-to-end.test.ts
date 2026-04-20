@@ -723,6 +723,25 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`:object.from_property(key)(value)`, either.makeRight({ key: 'value' })],
   [`(1 + 1) ~ :integer.type`, either.makeRight('2')],
   [
+    `{
+      1 ~ :something.type
+      blah ~ :something.type
+      {} ~ :something.type
+      (a => :a) ~ :something.type
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+  [
+    `"arbitrary value" ~ :nothing.type`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+  [
     // `true | (false || true) | false`
     'true | false || true | false',
     either.makeRight({
