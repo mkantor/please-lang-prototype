@@ -377,4 +377,44 @@ testCases(
   ],
 
   ['@if { true, true, 42 } ~ :boolean.type', success('true')],
+
+  [
+    '{ a: 42, b: :a, :b ~ :integer.type }',
+    success({ a: '42', b: '42', '0': '42' }),
+  ],
+
+  [
+    '{ a: 42, (_ => :a)(_) ~ :integer.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '{ a: 42, b: _ => :a, c: :b(_) ~ :integer.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '{ a: 42, b: _ => :a, :b(_) ~ :integer.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '{ a: 42, b: _ => :a }.b(_) ~ :integer.type',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '{ a: _ => 42, b: :a, :b(_) ~ :integer.type }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
