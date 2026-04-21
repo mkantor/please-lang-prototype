@@ -28,12 +28,14 @@ import {
   atomTypeSymbol,
   integerTypeSymbol,
   naturalNumberTypeSymbol,
+  somethingTypeSymbol,
 } from './type-system/prelude-types.js'
 
 export type TypeSymbol =
   | typeof atomTypeSymbol
   | typeof integerTypeSymbol
   | typeof naturalNumberTypeSymbol
+  | typeof somethingTypeSymbol
 
 export type SemanticGraph = Atom | TypeSymbol | FunctionNode | ObjectNode
 
@@ -192,6 +194,8 @@ export const serialize = (
                     return makeLookupExpression('integer')
                   case naturalNumberTypeSymbol:
                     return makeLookupExpression('natural_number')
+                  case somethingTypeSymbol:
+                    return makeLookupExpression('something')
                 }
               })(),
             }),
