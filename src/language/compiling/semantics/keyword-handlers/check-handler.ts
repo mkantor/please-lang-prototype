@@ -31,6 +31,7 @@ import {
 } from '../../../semantics/type-system.js'
 import { showType } from '../../../semantics/type-system/show-type.js'
 import {
+  makeFunctionType,
   makeObjectType,
   type Type,
 } from '../../../semantics/type-system/type-formats.js'
@@ -90,6 +91,8 @@ const resolveParameterTypes = (
               ) ?
                 types.runtimeContext
               : types.something
+
+            // Side-effect: add the parameter.
             parameterTypes.set(parameterName, parameterType)
           }
         }
@@ -103,54 +106,38 @@ const resolveParameterTypes = (
   return parameterTypes
 }
 
-const inferReturnType = (
-  f: SemanticGraph,
-  parameterTypes: ReadonlyMap<Atom, Type>,
-  lookingUpKeys: ReadonlySet<Atom>,
-  context: ExpressionContext,
-): Either<ElaborationError, Type> => {
-  if (isFunctionNode(f)) {
-    return either.makeRight(f.signature.return)
-  }
-
-  const functionExpressionResult = readFunctionExpression(f)
-  if (either.isRight(functionExpressionResult)) {
-    const { parameter, body } = functionExpressionResult.value[1]
-    const updatedParameterTypes = new Map([
-      ...parameterTypes,
-      [parameter, types.something],
-    ])
-    return inferType(body, updatedParameterTypes, lookingUpKeys, context)
-  }
-
-  // Resolve `@lookup`s and recurse so indirectly-referenced functions (e.g.
-  // `{ a: _ => 42, b: :a, :b(_) /* <- this */ }`) can be resolved.
-  const lookupExpressionResult = readLookupExpression(f)
-  if (either.isRight(lookupExpressionResult)) {
-    const key = lookupExpressionResult.value[1].key
-    if (!lookingUpKeys.has(key)) {
-      const lookupResult = lookup({ key, context })
-      if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
-        return inferReturnType(
-          lookupResult.value.value,
-          parameterTypes,
-          new Set([...lookingUpKeys, key]),
-          context,
-        )
-      }
-    }
-  }
-
-  // Fall back to the top type.
-  return either.makeRight(types.something)
-}
-
 const inferType = (
   node: SemanticGraph,
   parameterTypes: ReadonlyMap<Atom, Type>,
   lookingUpKeys: ReadonlySet<Atom>,
   context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
+  // @function: infer return type from the body.
+  const functionExpressionResult =
+    isFunctionNode(node) ?
+      either.flatMap(node.serialize(), readFunctionExpression)
+    : readFunctionExpression(node)
+  if (either.isRight(functionExpressionResult)) {
+    const { parameter, body } = functionExpressionResult.value[1]
+
+    // TODO: Implement syntax for explicit parameter type annotations, as well
+    // as eventually supporting contextual inference of un-annotated parameters.
+    const parameterType = types.something
+
+    return either.map(
+      inferType(
+        body,
+        new Map([...parameterTypes, [parameter, parameterType]]),
+        lookingUpKeys,
+        context,
+      ),
+      returnType =>
+        makeFunctionType('', { parameter: parameterType, return: returnType }),
+    )
+  }
+
+  // TODO: Once the @function handler uses real type signatures, move this
+  // before the @function case above.
   if (
     typeof node === 'string' ||
     typeof node === 'symbol' ||
@@ -213,14 +200,12 @@ const inferType = (
         either.flatMap(runtimeFunction.serialize(), readFunctionExpression)
       : readFunctionExpression(runtimeFunction)
     if (either.isRight(functionExpressionResult)) {
-      const updatedParameterTypes = new Map(parameterTypes)
-      updatedParameterTypes.set(
-        functionExpressionResult.value[1].parameter,
-        types.runtimeContext,
-      )
       return inferType(
         functionExpressionResult.value[1].body,
-        updatedParameterTypes,
+        new Map([
+          ...parameterTypes,
+          [functionExpressionResult.value[1].parameter, types.runtimeContext],
+        ]),
         lookingUpKeys,
         context,
       )
@@ -231,30 +216,22 @@ const inferType = (
   // @apply: infer the return type from the function being applied.
   const applyExpressionResult = readApplyExpression(node)
   if (either.isRight(applyExpressionResult)) {
-    return inferReturnType(
+    const inferredFunctionType = inferType(
       applyExpressionResult.value[1].function,
       parameterTypes,
       lookingUpKeys,
       context,
     )
-
-    // TODO: Once type inference is implemented for `@function` expressions, do
-    // this instead:
-    // ```
-    // const inferredFunctionType = inferType(
-    //   applyExpressionResult.value[1].function,
-    //   parameterTypes,
-    //   lookingUpKeys,
-    //   context,
-    // )
-    // if (either.isRight(inferredFunctionType)) {
-    //   if (inferredFunctionType.value.kind === 'function') {
-    //     return either.makeRight(inferredFunctionType.value.signature.return)
-    //   } else {
-    //     // TODO: Return an error? Non-function types can't be applied.
-    //   }
-    // }
-    // ```
+    if (either.isRight(inferredFunctionType)) {
+      if (inferredFunctionType.value.kind === 'function') {
+        return either.makeRight(inferredFunctionType.value.signature.return)
+      } else {
+        return either.makeLeft({
+          kind: 'invalidExpression',
+          message: 'cannot infer type: only functions can be applied',
+        })
+      }
+    }
   }
 
   // TODO: Handle `@if`s and/or other keyword expressions specially?
