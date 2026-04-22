@@ -227,6 +227,14 @@ const inferType = (
     if (either.isRight(inferredFunctionType)) {
       if (inferredFunctionType.value.kind === 'function') {
         return either.makeRight(inferredFunctionType.value.signature.return)
+      } else if (inferredFunctionType.value.kind === 'parameter') {
+        // Let's just assume this type parameter will be instantiated with a
+        // function type. Ideally this would actually be checked elsewhere.
+        // TODO: If there's not an appropriate place to do such a check, could
+        // check here that the constraint is a function type.
+        return either.makeRight(
+          inferredFunctionType.value.constraint.assignableTo,
+        )
       } else {
         return either.makeLeft({
           kind: 'invalidExpression',
