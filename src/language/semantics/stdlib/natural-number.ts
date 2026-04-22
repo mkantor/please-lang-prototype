@@ -45,7 +45,7 @@ export const natural_number = {
         !types.naturalNumber.isAssignableFrom(makeUnionType('', [number2]))
       ) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`modulo` expected a natural number',
         })
       } else {
@@ -55,7 +55,7 @@ export const natural_number = {
             !types.naturalNumber.isAssignableFrom(makeUnionType('', [number1]))
           ) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`modulo` expected a natural number',
             })
           } else {

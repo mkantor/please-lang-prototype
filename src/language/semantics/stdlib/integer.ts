@@ -24,7 +24,7 @@ export const integer = {
         !types.integer.isAssignableFrom(makeUnionType('', [number2]))
       ) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`add` expected an integer',
         })
       } else {
@@ -34,7 +34,7 @@ export const integer = {
             !types.integer.isAssignableFrom(makeUnionType('', [number1]))
           ) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`add` expected an integer',
             })
           } else {
@@ -67,7 +67,7 @@ export const integer = {
         !types.integer.isAssignableFrom(makeUnionType('', [number2]))
       ) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`equals` expected an integer',
         })
       } else {
@@ -77,7 +77,7 @@ export const integer = {
             !types.integer.isAssignableFrom(makeUnionType('', [number1]))
           ) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`equals` expected an integer',
             })
           } else {
@@ -125,7 +125,7 @@ export const integer = {
         !types.integer.isAssignableFrom(makeUnionType('', [number2]))
       ) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`greater_than` expected an integer',
         })
       } else {
@@ -135,7 +135,7 @@ export const integer = {
             !types.integer.isAssignableFrom(makeUnionType('', [number1]))
           ) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`greater_than` expected an integer',
             })
           } else {
@@ -162,7 +162,7 @@ export const integer = {
         !types.integer.isAssignableFrom(makeUnionType('', [number2]))
       ) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`less_than` expected an integer',
         })
       } else {
@@ -172,7 +172,7 @@ export const integer = {
             !types.integer.isAssignableFrom(makeUnionType('', [number1]))
           ) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`less_than` expected an integer',
             })
           } else {
@@ -199,7 +199,7 @@ export const integer = {
         !types.integer.isAssignableFrom(makeUnionType('', [number2]))
       ) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`multiply` expected an integer',
         })
       } else {
@@ -209,7 +209,7 @@ export const integer = {
             !types.integer.isAssignableFrom(makeUnionType('', [number1]))
           ) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`multiply` expected an integer',
             })
           } else {
@@ -236,7 +236,7 @@ export const integer = {
         !types.integer.isAssignableFrom(makeUnionType('', [number2]))
       ) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`subtract` expected an integer',
         })
       } else {
@@ -246,7 +246,7 @@ export const integer = {
             !types.integer.isAssignableFrom(makeUnionType('', [number1]))
           ) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`subtract` expected an integer',
             })
           } else {
