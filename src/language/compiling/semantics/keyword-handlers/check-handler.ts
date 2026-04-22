@@ -57,7 +57,7 @@ const isEnclosedInRuntimeExpression = (
   }
 }
 
-const resolveParameterTypes = (
+export const resolveParameterTypes = (
   context: ExpressionContext,
 ): ReadonlyMap<Atom, Type> => {
   const parameterTypes = new Map<Atom, Type>()
@@ -108,7 +108,7 @@ const resolveParameterTypes = (
   return parameterTypes
 }
 
-const inferType = (
+export const inferType = (
   node: SemanticGraph,
   parameterTypes: ReadonlyMap<Atom, Type>,
   lookingUpKeys: ReadonlySet<Atom>,
