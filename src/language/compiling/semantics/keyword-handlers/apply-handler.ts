@@ -42,18 +42,7 @@ const staticallyCheckArgument = (
           containedTypeParameters(argumentType).size > 0
         ) ?
           either.makeRight(undefined)
-        : (
-          // For now, reject only when the argument's inferred type and the
-          // parameter type are completely disjoint. The sound thing to do
-          // here would be to only proceed when `argumentType` is assignable
-          // to `parameterType` (and not the other way around), but progress
-          // is needed elsewhere to allow extant programs to typecheck like
-          // that.
-          // TODO: Revisit this once function parameter type annotations are
-          // expressible in plz.
-          isAssignable({ source: argumentType, target: parameterType }) ||
-          isAssignable({ source: parameterType, target: argumentType })
-        ) ?
+        : isAssignable({ source: argumentType, target: parameterType }) ?
           either.makeRight(undefined)
         : either.makeLeft({
             kind: 'typeMismatch',

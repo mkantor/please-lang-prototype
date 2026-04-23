@@ -33,6 +33,7 @@ import {
 import {
   applyKeyPathToType,
   literalTypeFromSemanticGraph,
+  supplyTypeArgument,
 } from './type-utilities.js'
 
 /**
@@ -210,7 +211,30 @@ export const inferType = (
     )
     if (either.isRight(inferredFunctionType)) {
       if (inferredFunctionType.value.kind === 'function') {
-        return either.makeRight(inferredFunctionType.value.signature.return)
+        const { parameter: parameterType, return: returnType } =
+          inferredFunctionType.value.signature
+        // If the function parameter is typed as a bare type parameter,
+        // instantiate it from the argument's type.
+        // TODO: Generalize this to handle type parameters nested within
+        // structures (e.g. `{ a, b } ~> { b, a }`).
+        if (parameterType.kind === 'parameter') {
+          const argumentTypeResult = inferType(
+            applyExpressionResult.value[1].argument,
+            parameterTypes,
+            lookingUpKeys,
+            context,
+          )
+          if (either.isRight(argumentTypeResult)) {
+            return either.makeRight(
+              supplyTypeArgument(
+                returnType,
+                parameterType,
+                argumentTypeResult.value,
+              ),
+            )
+          }
+        }
+        return either.makeRight(returnType)
       } else if (inferredFunctionType.value.kind === 'parameter') {
         // Let's just assume here that this type parameter will be instantiated
         // with a function type. If it's not, an error should be raised
