@@ -10,6 +10,7 @@ import {
   isFunctionNode,
   isObjectNode,
   keyPathFromObjectNodeOrMolecule,
+  lookup,
   readApplyExpression,
   readFunctionExpression,
   readIfExpression,
@@ -32,10 +33,6 @@ import {
   applyKeyPathToType,
   literalTypeFromSemanticGraph,
 } from './type-utilities.js'
-
-// TODO: Consider moving this or at least re-exporting it from a barrel file.
-// This deep import path isn't good.
-import { lookup } from '../../compiling/semantics/keyword-handlers/lookup-handler.js'
 
 /**
  * Returns a `Map` of parameter names to their types for the function parameters

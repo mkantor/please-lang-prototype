@@ -18,7 +18,10 @@ export {
   readCheckExpression,
   type CheckExpression,
 } from './semantics/expressions/check-expression.js'
-export { asSemanticGraph } from './semantics/expressions/expression-utilities.js'
+export {
+  asSemanticGraph,
+  stringifyKeyForEndUser,
+} from './semantics/expressions/expression-utilities.js'
 export {
   makeFunctionExpression,
   readFunctionExpression,
@@ -36,6 +39,7 @@ export {
 } from './semantics/expressions/index-expression.js'
 export {
   keyPathToLookupExpression,
+  lookup,
   makeLookupExpression,
   readLookupExpression,
   type LookupExpression,
