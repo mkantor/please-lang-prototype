@@ -23,9 +23,10 @@ const staticallyCheckArgument = (
   context: ExpressionContext,
 ): Either<ElaborationError, undefined> =>
   (
-    // Type inference does not yet instantiate type parameters from argument
-    // types, so skip the static check for generic parameter types.
-    // TODO: Implement type parameter instantiation.
+    // Type inference does not yet robustly instantiate type parameters from
+    // argument types, so skip the static check for generic parameter types.
+    // TODO: Implement enough type parameter instantiation logic to eliminate
+    // this hack.
     containedTypeParameters(parameterType).size > 0
   ) ?
     either.makeRight(undefined)
@@ -33,11 +34,21 @@ const staticallyCheckArgument = (
       inferType(argument, resolveParameterTypes(context), new Set(), context),
       argumentType =>
         (
+          // Also skip when the argument's inferred type contains type
+          // parameters (e.g. a lookup of an unannotated function parameter,
+          // which `resolveParameterTypes` infers as a type parameter).
+          // TODO: Implement enough type parameter instantiation logic to
+          // eliminate this hack.
+          containedTypeParameters(argumentType).size > 0
+        ) ?
+          either.makeRight(undefined)
+        : (
           // For now, reject only when the argument's inferred type and the
-          // parameter type are completely disjoint. The sound thing to do here
-          // would be to only proceed when `argumentType` is assignable to
-          // `parameterType` (and not the other way around), but progress is
-          // needed elsewhere to allow extant programs to typecheck like that.
+          // parameter type are completely disjoint. The sound thing to do
+          // here would be to only proceed when `argumentType` is assignable
+          // to `parameterType` (and not the other way around), but progress
+          // is needed elsewhere to allow extant programs to typecheck like
+          // that.
           // TODO: Revisit this once function parameter type annotations are
           // expressible in plz.
           isAssignable({ source: argumentType, target: parameterType }) ||

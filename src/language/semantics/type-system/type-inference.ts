@@ -26,6 +26,7 @@ import * as types from './prelude-types.js'
 import {
   makeFunctionType,
   makeObjectType,
+  makeTypeParameter,
   makeUnionType,
   type Type,
 } from './type-formats.js'
@@ -73,7 +74,9 @@ export const resolveParameterTypes = (
                 )
               ) ?
                 types.runtimeContext
-              : types.something
+              : makeTypeParameter(parameterName, {
+                  assignableTo: types.something,
+                })
 
             // Side-effect: add the parameter.
             parameterTypes.set(parameterName, parameterType)
