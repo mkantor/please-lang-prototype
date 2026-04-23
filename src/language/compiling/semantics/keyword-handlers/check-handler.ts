@@ -13,6 +13,7 @@ import {
   readApplyExpression,
   readCheckExpression,
   readFunctionExpression,
+  readIfExpression,
   readIndexExpression,
   readLookupExpression,
   readRuntimeExpression,
@@ -33,6 +34,7 @@ import { showType } from '../../../semantics/type-system/show-type.js'
 import {
   makeFunctionType,
   makeObjectType,
+  makeUnionType,
   type Type,
 } from '../../../semantics/type-system/type-formats.js'
 import { lookup } from './lookup-handler.js'
@@ -234,7 +236,39 @@ const inferType = (
     }
   }
 
-  // TODO: Handle `@if`s and/or other keyword expressions specially?
+  // @if: narrow to the chosen branch when the condition is statically known
+  // to be `true` or `false`; otherwise return a union of the branch types.
+  const ifExpressionResult = readIfExpression(node)
+  if (either.isRight(ifExpressionResult)) {
+    const { condition, then, else: otherwise } = ifExpressionResult.value[1]
+
+    const inferThen = () =>
+      inferType(then, parameterTypes, lookingUpKeys, context)
+    const inferElse = () =>
+      inferType(otherwise, parameterTypes, lookingUpKeys, context)
+
+    return either.flatMap(
+      inferType(condition, parameterTypes, lookingUpKeys, context),
+      conditionType => {
+        if (isAssignable({ source: conditionType, target: 'true' })) {
+          return inferThen()
+        } else if (isAssignable({ source: conditionType, target: 'false' })) {
+          return inferElse()
+        } else {
+          const membersOf = (type: Type) =>
+            type.kind === 'union' ? [...type.members] : [type]
+          return either.flatMap(inferThen(), thenType =>
+            either.map(inferElse(), elseType =>
+              makeUnionType('', [
+                ...membersOf(thenType),
+                ...membersOf(elseType),
+              ]),
+            ),
+          )
+        }
+      },
+    )
+  }
 
   if (isObjectNode(node) && containsAnyUnelaboratedNodes(node)) {
     // Infer unelaborated descendants' types.

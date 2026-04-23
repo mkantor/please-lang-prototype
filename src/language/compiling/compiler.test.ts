@@ -440,4 +440,37 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    '{ a: @if { true, true, 42 }, :a ~ :boolean.type }',
+    success({ a: 'true', '0': 'true' }),
+  ],
+
+  [
+    '{ a: true, b: 42, @if { true, :a, :b } ~ :boolean.type }',
+    success({ a: 'true', b: '42', '0': 'true' }),
+  ],
+
+  [
+    '@if { @runtime { _ => true }, 1, "not an integer" } ~ :integer.type',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `@if {
+      @runtime { context =>
+        :context.arguments.lookup(a) match {
+          none: _ => false
+          some: _ => true
+        }
+      }
+      then: 1
+      else: "not an integer"
+    } ~ (1 | "not an integer")`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
