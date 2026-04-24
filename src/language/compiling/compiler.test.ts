@@ -512,4 +512,11 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    '{ f: :identity >> :identity, :f(1) ~ 1 }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
