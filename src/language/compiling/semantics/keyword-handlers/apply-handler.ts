@@ -3,6 +3,7 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   containedTypeParameters,
   containsAnyUnelaboratedNodes,
+  getTypesForTypeParameters,
   inferType,
   isAssignable,
   isFunctionNode,
@@ -10,6 +11,7 @@ import {
   resolveParameterTypes,
   showType,
   stringifySemanticGraphForEndUser,
+  supplyTypeArguments,
   type Expression,
   type ExpressionContext,
   type KeywordHandler,
@@ -22,19 +24,18 @@ const staticallyCheckArgument = (
   parameterType: Type,
   context: ExpressionContext,
 ): Either<ElaborationError, undefined> =>
-  (
-    // Type inference does not yet robustly instantiate type parameters from
-    // argument types, so skip the static check for generic parameter types.
-    // TODO: Implement enough type parameter instantiation logic to eliminate
-    // this hack.
-    containedTypeParameters(parameterType).size > 0
-  ) ?
-    either.makeRight(undefined)
-  : either.flatMap(
-      inferType(argument, resolveParameterTypes(context), new Set(), context),
-      argumentType =>
+  either.flatMap(
+    inferType(argument, resolveParameterTypes(context), new Set(), context),
+    argumentType => {
+      // Instantiate type parameters contained in `parameterType` before the
+      // assignability check.
+      const instantiatedParameterType = supplyTypeArguments(
+        parameterType,
+        getTypesForTypeParameters({ parameterType, argumentType }),
+      )
+      return (
         (
-          // Also skip when the argument's inferred type contains type
+          // Skip checking when the argument's inferred type contains type
           // parameters (e.g. a lookup of an unannotated function parameter,
           // which `resolveParameterTypes` infers as a type parameter).
           // TODO: Implement enough type parameter instantiation logic to
@@ -42,15 +43,22 @@ const staticallyCheckArgument = (
           containedTypeParameters(argumentType).size > 0
         ) ?
           either.makeRight(undefined)
-        : isAssignable({ source: argumentType, target: parameterType }) ?
+        : (
+          isAssignable({
+            source: argumentType,
+            target: instantiatedParameterType,
+          })
+        ) ?
           either.makeRight(undefined)
         : either.makeLeft({
             kind: 'typeMismatch',
             message: `the value \`${stringifySemanticGraphForEndUser(
               argument,
             )}\` is not assignable to the type \`${showType(parameterType)}\``,
-          }),
-    )
+          })
+      )
+    },
+  )
 
 export const applyKeywordHandler: KeywordHandler = (
   expression: Expression,

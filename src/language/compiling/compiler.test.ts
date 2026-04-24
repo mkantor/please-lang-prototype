@@ -519,4 +519,13 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    ':flow(@runtime { _ => "not a function" })',
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])
