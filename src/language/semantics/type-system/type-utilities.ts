@@ -289,6 +289,69 @@ export const replaceAllTypeParametersWithTheirConstraints = (
     )
 
 /**
+ * Finds concrete types for the `TypeParameter`s in `parameter` by locating the
+ * corresponding position for each in `argument`.
+ *
+ * The types are not checked for consistency with each other, nor for
+ * assignability to `argument`. Callers should use `supplyTypeArguments` to
+ * create a concrete type and then perform any needed checks.
+ */
+// TODO: This should probably be checking type parameter constraints. It'll
+// definitely need to do so for the not-yet-implemented union case.
+export const getTypesForTypeParameters = ({
+  parameterType,
+  argumentType,
+}: {
+  readonly parameterType: Type
+  readonly argumentType: Type
+}): ReadonlyMap<TypeParameter, Type> => {
+  // Avoid infinite recursion when we hit the top type.
+  if (parameterType === types.something) {
+    return new Map()
+  } else {
+    return matchTypeFormat(parameterType, {
+      function: parameterType =>
+        argumentType.kind === 'function' ?
+          new Map([
+            ...getTypesForTypeParameters({
+              parameterType: parameterType.signature.return,
+              argumentType: argumentType.signature.return,
+            }),
+            ...getTypesForTypeParameters({
+              parameterType: parameterType.signature.parameter,
+              argumentType: argumentType.signature.parameter,
+            }),
+          ])
+        : new Map(),
+      object: parameterType =>
+        argumentType.kind === 'object' ?
+          Object.entries(parameterType.children)
+            .map(([key, childParameter]) => {
+              const childArgument = argumentType.children[key]
+              return childArgument === undefined ?
+                  new Map<TypeParameter, Type>()
+                : getTypesForTypeParameters({
+                    parameterType: childParameter,
+                    argumentType: childArgument,
+                  })
+            })
+            .reduce(
+              (types, typesFromChild) => new Map([...typesFromChild, ...types]),
+              new Map<TypeParameter, Type>(),
+            )
+        : new Map(),
+      opaque: _ => new Map(),
+      parameter: parameterType => new Map([[parameterType, argumentType]]),
+      // TODO: Handle type parameters in unions. This case will have to check
+      // type parameter constraints (e.g. if `parameterType` is `(A <: object) |
+      // atom`, if `argumentType` is an object type then `A` should be
+      // substituted with that type, but not if `argumentType` is an atom type).
+      union: _ => new Map(),
+    })
+  }
+}
+
+/**
  * Substitute the given `typeParameter` with the given `typeArgument` within
  * `type`, recursively visiting object properties, union members, etc.
  *
@@ -353,6 +416,19 @@ export const supplyTypeArgument = (
     })
   }
 }
+
+/** @see `supplyTypeArgument` */
+// TODO: If this becomes a performance bottleneck it could be specialized to
+// only match the format of `type` once.
+export const supplyTypeArguments = (
+  type: Type,
+  typeArguments: ReadonlyMap<TypeParameter, Type>,
+): Type =>
+  [...typeArguments].reduce(
+    (partiallyAppliedType, [typeParameter, typeArgument]) =>
+      supplyTypeArgument(partiallyAppliedType, typeParameter, typeArgument),
+    type,
+  )
 
 /**
  * If the given `KeyPath` is not valid for the given `Type`, the given `Type` is
