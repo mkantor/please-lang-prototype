@@ -1,12 +1,12 @@
 import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
-import type { DependencyUnavailable, Panic } from '../../errors.js'
 import {
   keyPathToLookupExpression,
   makeApplyExpression,
 } from '../../semantics.js'
 import {
   makeFunctionNode,
+  type FunctionNodeCallError,
   type FunctionNodeCallSignature,
 } from '../function-node.js'
 import { type NonEmptyKeyPath } from '../key-path.js'
@@ -72,7 +72,7 @@ export const preludeFunctionArity2 = (
   },
   f: (
     argument1: SemanticGraph,
-  ) => Either<DependencyUnavailable | Panic, FunctionNodeCallSignature>,
+  ) => Either<FunctionNodeCallError, FunctionNodeCallSignature>,
 ) =>
   preludeFunctionArity1(keyPath, signature, argument1 =>
     either.map(f(argument1), f1 =>
@@ -99,10 +99,10 @@ export const preludeFunctionArity3 = (
   f: (
     argument1: SemanticGraph,
   ) => Either<
-    DependencyUnavailable | Panic,
+    FunctionNodeCallError,
     (
       argument2: SemanticGraph,
-    ) => Either<DependencyUnavailable | Panic, FunctionNodeCallSignature>
+    ) => Either<FunctionNodeCallError, FunctionNodeCallSignature>
   >,
 ) =>
   preludeFunctionArity1(keyPath, signature, argument1 =>

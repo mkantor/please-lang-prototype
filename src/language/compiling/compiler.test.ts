@@ -473,4 +473,36 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `:boolean.not("not a boolean")`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `:boolean.not(@runtime { _ => "not a boolean" })`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `@runtime { _ => :integer.greater_than(1)(2) } ~ :boolean.type`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `@runtime { _ => 1 |> :identity } ~ 1`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

@@ -62,7 +62,7 @@ export const globalFunctions = {
       either.makeRight(functionToApply => {
         if (!isFunctionNode(functionToApply)) {
           return either.makeLeft({
-            kind: 'panic',
+            kind: 'typeMismatch',
             message: '`apply` expected a function',
           })
         } else {
@@ -128,14 +128,14 @@ export const globalFunctions = {
     secondFunction => {
       if (!isFunctionNode(secondFunction)) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`flow` expected a function',
         })
       } else {
         return either.makeRight(firstFunction => {
           if (!isFunctionNode(firstFunction)) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`flow` expected a function',
             })
           } else {
@@ -164,14 +164,14 @@ export const globalFunctions = {
     cases => {
       if (!isObjectNode(cases)) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`match` cases must be an object',
         })
       } else {
         return either.makeRight(argument => {
           if (!nodeIsTagged(argument)) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`match` argument was not tagged',
             })
           } else {

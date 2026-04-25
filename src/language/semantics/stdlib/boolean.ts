@@ -35,7 +35,7 @@ export const boolean = {
     argument => {
       if (!nodeIsBoolean(argument)) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`not` expected a boolean',
         })
       } else {
@@ -56,14 +56,14 @@ export const boolean = {
     argument2 => {
       if (!nodeIsBoolean(argument2)) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`and` expected a boolean',
         })
       } else {
         return either.makeRight(argument1 => {
           if (!nodeIsBoolean(argument1)) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`and` expected a boolean',
             })
           } else {
@@ -91,14 +91,14 @@ export const boolean = {
     argument2 => {
       if (!nodeIsBoolean(argument2)) {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`or` expected a boolean',
         })
       } else {
         return either.makeRight(argument1 => {
           if (!nodeIsBoolean(argument1)) {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`or` expected a boolean',
             })
           } else {

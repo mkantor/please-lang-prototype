@@ -18,14 +18,14 @@ export const atom = {
     atomToAppend => {
       if (typeof atomToAppend !== 'string') {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`append` expected an atom',
         })
       } else {
         return either.makeRight(atomToAppendTo => {
           if (typeof atomToAppendTo !== 'string') {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`append` expected an atom',
             })
           } else {
@@ -52,14 +52,14 @@ export const atom = {
     atom2 => {
       if (typeof atom2 !== 'string') {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`equal` expected an atom',
         })
       } else {
         return either.makeRight(atom1 => {
           if (typeof atom1 !== 'string') {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`equal` expected an atom',
             })
           } else {
@@ -82,14 +82,14 @@ export const atom = {
     atomToPrepend => {
       if (typeof atomToPrepend !== 'string') {
         return either.makeLeft({
-          kind: 'panic',
+          kind: 'typeMismatch',
           message: '`prepend` expected an atom',
         })
       } else {
         return either.makeRight(atomToPrependTo => {
           if (typeof atomToPrependTo !== 'string') {
             return either.makeLeft({
-              kind: 'panic',
+              kind: 'typeMismatch',
               message: '`prepend` expected an atom',
             })
           } else {
