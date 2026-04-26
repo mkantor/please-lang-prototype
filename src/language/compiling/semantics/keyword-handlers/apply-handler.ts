@@ -3,18 +3,19 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   containedTypeParameters,
   containsAnyUnelaboratedNodes,
+  inferType,
   isAssignable,
   isFunctionNode,
   readApplyExpression,
+  resolveParameterTypes,
+  showType,
   stringifySemanticGraphForEndUser,
   type Expression,
   type ExpressionContext,
   type KeywordHandler,
   type SemanticGraph,
+  type Type,
 } from '../../../semantics.js'
-import { showType } from '../../../semantics/type-system/show-type.js'
-import type { Type } from '../../../semantics/type-system/type-formats.js'
-import { inferType, resolveParameterTypes } from './check-handler.js'
 
 const staticallyCheckArgument = (
   argument: SemanticGraph,

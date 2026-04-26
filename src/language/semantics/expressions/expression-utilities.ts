@@ -2,9 +2,13 @@ import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
-import { inlineSugarFreePrettyPlz } from '../../unparsing.js'
+import {
+  inlinePlz,
+  inlineSugarFreePrettyPlz,
+  unparse,
+} from '../../unparsing.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
-import type { Expression } from '../expression.js'
+import { type Expression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
 import { isSemanticGraph } from '../is-semantic-graph.js'
 import { stringifyKeyPathForEndUser } from '../key-path.js'
@@ -91,6 +95,12 @@ export const readArgumentsFromExpression = <
 type ParsedExpressionArguments<Specification extends readonly string[]> = {
   [Index in keyof Specification]: ObjectNode[string]
 }
+
+export const stringifyKeyForEndUser = (key: Atom): string =>
+  either.match(unparse(key, inlinePlz), {
+    right: stringifiedOutput => stringifiedOutput,
+    left: error => `(unserializable key: ${error.message})`,
+  })
 
 const lookupWithinMolecule = (
   keyAliases: readonly [Atom, ...(readonly Atom[])],
