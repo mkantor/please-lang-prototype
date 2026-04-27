@@ -211,42 +211,49 @@ export const inferType = (
       context,
     )
     if (either.isRight(inferredFunctionType)) {
-      if (inferredFunctionType.value.kind === 'function') {
-        const { parameter: parameterType, return: returnType } =
-          inferredFunctionType.value.signature
-        const argumentTypeResult = inferType(
-          applyExpressionResult.value[1].argument,
-          parameterTypes,
-          lookingUpKeys,
-          context,
-        )
-        if (either.isRight(argumentTypeResult)) {
-          // Supply type arguments to the return type based on the inferred
-          // argument type.
-          return either.makeRight(
-            supplyTypeArguments(
-              returnType,
-              getTypesForTypeParameters({
-                parameterType,
-                argumentType: argumentTypeResult.value,
-              }),
-            ),
+      const inferredFunctionTypeAsFunctionType =
+        inferredFunctionType.value.kind === 'function' ?
+          option.makeSome(inferredFunctionType.value)
+        : (
+          inferredFunctionType.value.kind === 'parameter' &&
+          inferredFunctionType.value.constraint.assignableTo.kind === 'function'
+        ) ?
+          option.makeSome(inferredFunctionType.value.constraint.assignableTo)
+        : option.none
+
+      return option.match(inferredFunctionTypeAsFunctionType, {
+        some: ({
+          signature: { parameter: parameterType, return: returnType },
+        }) => {
+          const argumentTypeResult = inferType(
+            applyExpressionResult.value[1].argument,
+            parameterTypes,
+            lookingUpKeys,
+            context,
           )
-        }
-        return either.makeRight(returnType)
-      } else if (inferredFunctionType.value.kind === 'parameter') {
-        // Let's just assume here that this type parameter will be instantiated
-        // with a function type. If it's not, an error should be raised
-        // elsewhere.
-        return either.makeRight(
-          inferredFunctionType.value.constraint.assignableTo,
-        )
-      } else {
-        return either.makeLeft({
-          kind: 'invalidExpression',
-          message: 'cannot infer type: only functions can be applied',
-        })
-      }
+          if (either.isRight(argumentTypeResult)) {
+            // Supply type arguments to the return type based on the inferred
+            // argument type.
+            return either.makeRight(
+              supplyTypeArguments(
+                returnType,
+                getTypesForTypeParameters({
+                  parameterType,
+                  argumentType: argumentTypeResult.value,
+                }),
+              ),
+            )
+          }
+          return either.makeRight(returnType)
+        },
+        none: _ => either.makeRight(types.something),
+        // TODO: Error instead once inference is comprehensive enough to do so
+        // without failing tests:
+        // none: _ => either.makeLeft({
+        //   kind: 'invalidExpression',
+        //   message: `cannot infer return type: only functions can be applied, but got a \`${showType(inferredFunctionType.value)}\``,
+        // }),
+      })
     }
   }
 
