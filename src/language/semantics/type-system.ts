@@ -9,7 +9,9 @@ export {
 export {
   applyKeyPathToType,
   containedTypeParameters,
+  getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
   replaceAllTypeParametersWithTheirConstraints,
   supplyTypeArgument,
+  supplyTypeArguments,
 } from './type-system/type-utilities.js'

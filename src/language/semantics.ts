@@ -84,6 +84,7 @@ export {
 } from './semantics/semantic-graph.js'
 export {
   containedTypeParameters,
+  getTypesForTypeParameters,
   inferType,
   isAssignable,
   literalTypeFromSemanticGraph,
@@ -91,6 +92,7 @@ export {
   resolveParameterTypes,
   showType,
   supplyTypeArgument,
+  supplyTypeArguments,
   types,
   type Type,
 } from './semantics/type-system.js'

@@ -32,8 +32,9 @@ import {
 } from './type-formats.js'
 import {
   applyKeyPathToType,
+  getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
-  supplyTypeArgument,
+  supplyTypeArguments,
 } from './type-utilities.js'
 
 /**
@@ -213,26 +214,24 @@ export const inferType = (
       if (inferredFunctionType.value.kind === 'function') {
         const { parameter: parameterType, return: returnType } =
           inferredFunctionType.value.signature
-        // If the function parameter is typed as a bare type parameter,
-        // instantiate it from the argument's type.
-        // TODO: Generalize this to handle type parameters nested within
-        // structures (e.g. `{ a, b } ~> { b, a }`).
-        if (parameterType.kind === 'parameter') {
-          const argumentTypeResult = inferType(
-            applyExpressionResult.value[1].argument,
-            parameterTypes,
-            lookingUpKeys,
-            context,
-          )
-          if (either.isRight(argumentTypeResult)) {
-            return either.makeRight(
-              supplyTypeArgument(
-                returnType,
+        const argumentTypeResult = inferType(
+          applyExpressionResult.value[1].argument,
+          parameterTypes,
+          lookingUpKeys,
+          context,
+        )
+        if (either.isRight(argumentTypeResult)) {
+          // Supply type arguments to the return type based on the inferred
+          // argument type.
+          return either.makeRight(
+            supplyTypeArguments(
+              returnType,
+              getTypesForTypeParameters({
                 parameterType,
-                argumentTypeResult.value,
-              ),
-            )
-          }
+                argumentType: argumentTypeResult.value,
+              }),
+            ),
+          )
         }
         return either.makeRight(returnType)
       } else if (inferredFunctionType.value.kind === 'parameter') {

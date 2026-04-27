@@ -21,7 +21,10 @@ import {
   type Type,
   type UnionType,
 } from './type-system/type-formats.js'
-import { applyKeyPathToType } from './type-system/type-utilities.js'
+import {
+  applyKeyPathToType,
+  getTypesForTypeParameters,
+} from './type-system/type-utilities.js'
 
 const typeAssignabilitySuite = testCases(
   ([source, target]: [source: Type, target: Type]) =>
@@ -1294,4 +1297,79 @@ applyKeyPathSuite('applyKeyPathToType with union types', [
     ],
     showType(integer),
   ],
+])
+
+const getTypesForTypeParametersSuite = testCases(
+  ([parameterType, argumentType]: readonly [
+    parameterType: Type,
+    argumentType: Type,
+  ]) => getTypesForTypeParameters({ parameterType, argumentType }),
+  ([parameterType, argumentType]) =>
+    `getting types for type parameters in \`${showType(parameterType)}\` from \`${showType(argumentType)}\``,
+)
+
+getTypesForTypeParametersSuite('getTypesForTypeParameters', [
+  [[A, atom], new Map([[A, atom]])],
+
+  [[extendsAnyAtom, atom], new Map([[extendsAnyAtom, atom]])],
+
+  [[something, atom], new Map()],
+
+  [[makeObjectType('', { a: A }), atom], new Map()],
+
+  [
+    [
+      makeObjectType('', { a: A, b: B }),
+      makeObjectType('', { a: atom, b: integer }),
+    ],
+    new Map([
+      [A, atom],
+      [B, integer],
+    ]),
+  ],
+
+  [
+    [
+      makeFunctionType('', { parameter: A, return: B }),
+      makeFunctionType('', { parameter: atom, return: integer }),
+    ],
+    new Map([
+      [A, atom],
+      [B, integer],
+    ]),
+  ],
+
+  [
+    [
+      makeFunctionType('', { parameter: A, return: A }),
+      makeFunctionType('', { parameter: atom, return: integer }),
+    ],
+    // The first occurrence should be used in situations like this. In real code
+    // this will likely result in a type error later.
+    new Map([[A, atom]]),
+  ],
+
+  [
+    [
+      makeObjectType('', { a: A, b: A }),
+      makeObjectType('', { a: atom, b: integer }),
+    ],
+    // The first occurrence should be used in situations like this. In real code
+    // this will likely result in a type error later.
+    new Map([[A, atom]]),
+  ],
+
+  // `getTypesForTypeParameters` doesn't currently consider constraints.
+  // TODO: This should probably return an empty `Map`?
+  [[extendsAnyAtom, object], new Map([[extendsAnyAtom, object]])],
+
+  // TODO: Handle type parameters within unions:
+  //
+  // [[makeUnionType('', [A, atom]), object], new Map([[A, object]])],
+  //
+  // [[makeUnionType('', [A, atom]), something], new Map([[A, something]])],
+  //
+  // TODO: Which of these is preferable? I believe both are sound.
+  // [[makeUnionType('', [A, atom]), atom], new Map()],
+  // [[makeUnionType('', [A, atom]), atom], new Map([[A, atom]])],
 ])
