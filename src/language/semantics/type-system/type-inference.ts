@@ -110,7 +110,9 @@ export const inferType = (
 
     // TODO: Implement syntax for explicit parameter type annotations, as well
     // as eventually supporting contextual inference of un-annotated parameters.
-    const parameterType = types.something
+    const parameterType = makeTypeParameter(parameter, {
+      assignableTo: types.something,
+    })
 
     return either.map(
       inferType(
