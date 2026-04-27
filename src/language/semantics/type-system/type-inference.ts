@@ -100,11 +100,16 @@ export const inferType = (
   lookingUpKeys: ReadonlySet<Atom>,
   context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
+  if (
+    typeof node === 'string' ||
+    typeof node === 'symbol' ||
+    typeof node === 'function'
+  ) {
+    return literalTypeFromSemanticGraph(node)
+  }
+
   // @function: infer return type from the body.
-  const functionExpressionResult =
-    isFunctionNode(node) ?
-      either.flatMap(node.serialize(), readFunctionExpression)
-    : readFunctionExpression(node)
+  const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
     const { parameter, body } = functionExpressionResult.value[1]
 
@@ -124,16 +129,6 @@ export const inferType = (
       returnType =>
         makeFunctionType('', { parameter: parameterType, return: returnType }),
     )
-  }
-
-  // TODO: Once the @function handler uses real type signatures, move this
-  // before the @function case above.
-  if (
-    typeof node === 'string' ||
-    typeof node === 'symbol' ||
-    typeof node === 'function'
-  ) {
-    return literalTypeFromSemanticGraph(node)
   }
 
   // @lookup: check if it directly refers to a function parameter. If so, use
