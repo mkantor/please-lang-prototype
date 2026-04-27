@@ -528,4 +528,15 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    // `:f` isn't necessarily a function, e.g. `:oops("not a function")` is a
+    // legal call.
+    '{ oops: f => :f(42) }',
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'invalidExpression')
+    },
+  ],
 ])

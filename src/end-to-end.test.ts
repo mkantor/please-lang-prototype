@@ -528,14 +528,6 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`:|>(:>>(:atom.append(c))(:atom.append(b)))(a)`, either.makeRight('abc')],
   [
     `{
-      |>: f => a => :f(:a)
-      ab: a |> :atom.append(b)
-      abc: :ab |> :atom.append(c)
-    }.abc`,
-    either.makeRight('abc'),
-  ],
-  [
-    `{
       append_bc: :atom.append(b) >> :atom.append(c)
       abc: a |> :append_bc
     }.abc`,
@@ -792,5 +784,17 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       // TODO: Consider normalizing away the duplicate `false`s.
       '1': { '0': 'false', '1': 'true', '2': 'false' },
     }),
+  ],
+  [
+    `{
+      |>: :identity
+      // TODO: Define \`|>\` as below once it's possible to annotate \`f\` as a
+      // function type.
+      // |>: f => a => :f(:a)
+
+      ab: a |> :atom.append(b)
+      abc: :ab |> :atom.append(c)
+    }.abc`,
+    either.makeRight('abc'),
   ],
 ])
