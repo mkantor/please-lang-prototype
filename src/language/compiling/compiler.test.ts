@@ -493,7 +493,7 @@ testCases(
   ],
 
   [
-    `@runtime { _ => :integer.greater_than(1)(2) } ~ :boolean.type`,
+    `@runtime { _ => :integer.is_greater_than(1)(2) } ~ :boolean.type`,
     result => {
       assert(either.isRight(result))
     },

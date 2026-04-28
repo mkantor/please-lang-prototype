@@ -110,8 +110,8 @@ export const integer = {
       ),
   ),
 
-  greater_than: preludeFunctionArity2(
-    ['integer', 'greater_than'],
+  is_greater_than: preludeFunctionArity2(
+    ['integer', 'is_greater_than'],
     {
       parameter: types.integer,
       return: makeFunctionType('', {
@@ -126,7 +126,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
-          message: '`greater_than` expected an integer',
+          message: '`is_greater_than` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -136,7 +136,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',
-              message: '`greater_than` expected an integer',
+              message: '`is_greater_than` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.
@@ -147,8 +147,8 @@ export const integer = {
     },
   ),
 
-  less_than: preludeFunctionArity2(
-    ['integer', 'less_than'],
+  is_less_than: preludeFunctionArity2(
+    ['integer', 'is_less_than'],
     {
       parameter: types.integer,
       return: makeFunctionType('', {
@@ -163,7 +163,7 @@ export const integer = {
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
-          message: '`less_than` expected an integer',
+          message: '`is_less_than` expected an integer',
         })
       } else {
         return either.makeRight(number1 => {
@@ -173,7 +173,7 @@ export const integer = {
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',
-              message: '`less_than` expected an integer',
+              message: '`is_less_than` expected an integer',
             })
           } else {
             // TODO: See comment in `integer.add`.

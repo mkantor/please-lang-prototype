@@ -255,10 +255,10 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [':atom.prepend(a)(b)', either.makeRight('ab')],
   [
     `{
-      :atom.equal(hello)(hello)
-      :atom.equal("")("")
-      :atom.equal(hello)(Hello)
-      :atom.equal("1.0")("1.00")
+      :atom.equals(hello)(hello)
+      :atom.equals("")("")
+      :atom.equals(hello)(Hello)
+      :atom.equals("1.0")("1.00")
     }`,
     either.makeRight({ 0: 'true', 1: 'true', 2: 'false', 3: 'false' }),
   ],
@@ -290,8 +290,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [
     `:object.lookup(output)({
       add_one: :integer.add(1)
-      less_than_three: :integer.less_than(3)
-      output: :less_than_three(:add_one(1))
+      is_less_than_three: :integer.is_less_than(3)
+      output: :is_less_than_three(:add_one(1))
     })`,
     either.makeRight({
       tag: 'some',
@@ -403,7 +403,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     `{
       fibonacci: n =>
         @if {
-          :integer.less_than(2)(:n)
+          :integer.is_less_than(2)(:n)
           then: :n
           else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
         }
