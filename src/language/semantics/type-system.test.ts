@@ -1359,9 +1359,7 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
     new Map([[A, atom]]),
   ],
 
-  // `getTypesForTypeParameters` doesn't currently consider constraints.
-  // TODO: This should probably return an empty `Map`?
-  [[extendsAnyAtom, object], new Map([[extendsAnyAtom, object]])],
+  [[extendsAnyAtom, object], new Map()],
 
   // TODO: Handle type parameters within unions:
   //

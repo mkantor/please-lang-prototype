@@ -194,8 +194,12 @@ export const inferType = (
         lookingUpKeys,
         context,
       )
+    } else {
+      return either.makeLeft({
+        kind: 'invalidExpression',
+        message: '@runtime function was not a function',
+      })
     }
-    return either.makeRight(types.something)
   }
 
   // @apply: infer the return type from the function being applied.
