@@ -19,7 +19,7 @@ import {
   type Type,
 } from '../../../semantics.js'
 
-const staticallyCheckArgument = (
+const checkArgumentType = (
   argument: SemanticGraph,
   parameterType: Type,
   context: ExpressionContext,
@@ -70,17 +70,28 @@ export const applyKeywordHandler: KeywordHandler = (
       const functionToApply = applyExpression[1].function
       const argument = applyExpression[1].argument
 
-      const staticCheck: Either<ElaborationError, undefined> =
-        isFunctionNode(functionToApply) ?
-          staticallyCheckArgument(
-            argument,
-            functionToApply.signature.parameter,
-            context,
-          )
-        : either.makeRight(undefined)
+      const argumentTypeCheck = either.flatMap(
+        inferType(
+          functionToApply,
+          resolveParameterTypes(context),
+          new Set(),
+          context,
+        ),
+        functionType =>
+          functionType.kind === 'function' ?
+            checkArgumentType(
+              argument,
+              functionType.signature.parameter,
+              context,
+            )
+          : either.makeLeft({
+              kind: 'invalidExpression',
+              message: `only functions can be applied, but got a \`${showType(functionType)}\``,
+            }),
+      )
 
       return either.flatMap(
-        staticCheck,
+        argumentTypeCheck,
         (): Either<ElaborationError, SemanticGraph> => {
           if (containsAnyUnelaboratedNodes(argument)) {
             // The argument isn't ready, so keep the @apply unelaborated.
