@@ -539,7 +539,7 @@ typeAssignabilitySuite('custom types (assignable)', [
     ],
     true,
   ],
-  // TODO: improve assignability checks for unions of objects to make this test
+  // TODO: Improve assignability checks for unions of objects to make this test
   // case pass:
   // [
   //   [

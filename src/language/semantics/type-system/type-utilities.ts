@@ -275,7 +275,7 @@ const findKeyPathsToTypeParameterImplementation = (
 export const replaceAllTypeParametersWithTheirConstraints = (
   type: Type,
 ): Type =>
-  // TODO: specialize this implementation to only traverse `type` once
+  // TODO: Specialize this implementation to only traverse `type` once
   [...containedTypeParameters(type).values()]
     .flatMap(({ typeParameters }) => [...typeParameters.members])
     .reduce(
