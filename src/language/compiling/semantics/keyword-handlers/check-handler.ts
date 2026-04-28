@@ -41,7 +41,7 @@ const check = ({
             kind: 'typeMismatch',
             message: `the value \`${stringifySemanticGraphForEndUser(
               value,
-            )}\` is not assignable to the type \`${showType(typeAsType)}\``,
+            )}\` (inferred to have type \`${showType(valueAsType)}\`) is not assignable to the type \`${showType(typeAsType)}\``,
           })
         }
       }),

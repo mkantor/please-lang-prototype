@@ -539,4 +539,43 @@ testCases(
       assert.deepEqual(result.value.kind, 'invalidExpression')
     },
   ],
+
+  [
+    '{ f: a => :a, :f(1) ~ 1 }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `@runtime { context => (a => :a)(:context.program.start_time) } ~ :atom.type`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `@runtime { context => (a => :a)(:context.program.start_time) } ~ :integer.type`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `@runtime { context => (a => :context.log(:a))(1) } ~ 1`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `@runtime { context => (a => :context.log(:a))(1) } ~ 2`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])
