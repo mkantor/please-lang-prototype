@@ -1,4 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
+import option, { type Option } from '@matt.kantor/option'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
@@ -70,5 +71,22 @@ export const getParameterName = (expression: FunctionExpression): Atom => {
       )
     }
     return parameterName
+  }
+}
+
+export const getParameterTypeAnnotation = (
+  expression: FunctionExpression,
+): Option<SemanticGraph> => {
+  const parameter = expression[1].parameter
+  if (typeof parameter === 'string') {
+    return option.none
+  } else {
+    const typeAnnotation = parameter[getParameterName(expression)]
+    if (typeAnnotation === undefined) {
+      throw new Error(
+        '@function parameter object did not contain expected key. This is a bug!',
+      )
+    }
+    return option.makeSome(typeAnnotation)
   }
 }

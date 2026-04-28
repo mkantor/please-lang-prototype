@@ -453,20 +453,41 @@ const trailingInfixTokens = oneOrMore(
   ),
 )
 
+// (a: :integer.type) => :a + 1
+const typedFunctionParameter: Parser<Molecule> = surroundedByParentheses(
+  map(
+    sequence([
+      atom,
+      optionalTrivia,
+      colon,
+      optionalTrivia,
+      lazy(() => expression),
+    ]),
+    ([name, _trivia1, _colon, _trivia2, type]) => ({ [name]: type }),
+  ),
+)
+
+const functionParameter: Parser<Atom | Molecule> = oneOf([
+  typedFunctionParameter,
+  atom,
+])
+
 // a => :b
 // a => {}
 // a => (b => c => :d)
 // a => b => c => d
 // a => 1 + 1
+// (a: :integer.type) => :a + 1
+// (a: :integer.type) => (b: :integer.type) => :a + :b
 const precededByAtomThenFunctionArrow = map(
   sequence([
-    atom,
+    functionParameter,
     trivia,
     functionArrow,
     trivia,
     zeroOrMore(
       map(
-        sequence([atom, trivia, functionArrow, trivia]),
+        sequence([functionParameter, trivia, functionArrow, trivia]),
         ([parameter, _trivia1, _arrow, _trivia2]) => parameter,
       ),
     ),

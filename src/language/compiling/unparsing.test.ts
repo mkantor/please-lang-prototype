@@ -191,6 +191,26 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
 
     [
       {
+        0: '@function',
+        1: {
+          parameter: { a: 'a' },
+          body: { 0: '@lookup', 1: { 0: 'a' } },
+        },
+      },
+      {
+        inlinePlz: '(a: a) => :a',
+        inlineSugarFreePrettyPlz:
+          '{ 0: "@function", 1: { parameter: { a: a }, body: { 0: "@lookup", 1: { 0: a } } } }',
+        prettyPlz: '(a: a) => :a\n',
+        sugarFreePrettyPlz:
+          '{\n  0: "@function"\n  1: {\n    parameter: {\n      a: a\n    }\n    body: {\n      0: "@lookup"\n      1: {\n        0: a\n      }\n    }\n  }\n}\n',
+        prettyJson:
+          '{\n  "0": "@function",\n  "1": {\n    "parameter": {\n      "a": "a"\n    },\n    "body": {\n      "0": "@lookup",\n      "1": {\n        "0": "a"\n      }\n    }\n  }\n}\n',
+      },
+    ],
+
+    [
+      {
         0: '@apply',
         1: {
           function: {

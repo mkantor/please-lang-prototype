@@ -23,7 +23,10 @@ import {
   type SemanticGraph,
 } from '../../semantics.js'
 import { isKeywordExpressionWithArgument } from '../../semantics/expression.js'
-import { type FunctionExpression } from '../expressions/function-expression.js'
+import {
+  getParameterTypeAnnotation,
+  type FunctionExpression,
+} from '../expressions/function-expression.js'
 import * as types from './prelude-types.js'
 import {
   makeFunctionType,
@@ -322,38 +325,31 @@ export const inferType = (
 const getFunctionParameterType = (
   expression: FunctionExpression,
   context: ExpressionContext,
-): Either<Bug, Type> => {
-  if (typeof expression[1].parameter === 'string') {
-    if (
-      isEnclosedInRuntimeExpression(
-        context.program,
-        context.location.slice(0, -2),
-      )
-    ) {
-      return either.makeRight(types.runtimeContext)
-    } else {
-      // Conjure up a fresh type parameter when there is no type annotation. This
-      // gives inference a chance to derive a nice signature, e.g. `a => :a` can
-      // be inferred as a true generic identity function.
-      // TODO: Generalize contextual type inference of un-annotated parameters
-      // (this currently only happens for `@runtime` functions).
-      return either.makeRight(
-        makeTypeParameter(getParameterName(expression), {
-          assignableTo: types.something,
-        }),
-      )
-    }
-  } else {
-    const parameterType = Object.values(expression[1].parameter)[0]
-    return parameterType === undefined ?
-        either.makeLeft({
-          kind: 'bug',
-          message:
-            '@function parameter object did not contain any properties. This is a bug!',
-        })
-      : literalTypeFromSemanticGraph(parameterType)
-  }
-}
+): Either<Bug, Type> =>
+  option.match(getParameterTypeAnnotation(expression), {
+    some: literalTypeFromSemanticGraph,
+    none: _ => {
+      if (
+        isEnclosedInRuntimeExpression(
+          context.program,
+          context.location.slice(0, -2),
+        )
+      ) {
+        return either.makeRight(types.runtimeContext)
+      } else {
+        // Conjure up a fresh type parameter when there is no type annotation. This
+        // gives inference a chance to derive a nice signature, e.g. `a => :a` can
+        // be inferred as a true generic identity function.
+        // TODO: Generalize contextual type inference of un-annotated parameters
+        // (this currently only happens for `@runtime` functions).
+        return either.makeRight(
+          makeTypeParameter(getParameterName(expression), {
+            assignableTo: types.something,
+          }),
+        )
+      }
+    },
+  })
 
 const isEnclosedInRuntimeExpression = (
   program: SemanticGraph,

@@ -45,4 +45,5 @@ export const punctuation = (styleText: typeof util.styleText) => ({
   signatureArrow: styleText(functionColor, '~>'),
 
   tilde: styleText(checkColor, '~'),
+  typeAnnotationColon: styleText(['dim', checkColor], ':'),
 })
