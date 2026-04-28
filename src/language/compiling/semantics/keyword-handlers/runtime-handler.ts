@@ -19,7 +19,9 @@ export const runtimeKeywordHandler: KeywordHandler = (
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(
     readRuntimeExpression(expression),
-    ({ 1: { function: runtimeFunction } }) => {
+    ({
+      1: { function: runtimeFunction },
+    }): Either<ElaborationError, SemanticGraph> => {
       if (isFunctionNode(runtimeFunction)) {
         const runtimeFunctionSignature = runtimeFunction.signature
         return (
@@ -37,8 +39,10 @@ export const runtimeKeywordHandler: KeywordHandler = (
             })
           : either.makeRight(makeRuntimeExpression(runtimeFunction))
       } else {
-        // TODO: Type-check unelaborated nodes.
-        return either.makeRight(makeRuntimeExpression(runtimeFunction))
+        return either.makeLeft({
+          kind: 'invalidExpression',
+          message: '@runtime function was not a function',
+        })
       }
     },
   )
