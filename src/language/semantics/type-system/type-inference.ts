@@ -76,6 +76,8 @@ export const resolveParameterTypes = (
                 )
               ) ?
                 types.runtimeContext
+                // TODO: Implement syntax for explicit parameter type annotations, as well
+                // as eventually supporting contextual inference of un-annotated parameters.
               : makeTypeParameter(parameterName, {
                   assignableTo: types.something,
                 })
