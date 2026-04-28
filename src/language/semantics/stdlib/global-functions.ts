@@ -151,7 +151,13 @@ export const globalFunctions = {
   match: preludeFunctionArity2(
     ['match'],
     {
-      // TODO
+      // TODO: Make this signature generic:
+      //  - The first parameter's keys must cover the possible tag values in the
+      //    second parameter.
+      //  - The first parameter's property values must be functions accepting
+      //    the corresponding variant of the second parameter as input.
+      //  - The final return type should be a union or all the return types from
+      //    the first parameter.
       parameter: types.object,
       return: makeFunctionType('', {
         parameter: makeObjectType('', {
