@@ -1,5 +1,5 @@
 {
-  fizzbuzz: limit => {
+  fizzbuzz: (limit: :natural_number.type) => {
     fizzbuzz_internal: state => @if {
       :state.current > :limit
       then: :state.output
