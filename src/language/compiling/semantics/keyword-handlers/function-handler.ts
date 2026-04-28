@@ -3,11 +3,12 @@ import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import {
   elaborateWithContext,
+  inferType,
   makeFunctionNode,
   makeObjectNode,
   readFunctionExpression,
+  resolveParameterTypes,
   serialize,
-  types,
   updateValueAtKeyPathInSemanticGraph,
   type Expression,
   type ExpressionContext,
@@ -21,21 +22,39 @@ export const functionKeywordHandler: KeywordHandler = (
   expression: Expression,
   context: ExpressionContext,
 ): Either<ElaborationError, FunctionNode> =>
-  either.map(readFunctionExpression(expression), functionExpression =>
-    makeFunctionNode(
-      {
-        // TODO
-        parameter: types.something,
-        return: types.something,
+  either.flatMap(readFunctionExpression(expression), functionExpression =>
+    either.flatMap(
+      inferType(expression, resolveParameterTypes(context), new Set(), context),
+      inferredType => {
+        if (inferredType.kind !== 'function') {
+          return either.makeLeft({
+            kind: 'bug',
+            message:
+              'inferred type of function expression was not a function type',
+          })
+        } else {
+          return either.makeRight(
+            makeFunctionNode(
+              inferredType.signature,
+              () => either.makeRight(functionExpression),
+              option.makeSome(functionExpression[1].parameter),
+              argument =>
+                apply(
+                  functionExpression,
+                  inferredType.signature,
+                  argument,
+                  context,
+                ),
+            ),
+          )
+        }
       },
-      () => either.makeRight(functionExpression),
-      option.makeSome(functionExpression[1].parameter),
-      argument => apply(functionExpression, argument, context),
     ),
   )
 
 const apply = (
   expression: FunctionExpression,
+  signature: FunctionNode['signature'],
   argument: SemanticGraph,
   context: ExpressionContext,
 ): ReturnType<FunctionNode> => {
@@ -65,14 +84,10 @@ const apply = (
           makeObjectNode({
             // Include the function itself to allow recursion.
             [ownKey]: makeFunctionNode(
-              {
-                // TODO
-                parameter: types.something,
-                return: types.something,
-              },
+              signature,
               () => either.makeRight(expression),
               option.makeSome(parameter),
-              argument => apply(expression, argument, context),
+              argument => apply(expression, signature, argument, context),
             ),
             // Put the argument in scope.
             [parameter]: argument,

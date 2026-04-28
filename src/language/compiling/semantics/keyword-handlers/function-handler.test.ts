@@ -25,6 +25,15 @@ elaborationSuite('@function', [
           1: { parameter: 'x', body: { 0: '@lookup', 1: { key: 'x' } } },
         }),
       )
+      assert.deepEqual(
+        elaboratedFunction.value.signature.parameter.kind,
+        'parameter',
+      )
+      assert.deepEqual(elaboratedFunction.value.signature.parameter.name, 'x')
+      assert.deepEqual(
+        elaboratedFunction.value.signature.return,
+        elaboratedFunction.value.signature.parameter,
+      )
     },
   ],
 ])
