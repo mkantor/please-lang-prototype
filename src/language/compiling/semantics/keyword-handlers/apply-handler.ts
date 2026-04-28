@@ -43,7 +43,7 @@ const checkArgumentType = (
             kind: 'typeMismatch',
             message: `the value \`${stringifySemanticGraphForEndUser(
               argument,
-            )}\` is not assignable to the type \`${showType(parameterType)}\``,
+            )}\` (inferred to have type \`${showType(argumentType)}\`) is not assignable to the type \`${showType(parameterType)}\``,
           })
     },
   )
