@@ -578,4 +578,19 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `{
+      integer_identity: @function {
+        parameter: { a: :integer.type }
+        body: :a
+      }
+      :integer_identity("not an integer")
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

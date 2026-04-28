@@ -797,4 +797,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }.abc`,
     either.makeRight('abc'),
   ],
+  [
+    `{
+      increment: @function {
+        parameter: { a: :integer.type }
+        body: :a + 1
+      }
+      two: :increment(1)
+    }.two`,
+    either.makeRight('2'),
+  ],
 ])

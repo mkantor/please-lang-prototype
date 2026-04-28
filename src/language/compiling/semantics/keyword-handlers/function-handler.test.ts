@@ -51,7 +51,28 @@ elaborationSuite('@function', [
         elaboratedFunction.value.parameterName,
         option.makeSome('x'),
       )
-      // TODO: Test parameter type once it is wired through.
+      assert.deepEqual(
+        elaboratedFunction.value.serialize(),
+        either.makeRight({
+          0: '@function',
+          1: {
+            parameter: { x: 'an arbitrary type' },
+            body: { 0: '@lookup', 1: { key: 'x' } },
+          },
+        }),
+      )
+      const parameterType = elaboratedFunction.value.signature.parameter
+      if (parameterType.kind !== 'union') {
+        assert.fail(
+          `expected a union type, but got a ${parameterType.kind} type`,
+        )
+      } else {
+        assert.deepEqual(parameterType.members, new Set(['an arbitrary type']))
+        assert.deepEqual(
+          elaboratedFunction.value.signature.return,
+          parameterType,
+        )
+      }
     },
   ],
 ])
