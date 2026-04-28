@@ -36,12 +36,12 @@ export const atom = {
     },
   ),
 
-  // Note that this is simple string equality; e.g. `:atom.equal(1)(01)`
+  // Note that this is simple string equality; e.g. `:atom.equals(1)(01)`
   // is `false`. For this reason it should not be aliased as a global `==`
   // operator or similar as its behavior may not be what users expect for all
   // types of values.
-  equal: preludeFunctionArity2(
-    ['atom', 'equal'],
+  equals: preludeFunctionArity2(
+    ['atom', 'equals'],
     {
       parameter: types.atom,
       return: makeFunctionType('', {
@@ -53,14 +53,14 @@ export const atom = {
       if (typeof atom2 !== 'string') {
         return either.makeLeft({
           kind: 'typeMismatch',
-          message: '`equal` expected an atom',
+          message: '`equals` expected an atom',
         })
       } else {
         return either.makeRight(atom1 => {
           if (typeof atom1 !== 'string') {
             return either.makeLeft({
               kind: 'typeMismatch',
-              message: '`equal` expected an atom',
+              message: '`equals` expected an atom',
             })
           } else {
             return either.makeRight(String(atom1 === atom2))
