@@ -6,7 +6,7 @@ import { isKeywordExpressionWithArgument } from '../expression.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import { typesBySymbol } from './prelude-types.js'
-import { simplifyUnionType } from './subtyping.js'
+import { isAssignable, simplifyUnionType } from './subtyping.js'
 import {
   makeFunctionType,
   makeObjectType,
@@ -296,8 +296,6 @@ export const replaceAllTypeParametersWithTheirConstraints = (
  * assignability to `argument`. Callers should use `supplyTypeArguments` to
  * create a concrete type and then perform any needed checks.
  */
-// TODO: This should probably be checking type parameter constraints. It'll
-// definitely need to do so for the not-yet-implemented union case.
 export const getTypesForTypeParameters = ({
   parameterType,
   argumentType,
@@ -341,7 +339,15 @@ export const getTypesForTypeParameters = ({
             )
         : new Map(),
       opaque: _ => new Map(),
-      parameter: parameterType => new Map([[parameterType, argumentType]]),
+      parameter: parameterType =>
+        (
+          isAssignable({
+            source: argumentType,
+            target: parameterType.constraint.assignableTo,
+          })
+        ) ?
+          new Map([[parameterType, argumentType]])
+        : new Map(),
       // TODO: Handle type parameters in unions. This case will have to check
       // type parameter constraints (e.g. if `parameterType` is `(A <: object) |
       // atom`, if `argumentType` is an object type then `A` should be
