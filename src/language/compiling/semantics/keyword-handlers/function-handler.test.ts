@@ -36,4 +36,22 @@ elaborationSuite('@function', [
       )
     },
   ],
+  [
+    {
+      0: '@function',
+      1: {
+        0: { x: 'an arbitrary type' },
+        1: { 0: '@lookup', 1: { 0: 'x' } },
+      },
+    },
+    elaboratedFunction => {
+      assert(!either.isLeft(elaboratedFunction))
+      assert(isFunctionNode(elaboratedFunction.value))
+      assert.deepEqual(
+        elaboratedFunction.value.parameterName,
+        option.makeSome('x'),
+      )
+      // TODO: Test parameter type once it is wired through.
+    },
+  ],
 ])

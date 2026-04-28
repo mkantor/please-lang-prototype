@@ -7,6 +7,7 @@ import type { Atom, Molecule } from '../parsing.js'
 import { unquotedAtomParser } from '../parsing/atom.js'
 import {
   asSemanticGraph,
+  getParameterName,
   isExpression,
   isSemanticGraph,
   readApplyExpression,
@@ -311,7 +312,7 @@ const unparseSugaredFunction = (
   either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
     either.map(unparseAtomOrMolecule('default')(serializedBody), bodyAsString =>
       [
-        styleText(keyColor, expression[1].parameter),
+        styleText(keyColor, getParameterName(expression)),
         punctuation(styleText).functionArrow,
         bodyAsString,
       ].join(' '),

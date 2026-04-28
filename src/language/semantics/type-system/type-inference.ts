@@ -5,6 +5,7 @@ import type { Atom } from '../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
+  getParameterName,
   isAssignable,
   isExpression,
   isFunctionNode,
@@ -66,7 +67,7 @@ export const resolveParameterTypes = (
       if (lastKey === '1') {
         const functionResult = readFunctionExpression(parentNodeOption.value)
         if (either.isRight(functionResult)) {
-          const parameterName = functionResult.value[1].parameter
+          const parameterName = getParameterName(functionResult.value)
           if (!parameterTypes.has(parameterName)) {
             const parameterType =
               (
@@ -113,18 +114,18 @@ export const inferType = (
   // @function: infer return type from the body.
   const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
-    const { parameter, body } = functionExpressionResult.value[1]
+    const parameterName = getParameterName(functionExpressionResult.value)
 
     // TODO: Implement syntax for explicit parameter type annotations, as well
     // as eventually supporting contextual inference of un-annotated parameters.
-    const parameterType = makeTypeParameter(parameter, {
+    const parameterType = makeTypeParameter(parameterName, {
       assignableTo: types.something,
     })
 
     return either.map(
       inferType(
-        body,
-        new Map([...parameterTypes, [parameter, parameterType]]),
+        functionExpressionResult.value[1].body,
+        new Map([...parameterTypes, [parameterName, parameterType]]),
         lookingUpKeys,
         context,
       ),
@@ -191,7 +192,10 @@ export const inferType = (
         functionExpressionResult.value[1].body,
         new Map([
           ...parameterTypes,
-          [functionExpressionResult.value[1].parameter, types.runtimeContext],
+          [
+            getParameterName(functionExpressionResult.value),
+            types.runtimeContext,
+          ],
         ]),
         lookingUpKeys,
         context,

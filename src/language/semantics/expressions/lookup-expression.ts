@@ -20,7 +20,10 @@ import {
   readArgumentsFromExpression,
   stringifyKeyForEndUser,
 } from './expression-utilities.js'
-import { readFunctionExpression } from './function-expression.js'
+import {
+  getParameterName,
+  readFunctionExpression,
+} from './function-expression.js'
 import { makeIndexExpression } from './index-expression.js'
 
 export type LookupExpression = ObjectNode & {
@@ -137,7 +140,7 @@ export const lookup = ({
           // parameter.
           if (
             either.isRight(parentFunctionResult) &&
-            parentFunctionResult.value[1].parameter === key
+            getParameterName(parentFunctionResult.value) === key
           ) {
             // Keep an unelaborated `@lookup` around for resolution when the
             // `@function` is called.
