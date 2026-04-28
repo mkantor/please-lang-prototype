@@ -1,7 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  containedTypeParameters,
   containsAnyUnelaboratedNodes,
   getTypesForTypeParameters,
   inferType,
@@ -34,16 +33,6 @@ const checkArgumentType = (
         getTypesForTypeParameters({ parameterType, argumentType }),
       )
       return (
-        (
-          // Skip checking when the argument's inferred type contains type
-          // parameters (e.g. a lookup of an unannotated function parameter,
-          // which `resolveParameterTypes` infers as a type parameter).
-          // TODO: Implement enough type parameter instantiation logic to
-          // eliminate this hack.
-          containedTypeParameters(argumentType).size > 0
-        ) ?
-          either.makeRight(undefined)
-        : (
           isAssignable({
             source: argumentType,
             target: instantiatedParameterType,
@@ -56,7 +45,6 @@ const checkArgumentType = (
               argument,
             )}\` is not assignable to the type \`${showType(parameterType)}\``,
           })
-      )
     },
   )
 

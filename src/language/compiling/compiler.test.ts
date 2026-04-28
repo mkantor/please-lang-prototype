@@ -593,4 +593,17 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    // `:a` is a lookup of an unannotated parameter, so its inferred type is an
+    // unconstrained type parameter, which is not assignable to `:integer.type`.
+    // If the language eventually gains Hindley–Milner-style inference this
+    // program may become valid (and this test case will need updating).
+    `(a => :integer.add(1)(:a))(1)`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])
