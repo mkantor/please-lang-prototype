@@ -243,6 +243,37 @@ computation will occur at runtime):
 There's currently no module system and all Please programs are single files, but
 that's only because this is a prototype.
 
+### Type System
+
+Please has a
+[structural type system](https://en.wikipedia.org/wiki/Structural_type_system)
+with support for [subtyping](https://en.wikipedia.org/wiki/Subtyping),
+[union types](https://en.wikipedia.org/wiki/Union_type),
+[generic function types](https://en.wikipedia.org/wiki/Generic_function), and
+[literal (unit) types](https://en.wikipedia.org/wiki/Unit_type) for atoms.
+
+Types can be inferred in most situations, but function parameters can be
+annotated:
+
+```plz
+{
+  increment: (a: :integer.type) => :a + 1
+}
+```
+
+The `~` operator (syntax sugar for the `@check` keyword) can be used for type
+ascription of expressions:
+
+```plz
+:a ~ :boolean.type
+```
+
+An error will be raised at compile time if `:a` is not a boolean value.
+
+Types are values in Please, and can be created and transformed via any mechanism
+you'd apply to other values (you can return them from functions, pass them as
+arguments, use `@if` to base them on a condition, etc).
+
 ### Layering
 
 Please is a layered language. It can be thought of as a stack of three smaller
