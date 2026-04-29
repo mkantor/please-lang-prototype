@@ -46,7 +46,7 @@ data representation implied by the fact that a value is an atom (e.g. the atom
 `2` may be an integer in memory).
 
 Bare words not containing any
-[reserved character sequences](./src/language/parsing/atom.ts#L37-L61) are
+[reserved character sequences](./src/language/parsing/atom.ts#L38-L63) are
 atoms:
 
 ```plz
@@ -127,6 +127,15 @@ Lookups are lexically scoped:
 }
 ```
 
+Lookups can "look ahead" to properties defined later in the program:
+
+```plz
+{
+  b: :a // this works
+  a: 42
+}
+```
+
 #### Functions
 
 Functions take exactly one parameter and their body is exactly one expression:
@@ -185,7 +194,7 @@ desugars to `{ 0: "@lookup", 1: { key: foo } }`. All such expressions have a
 property named `0` referring to a value that is an `@`-prefixed atom (the
 keyword). Most keyword expressions also require a property named `1` to pass an
 argument to the expression. Keywords include `@apply`, `@check`, `@function`,
-`@if`, `@index`, `@lookup`, `@panic`, and `@runtime`.
+`@if`, `@index`, `@lookup`, `@union`, `@signature`, `@panic`, and `@runtime`.
 
 In addition to the specific syntax sugars shown above, any keyword expression
 can be written using a generalized sugar:
@@ -234,6 +243,37 @@ computation will occur at runtime):
 There's currently no module system and all Please programs are single files, but
 that's only because this is a prototype.
 
+### Type System
+
+Please has a
+[structural type system](https://en.wikipedia.org/wiki/Structural_type_system)
+with support for [subtyping](https://en.wikipedia.org/wiki/Subtyping),
+[union types](https://en.wikipedia.org/wiki/Union_type),
+[generic function types](https://en.wikipedia.org/wiki/Generic_function), and
+[literal (unit) types](https://en.wikipedia.org/wiki/Unit_type) for atoms.
+
+Types can be inferred in most situations, but function parameters can be
+annotated:
+
+```plz
+{
+  increment: (a: :integer.type) => :a + 1
+}
+```
+
+The `~` operator (syntax sugar for the `@check` keyword) can be used for type
+ascription of expressions:
+
+```plz
+:a ~ :boolean.type
+```
+
+An error will be raised at compile time if `:a` is not a boolean value.
+
+Types are values in Please, and can be created and transformed via any mechanism
+you'd apply to other values (you can return them from functions, pass them as
+arguments, use `@if` to base them on a condition, etc).
+
 ### Layering
 
 Please is a layered language. It can be thought of as a stack of three smaller
@@ -247,7 +287,7 @@ languages:
   implementation of the language runtime is a `plt` interpreter.
 
 `plz` has a specific textual representation, but `plo` & `plt` could be encoded
-in any format in which hierarchial key/value pairs of strings are representable
+in any format in which hierarchical key/value pairs of strings are representable
 (currently only JSON is implemented, but YAML, TOML, HOCON, BSON, S-expressions,
 MessagePack, CBOR, etc could be supported).
 
