@@ -127,6 +127,15 @@ Lookups are lexically scoped:
 }
 ```
 
+Lookups can "look ahead" to properties defined later in the program:
+
+```plz
+{
+  b: :a // this works
+  a: 42
+}
+```
+
 #### Functions
 
 Functions take exactly one parameter and their body is exactly one expression:
