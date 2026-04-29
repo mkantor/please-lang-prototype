@@ -40,7 +40,7 @@ const unparseAtomOrMolecule: UnparseAtomOrMolecule =
       unparseAtom(value)
     : unparseMolecule(semanticContext)(value)
 
-export const inlineSugarFreePrettyPlz: Notation = {
+export const sugarFreeInlinePlz: Notation = {
   atom: unparseAtom,
   molecule: unparseMolecule('default'),
   suffix: '',
