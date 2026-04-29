@@ -65,14 +65,15 @@ Objects are maps of key/value pairs ("properties"), where keys must be atoms:
 { greeting: "Hello, World!" }
 ```
 
-Properties are delimited by newlines or commas:
+Properties are delimited by newlines or commas; these mean the same thing:
 
 ```plz
-// These mean the same thing:
 {
   a: 1
   b: 2
 }
+```
+```plz
 { a: 1, b: 2 }
 ```
 
