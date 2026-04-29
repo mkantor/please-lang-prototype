@@ -194,7 +194,7 @@ desugars to `{ 0: "@lookup", 1: { key: foo } }`. All such expressions have a
 property named `0` referring to a value that is an `@`-prefixed atom (the
 keyword). Most keyword expressions also require a property named `1` to pass an
 argument to the expression. Keywords include `@apply`, `@check`, `@function`,
-`@if`, `@index`, `@lookup`, `@panic`, and `@runtime`.
+`@if`, `@index`, `@lookup`, `@union`, `@signature`, `@panic`, and `@runtime`.
 
 In addition to the specific syntax sugars shown above, any keyword expression
 can be written using a generalized sugar:
