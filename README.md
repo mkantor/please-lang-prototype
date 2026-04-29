@@ -46,7 +46,7 @@ data representation implied by the fact that a value is an atom (e.g. the atom
 `2` may be an integer in memory).
 
 Bare words not containing any
-[reserved character sequences](./src/language/parsing/atom.ts#L37-L61) are
+[reserved character sequences](./src/language/parsing/atom.ts#L38-L63) are
 atoms:
 
 ```plz
