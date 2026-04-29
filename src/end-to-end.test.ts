@@ -69,8 +69,8 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
     either.makeRight('42'),
   ],
   [
-    `(a => {
-      my_function: b => @if {
+    `((a: :natural_number.type) => {
+      my_function: (b: :natural_number.type) => @if {
         :b > :a
         then: @panic "should not go down this branch"
         else: 2 + @if {
@@ -85,19 +85,20 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
   ],
   [
     `{
-      count: limit => {
-        count_internal: state => @if {
-          :state.current > :limit
-          then: :state.output
-          else: :count_internal({
-            output: :state.output atom.append :state.current atom.append @if {
-              :state.current > 1
-              then: " (greater than one) "
-              else: " (not greater than one) "
-            }
-            current: :state.current + 1
-          })
-        }
+      count: (limit: :natural_number.type) => {
+        count_internal: (state: { current: :integer.type, output: :atom.type }) =>
+          @if {
+            :state.current > :limit
+            then: :state.output
+            else: :count_internal({
+              output: :state.output atom.append :state.current atom.append @if {
+                :state.current > 1
+                then: " (greater than one) "
+                else: " (not greater than one) "
+              }
+              current: :state.current + 1
+            })
+          }
         return: :count_internal({ current: 0, output: "" })
       }.return
     }.count(2)`,
@@ -401,7 +402,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{
-      fibonacci: n =>
+      fibonacci: (n: :integer.type) =>
         @if {
           :integer.is_less_than(2)(:n)
           then: :n
@@ -413,7 +414,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{
-      +: a => b => :integer.add(:a)(:b)
+      +: (a: :integer.type) => (b: :integer.type) => :integer.add(:a)(:b)
       result: 1 + 1
      }.result`,
     either.makeRight('2'),
@@ -428,7 +429,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [`0 > 0`, either.makeRight('false')],
   [`1 < 0`, either.makeRight('false')],
   [`0 > 1`, either.makeRight('false')],
-  [`(a => (1 + :a))(1)`, either.makeRight('2')],
+  [`((a: :integer.type) => (1 + :a))(1)`, either.makeRight('2')],
   [`2 |> (a => :a)`, either.makeRight('2')],
   [`a atom.append b atom.append c`, either.makeRight('abc')],
   [`b atom.append c atom.prepend a`, either.makeRight('abc')],
@@ -646,10 +647,13 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }`,
     either.makeRight('a'),
   ],
-  [`(a => b => :a + :b)(1)(1)`, either.makeRight('2')],
+  [
+    `((a: :integer.type) => (b: :integer.type) => :a + :b)(1)(1)`,
+    either.makeRight('2'),
+  ],
   [
     `{
-      f: state => @if {
+      f: (state: { current: :integer.type, limit: :integer.type }) => @if {
         :state.current > :state.limit
         then: "it works"
         else: :f({
@@ -669,8 +673,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight('it works'),
   ],
   [
-    `(outer =>
-      (inner =>
+    `((outer: :boolean.type) =>
+      ((inner: { value: :boolean.type }) =>
         @if {
           condition: :boolean.or(:outer)(:inner.value)
           then: { @panic }
@@ -681,8 +685,8 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight('true'),
   ],
   [
-    `(outer =>
-      (inner =>
+    `((outer: :boolean.type) =>
+      ((inner: { value: :boolean.type }) =>
         @if {
           condition: :boolean.or(:outer)(:inner.value)
           then: "it works"
@@ -787,14 +791,21 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{
-      |>: :identity
-      // TODO: Define \`|>\` as below once it's possible to annotate \`f\` as a
-      // function type.
-      // |>: f => a => :f(:a)
-
+      // TODO: Once syntax exists for type parameters, make this generic:
+      |>: (f: :atom.type ~> :atom.type) => (a: :atom.type) => :f(:a)
       ab: a |> :atom.append(b)
       abc: :ab |> :atom.append(c)
     }.abc`,
     either.makeRight('abc'),
+  ],
+  [
+    `{
+      increment: @function {
+        parameter: { a: :integer.type }
+        body: :a + 1
+      }
+      two: :increment(1)
+    }.two`,
+    either.makeRight('2'),
   ],
 ])

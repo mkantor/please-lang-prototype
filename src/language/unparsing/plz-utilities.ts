@@ -7,6 +7,8 @@ import type { Atom, Molecule } from '../parsing.js'
 import { unquotedAtomParser } from '../parsing/atom.js'
 import {
   asSemanticGraph,
+  getParameterName,
+  getParameterTypeAnnotation,
   isExpression,
   isSemanticGraph,
   readApplyExpression,
@@ -306,17 +308,55 @@ const unparseSugaredApply = (
 
 const unparseSugaredFunction = (
   expression: FunctionExpression,
-  { unparseAtomOrMolecule }: Context,
+  context: Context,
 ) =>
-  either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
-    either.map(unparseAtomOrMolecule('default')(serializedBody), bodyAsString =>
-      [
-        styleText(keyColor, expression[1].parameter),
-        punctuation(styleText).functionArrow,
-        bodyAsString,
-      ].join(' '),
-    ),
+  either.flatMap(
+    unparseSugaredFunctionParameter(expression, context),
+    parameterAsString =>
+      either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
+        either.map(
+          context.unparseAtomOrMolecule('default')(serializedBody),
+          bodyAsString =>
+            [
+              parameterAsString,
+              punctuation(styleText).functionArrow,
+              bodyAsString,
+            ].join(' '),
+        ),
+      ),
   )
+
+const unparseSugaredFunctionParameter = (
+  expression: FunctionExpression,
+  { unparseAtomOrMolecule }: Context,
+): Either<UnserializableValueError, string> => {
+  const parameterName = styleText(keyColor, getParameterName(expression))
+  return option.match(getParameterTypeAnnotation(expression), {
+    none: () => either.makeRight(parameterName),
+    some: typeAnnotation =>
+      either.flatMap(
+        serializeIfNeeded(typeAnnotation),
+        serializedTypeAnnotation =>
+          either.map(
+            unparseAtomOrMolecule('default')(serializedTypeAnnotation),
+            typeAnnotationAsString => {
+              const {
+                openGroupingParenthesis,
+                closeGroupingParenthesis,
+                typeAnnotationColon,
+              } = punctuation(styleText)
+              return openGroupingParenthesis.concat(
+                parameterName,
+                typeAnnotationColon,
+                ' ',
+                typeAnnotationAsString,
+                closeGroupingParenthesis,
+              )
+            },
+          ),
+      ),
+  })
+}
 
 const unparseSugaredIndex = (
   expression: IndexExpression,

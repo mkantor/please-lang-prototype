@@ -54,7 +54,7 @@ exports[`examples > fibonacci.plz > --input=\"not a number\" > stdout 1`] = `
 
 exports[`examples > fibonacci.plz > roundtripped syntax tree 1`] = `
 {
-  fibonacci: n => @if {
+  fibonacci: (n: :integer.type) => @if {
     (:n < 2)
     then: :n
     else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
@@ -152,7 +152,7 @@ exports[`examples > fizzbuzz.plz > --input=\"not a number\" > stdout 1`] = `
 
 exports[`examples > fizzbuzz.plz > roundtripped syntax tree 1`] = `
 {
-  fizzbuzz: limit => {
+  fizzbuzz: (limit: :natural_number.type) => {
     fizzbuzz_internal: state => @if {
       (:state.current > :limit)
       then: :state.output

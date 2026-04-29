@@ -3,6 +3,7 @@ import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import {
   elaborateWithContext,
+  getParameterName,
   inferType,
   makeFunctionNode,
   makeObjectNode,
@@ -37,7 +38,7 @@ export const functionKeywordHandler: KeywordHandler = (
             makeFunctionNode(
               inferredType.signature,
               () => either.makeRight(functionExpression),
-              option.makeSome(functionExpression[1].parameter),
+              option.makeSome(getParameterName(functionExpression)),
               argument =>
                 apply(
                   functionExpression,
@@ -58,7 +59,7 @@ const apply = (
   argument: SemanticGraph,
   context: ExpressionContext,
 ): ReturnType<FunctionNode> => {
-  const parameter = expression[1].parameter
+  const parameterName = getParameterName(expression)
   const body = expression[1].body
 
   const ownKey = context.location[context.location.length - 1]
@@ -71,7 +72,7 @@ const apply = (
 
   // TODO: Make this foolproof.
   const returnKey =
-    parameter === 'return' || ownKey === 'return' ?
+    parameterName === 'return' || ownKey === 'return' ?
       'return with a different key to avoid collision with a stupidly-named parameter'
     : 'return'
 
@@ -86,11 +87,11 @@ const apply = (
             [ownKey]: makeFunctionNode(
               signature,
               () => either.makeRight(expression),
-              option.makeSome(parameter),
+              option.makeSome(parameterName),
               argument => apply(expression, signature, argument, context),
             ),
             // Put the argument in scope.
-            [parameter]: argument,
+            [parameterName]: argument,
             [returnKey]: body,
           }),
       ),

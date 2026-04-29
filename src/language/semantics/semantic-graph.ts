@@ -182,24 +182,22 @@ export const serialize = (
       function: node => serializeFunctionNode(node),
       object: node => serializeObjectNode(node),
       typeSymbol: node =>
-        either.makeRight(
-          serialize(
-            makeIndexExpression({
-              query: makeObjectNode({ 0: 'type' }),
-              object: (() => {
-                switch (node) {
-                  case atomTypeSymbol:
-                    return makeLookupExpression('atom')
-                  case integerTypeSymbol:
-                    return makeLookupExpression('integer')
-                  case naturalNumberTypeSymbol:
-                    return makeLookupExpression('natural_number')
-                  case somethingTypeSymbol:
-                    return makeLookupExpression('something')
-                }
-              })(),
-            }),
-          ),
+        serialize(
+          makeIndexExpression({
+            query: makeObjectNode({ 0: 'type' }),
+            object: (() => {
+              switch (node) {
+                case atomTypeSymbol:
+                  return makeLookupExpression('atom')
+                case integerTypeSymbol:
+                  return makeLookupExpression('integer')
+                case naturalNumberTypeSymbol:
+                  return makeLookupExpression('natural_number')
+                case somethingTypeSymbol:
+                  return makeLookupExpression('something')
+              }
+            })(),
+          }),
         ),
     }),
     withPhantomData<Serialized & Canonicalized>(),

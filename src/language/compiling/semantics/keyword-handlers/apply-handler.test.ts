@@ -82,7 +82,15 @@ elaborationSuite('@apply', [
         function: {
           0: '@function',
           1: {
-            0: 'x',
+            0: {
+              x: {
+                0: '@index',
+                1: {
+                  0: { 0: '@lookup', 1: { 0: 'boolean' } },
+                  1: { 0: 'type' },
+                },
+              },
+            },
             1: {
               0: '@apply',
               1: {

@@ -67,6 +67,78 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
   ],
 
   [
+    '(a: b) => c',
+    either.makeRight(
+      syntaxTree({
+        '0': '@function',
+        '1': {
+          parameter: { a: 'b' },
+          body: 'c',
+        },
+      }),
+    ),
+  ],
+
+  [
+    '(a: :integer.type) => :a',
+    either.makeRight(
+      syntaxTree({
+        '0': '@function',
+        '1': {
+          parameter: {
+            a: {
+              '0': '@index',
+              '1': {
+                object: { '0': '@lookup', '1': { key: 'integer' } },
+                query: { '0': 'type' },
+              },
+            },
+          },
+          body: { '0': '@lookup', '1': { key: 'a' } },
+        },
+      }),
+    ),
+  ],
+
+  [
+    '(a: b) => (c: d) => e',
+    either.makeRight(
+      syntaxTree({
+        '0': '@function',
+        '1': {
+          parameter: { a: 'b' },
+          body: {
+            '0': '@function',
+            '1': {
+              parameter: { c: 'd' },
+              body: 'e',
+            },
+          },
+        },
+      }),
+    ),
+  ],
+
+  [
+    'a => (b: c) => d',
+    either.makeRight(
+      syntaxTree({
+        '0': '@function',
+        '1': {
+          parameter: 'a',
+          body: {
+            '0': '@function',
+            '1': {
+              parameter: { b: 'c' },
+              body: 'd',
+            },
+          },
+        },
+      }),
+    ),
+  ],
+
+  [
     'a ~> b',
     either.makeRight(
       syntaxTree({

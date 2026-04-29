@@ -36,4 +36,43 @@ elaborationSuite('@function', [
       )
     },
   ],
+  [
+    {
+      0: '@function',
+      1: {
+        0: { x: 'an arbitrary type' },
+        1: { 0: '@lookup', 1: { 0: 'x' } },
+      },
+    },
+    elaboratedFunction => {
+      assert(!either.isLeft(elaboratedFunction))
+      assert(isFunctionNode(elaboratedFunction.value))
+      assert.deepEqual(
+        elaboratedFunction.value.parameterName,
+        option.makeSome('x'),
+      )
+      assert.deepEqual(
+        elaboratedFunction.value.serialize(),
+        either.makeRight({
+          0: '@function',
+          1: {
+            parameter: { x: 'an arbitrary type' },
+            body: { 0: '@lookup', 1: { key: 'x' } },
+          },
+        }),
+      )
+      const parameterType = elaboratedFunction.value.signature.parameter
+      if (parameterType.kind !== 'union') {
+        assert.fail(
+          `expected a union type, but got a ${parameterType.kind} type`,
+        )
+      } else {
+        assert.deepEqual(parameterType.members, new Set(['an arbitrary type']))
+        assert.deepEqual(
+          elaboratedFunction.value.signature.return,
+          parameterType,
+        )
+      }
+    },
+  ],
 ])

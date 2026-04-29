@@ -23,6 +23,8 @@ export {
   stringifyKeyForEndUser,
 } from './semantics/expressions/expression-utilities.js'
 export {
+  getParameterName,
+  getParameterTypeAnnotation,
   makeFunctionExpression,
   readFunctionExpression,
   type FunctionExpression,

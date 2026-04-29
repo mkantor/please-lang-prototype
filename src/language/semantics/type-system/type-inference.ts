@@ -1,10 +1,11 @@
 import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
-import type { ElaborationError } from '../../errors.js'
+import type { Bug, ElaborationError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
+  getParameterName,
   isAssignable,
   isExpression,
   isFunctionNode,
@@ -22,6 +23,10 @@ import {
   type SemanticGraph,
 } from '../../semantics.js'
 import { isKeywordExpressionWithArgument } from '../../semantics/expression.js'
+import {
+  getParameterTypeAnnotation,
+  type FunctionExpression,
+} from '../expressions/function-expression.js'
 import * as types from './prelude-types.js'
 import {
   makeFunctionType,
@@ -66,22 +71,21 @@ export const resolveParameterTypes = (
       if (lastKey === '1') {
         const functionResult = readFunctionExpression(parentNodeOption.value)
         if (either.isRight(functionResult)) {
-          const parameterName = functionResult.value[1].parameter
+          const parameterName = getParameterName(functionResult.value)
           if (!parameterTypes.has(parameterName)) {
-            const parameterType =
-              (
-                isEnclosedInRuntimeExpression(
-                  context.program,
-                  pathToParentScope,
-                )
-              ) ?
-                types.runtimeContext
-              : makeTypeParameter(parameterName, {
-                  assignableTo: types.something,
-                })
-
-            // Side-effect: add the parameter.
-            parameterTypes.set(parameterName, parameterType)
+            const parameterTypeResult = getFunctionParameterType(
+              functionResult.value,
+              {
+                keywordHandlers: context.keywordHandlers,
+                program: context.program,
+                location: currentLocation,
+              },
+            )
+            // Ignore errors here (they should be surfaced elsewhere).
+            if (either.isRight(parameterTypeResult)) {
+              // Side-effect: add the parameter.
+              parameterTypes.set(parameterName, parameterTypeResult.value)
+            }
           }
         }
       }
@@ -111,23 +115,25 @@ export const inferType = (
   // @function: infer return type from the body.
   const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
-    const { parameter, body } = functionExpressionResult.value[1]
-
-    // TODO: Implement syntax for explicit parameter type annotations, as well
-    // as eventually supporting contextual inference of un-annotated parameters.
-    const parameterType = makeTypeParameter(parameter, {
-      assignableTo: types.something,
-    })
-
-    return either.map(
-      inferType(
-        body,
-        new Map([...parameterTypes, [parameter, parameterType]]),
-        lookingUpKeys,
-        context,
-      ),
-      returnType =>
-        makeFunctionType('', { parameter: parameterType, return: returnType }),
+    return either.flatMap(
+      getFunctionParameterType(functionExpressionResult.value, context),
+      parameterType =>
+        either.map(
+          inferType(
+            functionExpressionResult.value[1].body,
+            new Map([
+              ...parameterTypes,
+              [getParameterName(functionExpressionResult.value), parameterType],
+            ]),
+            lookingUpKeys,
+            context,
+          ),
+          returnType =>
+            makeFunctionType('', {
+              parameter: parameterType,
+              return: returnType,
+            }),
+        ),
     )
   }
 
@@ -189,7 +195,10 @@ export const inferType = (
         functionExpressionResult.value[1].body,
         new Map([
           ...parameterTypes,
-          [functionExpressionResult.value[1].parameter, types.runtimeContext],
+          [
+            getParameterName(functionExpressionResult.value),
+            types.runtimeContext,
+          ],
         ]),
         lookingUpKeys,
         context,
@@ -312,6 +321,35 @@ export const inferType = (
     return literalTypeFromSemanticGraph(node)
   }
 }
+
+const getFunctionParameterType = (
+  expression: FunctionExpression,
+  context: ExpressionContext,
+): Either<Bug, Type> =>
+  option.match(getParameterTypeAnnotation(expression), {
+    some: literalTypeFromSemanticGraph,
+    none: _ => {
+      if (
+        isEnclosedInRuntimeExpression(
+          context.program,
+          context.location.slice(0, -2),
+        )
+      ) {
+        return either.makeRight(types.runtimeContext)
+      } else {
+        // Conjure up a fresh type parameter when there is no type annotation. This
+        // gives inference a chance to derive a nice signature, e.g. `a => :a` can
+        // be inferred as a true generic identity function.
+        // TODO: Generalize contextual type inference of un-annotated parameters
+        // (this currently only happens for `@runtime` functions).
+        return either.makeRight(
+          makeTypeParameter(getParameterName(expression), {
+            assignableTo: types.something,
+          }),
+        )
+      }
+    },
+  })
 
 const isEnclosedInRuntimeExpression = (
   program: SemanticGraph,
