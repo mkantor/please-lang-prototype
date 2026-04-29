@@ -287,7 +287,7 @@ languages:
   implementation of the language runtime is a `plt` interpreter.
 
 `plz` has a specific textual representation, but `plo` & `plt` could be encoded
-in any format in which hierarchial key/value pairs of strings are representable
+in any format in which hierarchical key/value pairs of strings are representable
 (currently only JSON is implemented, but YAML, TOML, HOCON, BSON, S-expressions,
 MessagePack, CBOR, etc could be supported).
 
