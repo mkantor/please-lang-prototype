@@ -24,10 +24,8 @@ implementations.
 
 ### Current State
 
-Enough pieces exist to write basic runnable programs. There is a type system,
-but it's not wired up in many places yet so mistakes often go unnoticed at
-compile time. The standard library is anemic, documentation is lacking, and
-error messages are horrible.
+Enough pieces exist to write basic runnable programs, but the standard library
+is anemic, documentation is lacking, and error messages are horrible.
 
 The current runtime is an interpreter, but the plan is to eventually add one or
 more backends to allow building native executables.
