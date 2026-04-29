@@ -2,13 +2,13 @@
   "compilerOptions": {
     "composite": true,
     "exactOptionalPropertyTypes": true,
-    "lib": ["es2023"],
+    "lib": ["es2025"],
     "module": "node16",
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "rootDir": "./src",
     "skipLibCheck": true,
-    "target": "es2023",
+    "target": "es2025",
     "types": ["node"],
     "verbatimModuleSyntax": true
   }
