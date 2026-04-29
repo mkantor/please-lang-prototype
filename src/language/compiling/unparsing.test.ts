@@ -6,9 +6,9 @@ import { type Atom, type Molecule } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
 import {
   inlinePlz,
-  inlineSugarFreePrettyPlz,
   prettyJson,
   prettyPlz,
+  sugarFreeInlinePlz,
   sugarFreePrettyPlz,
   unparse,
   type Notation,
@@ -23,9 +23,7 @@ const unparsers = (value: Atom | Molecule) => {
     )
 
   const unparsedInlinePlz = unparseAndStripAnsi(inlinePlz)
-  const unparsedInlineSugarFreePrettyPlz = unparseAndStripAnsi(
-    inlineSugarFreePrettyPlz,
-  )
+  const unparsedSugarFreeInlinePlz = unparseAndStripAnsi(sugarFreeInlinePlz)
   const unparsedSugarFreePrettyPlz = unparseAndStripAnsi(sugarFreePrettyPlz)
   const unparsedPrettyPlz = unparseAndStripAnsi(prettyPlz)
   const unparsedPrettyJson = unparseAndStripAnsi(prettyJson)
@@ -38,11 +36,11 @@ const unparsers = (value: Atom | Molecule) => {
         return unparsedInlinePlz
       },
     ).value,
-    inlineSugarFreePrettyPlz: either.flatMap(
-      either.flatMap(unparsedInlineSugarFreePrettyPlz, parse),
+    sugarFreeInlinePlz: either.flatMap(
+      either.flatMap(unparsedSugarFreeInlinePlz, parse),
       (roundtrippedValue: {}) => {
         assert.deepEqual(compile(roundtrippedValue).value, compile(value).value)
-        return unparsedInlineSugarFreePrettyPlz
+        return unparsedSugarFreeInlinePlz
       },
     ).value,
     prettyPlz: either.flatMap(
@@ -73,7 +71,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {},
       {
         inlinePlz: '{}',
-        inlineSugarFreePrettyPlz: '{}',
+        sugarFreeInlinePlz: '{}',
         prettyPlz: '{}\n',
         sugarFreePrettyPlz: '{}\n',
         prettyJson: '{}\n',
@@ -84,7 +82,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       'a',
       {
         inlinePlz: 'a',
-        inlineSugarFreePrettyPlz: 'a',
+        sugarFreeInlinePlz: 'a',
         prettyPlz: 'a\n',
         sugarFreePrettyPlz: 'a\n',
         prettyJson: '"a"\n',
@@ -95,7 +93,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       'Hello, world!',
       {
         inlinePlz: '"Hello, world!"',
-        inlineSugarFreePrettyPlz: '"Hello, world!"',
+        sugarFreeInlinePlz: '"Hello, world!"',
         prettyPlz: '"Hello, world!"\n',
         sugarFreePrettyPlz: '"Hello, world!"\n',
         prettyJson: '"Hello, world!"\n',
@@ -106,7 +104,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       '@test',
       {
         inlinePlz: '"@test"',
-        inlineSugarFreePrettyPlz: '"@test"',
+        sugarFreeInlinePlz: '"@test"',
         prettyPlz: '"@test"\n',
         sugarFreePrettyPlz: '"@test"\n',
         prettyJson: '"@test"\n',
@@ -117,7 +115,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       { 0: 'a' },
       {
         inlinePlz: '{ a }',
-        inlineSugarFreePrettyPlz: '{ 0: a }',
+        sugarFreeInlinePlz: '{ 0: a }',
         prettyPlz: '{\n  a\n}\n',
         sugarFreePrettyPlz: '{\n  0: a\n}\n',
         prettyJson: '{\n  "0": "a"\n}\n',
@@ -128,7 +126,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       { 1: 'a' },
       {
         inlinePlz: '{ 1: a }',
-        inlineSugarFreePrettyPlz: '{ 1: a }',
+        sugarFreeInlinePlz: '{ 1: a }',
         prettyPlz: '{\n  1: a\n}\n',
         sugarFreePrettyPlz: '{\n  1: a\n}\n',
         prettyJson: '{\n  "1": "a"\n}\n',
@@ -139,7 +137,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       { 0: 'a', 1: 'b', 3: 'c', somethingElse: 'd' },
       {
         inlinePlz: '{ a, b, 3: c, somethingElse: d }',
-        inlineSugarFreePrettyPlz: '{ 0: a, 1: b, 3: c, somethingElse: d }',
+        sugarFreeInlinePlz: '{ 0: a, 1: b, 3: c, somethingElse: d }',
         prettyPlz: '{\n  a\n  b\n  3: c\n  somethingElse: d\n}\n',
         sugarFreePrettyPlz:
           '{\n  0: a\n  1: b\n  3: c\n  somethingElse: d\n}\n',
@@ -152,7 +150,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       { a: { b: { c: 'd' } } },
       {
         inlinePlz: '{ a: { b: { c: d } } }',
-        inlineSugarFreePrettyPlz: '{ a: { b: { c: d } } }',
+        sugarFreeInlinePlz: '{ a: { b: { c: d } } }',
         prettyPlz: '{\n  a: {\n    b: {\n      c: d\n    }\n  }\n}\n',
         sugarFreePrettyPlz: '{\n  a: {\n    b: {\n      c: d\n    }\n  }\n}\n',
         prettyJson: '{\n  "a": {\n    "b": {\n      "c": "d"\n    }\n  }\n}\n',
@@ -178,7 +176,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       {
         inlinePlz: '{ identity: a => :a, test: :identity("it works!") }',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ identity: { 0: "@function", 1: { parameter: a, body: { 0: "@lookup", 1: { 0: a } } } }, test: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { 0: identity } }, argument: "it works!" } } }',
         prettyPlz:
           '{\n  identity: a => :a\n  test: :identity("it works!")\n}\n',
@@ -199,7 +197,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       {
         inlinePlz: '(a: a) => :a',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ 0: "@function", 1: { parameter: { a: a }, body: { 0: "@lookup", 1: { 0: a } } } }',
         prettyPlz: '(a: a) => :a\n',
         sugarFreePrettyPlz:
@@ -225,7 +223,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       {
         inlinePlz: '(a => :a)("it works!")',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ 0: "@apply", 1: { function: { 0: "@function", 1: { parameter: a, body: { 0: "@lookup", 1: { 0: a } } } }, argument: "it works!" } }',
         prettyPlz: '(a => :a)("it works!")\n',
         sugarFreePrettyPlz:
@@ -256,7 +254,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       {
         inlinePlz: '@runtime { context => :context.program.start_time }',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ 0: "@runtime", 1: { 0: { 0: "@function", 1: { parameter: context, body: { 0: "@index", 1: { object: { 0: "@lookup", 1: { key: context } }, query: { 0: program, 1: start_time } } } } } } }',
         prettyPlz: '@runtime {\n  context => :context.program.start_time\n}\n',
         sugarFreePrettyPlz:
@@ -284,7 +282,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz:
           '{ a.b: { "c \\"d\\"": { e.f: g } }, test: :"a.b"."c \\"d\\""."e.f" }',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ a.b: { "c \\"d\\"": { e.f: g } }, test: { 0: "@index", 1: { object: { 0: "@lookup", 1: { 0: a.b } }, query: { 0: "c \\"d\\"", 1: e.f } } } }',
         prettyPlz:
           '{\n  a.b: {\n    "c \\"d\\"": {\n      e.f: g\n    }\n  }\n  test: :"a.b"."c \\"d\\""."e.f"\n}\n',
@@ -316,7 +314,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       {
         inlinePlz: '1 + 2',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: + } }, argument: 2 } }, argument: 1 } }',
         prettyPlz: '1 + 2\n',
         sugarFreePrettyPlz:
@@ -355,7 +353,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       {
         inlinePlz: 'a atom.append b',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@index", 1: { object: { 0: "@lookup", 1: { key: atom } }, query: { 0: append } } }, argument: b } }, argument: a } }',
         prettyPlz: 'a atom.append b\n',
         sugarFreePrettyPlz:
@@ -482,7 +480,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       {
         inlinePlz:
           '{ five: 5, answer: 1 + 2 - (3 + 4) < :five && :boolean.not(true) }',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ five: 5, answer: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: && } }, argument: { 0: "@apply", 1: { function: { 0: "@index", 1: { object: { 0: "@lookup", 1: { key: boolean } }, query: { 0: not } } }, argument: true } } } }, argument: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: < } }, argument: { 0: "@lookup", 1: { key: five } } } }, argument: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: - } }, argument: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: + } }, argument: 4 } }, argument: 3 } } } }, argument: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: + } }, argument: 2 } }, argument: 1 } } } } } } } } }',
         prettyPlz:
           '{\n  five: 5\n  answer: 1 + 2 - (3 + 4) < :five && :boolean.not(true)\n}\n',
@@ -576,7 +574,7 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
       },
       {
         inlinePlz: '((a => :a + 1) >> (a => :a - 1))(1)',
-        inlineSugarFreePrettyPlz:
+        sugarFreeInlinePlz:
           '{ 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: >> } }, argument: { 0: "@function", 1: { parameter: a, body: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: - } }, argument: 1 } }, argument: { 0: "@lookup", 1: { key: a } } } } } } } }, argument: { 0: "@function", 1: { parameter: a, body: { 0: "@apply", 1: { function: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: + } }, argument: 1 } }, argument: { 0: "@lookup", 1: { key: a } } } } } } } }, argument: 1 } }',
         prettyPlz: '((a => :a + 1) >> (a => :a - 1))(1)\n',
         sugarFreePrettyPlz:

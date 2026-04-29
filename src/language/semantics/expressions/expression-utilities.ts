@@ -2,11 +2,7 @@ import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
 import type { ElaborationError } from '../../errors.js'
 import type { Atom, Molecule } from '../../parsing.js'
-import {
-  inlinePlz,
-  inlineSugarFreePrettyPlz,
-  unparse,
-} from '../../unparsing.js'
+import { inlinePlz, sugarFreeInlinePlz, unparse } from '../../unparsing.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
 import { type Expression } from '../expression.js'
 import { isFunctionNode } from '../function-node.js'
@@ -78,7 +74,7 @@ export const readArgumentsFromExpression = <
           kind: 'invalidExpression',
           message: `missing required property ${requiredKeySummary} within ${expression['0']} expression: \`${stringifySemanticGraphForEndUser(
             expression,
-            inlineSugarFreePrettyPlz,
+            sugarFreeInlinePlz,
           )}\``,
         })
       } else {

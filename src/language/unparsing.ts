@@ -5,9 +5,9 @@ import type { Atom, Molecule } from './parsing.js'
 import type { Notation } from './unparsing/unparsing-utilities.js'
 
 export { inlinePlz } from './unparsing/inline-plz.js'
-export { inlineSugarFreePrettyPlz } from './unparsing/inline-sugar-free-pretty-plz.js'
 export { prettyJson } from './unparsing/pretty-json.js'
 export { prettyPlz } from './unparsing/pretty-plz.js'
+export { sugarFreeInlinePlz } from './unparsing/sugar-free-inline-plz.js'
 export { sugarFreePrettyPlz } from './unparsing/sugar-free-pretty-plz.js'
 export type { Notation } from './unparsing/unparsing-utilities.js'
 
