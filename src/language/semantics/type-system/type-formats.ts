@@ -155,10 +155,12 @@ export type UnionType = {
   >
 }
 
-type SpecificUnionType<Member extends Atom | Exclude<Type, UnionType>> =
-  UnionType & {
-    readonly members: ReadonlySet<Member>
-  }
+type SpecificUnionType<Member extends Atom | Exclude<Type, UnionType>> = Omit<
+  UnionType,
+  'members'
+> & {
+  readonly members: ReadonlySet<Member>
+}
 
 export const makeUnionType = <Member extends Atom | Exclude<Type, UnionType>>(
   name: string,
