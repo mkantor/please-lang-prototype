@@ -1,4 +1,5 @@
 import either from '@matt.kantor/either'
+import { makeUnionExpression } from '../expressions/union-expression.js'
 import { makeObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
@@ -15,7 +16,12 @@ const nodeIsBoolean = (node: SemanticGraph): node is BooleanNode =>
 const booleanNodeToBoolean = (node: BooleanNode): boolean => node === 'true'
 
 export const boolean = {
-  type: makeObjectNode({ 0: '@union', 1: { 0: 'false', 1: 'true' } }),
+  type: makeUnionExpression(
+    makeObjectNode({
+      0: 'false',
+      1: 'true',
+    }),
+  ),
 
   is: preludeFunctionArity1(
     ['boolean', 'is'],
