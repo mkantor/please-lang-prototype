@@ -9,12 +9,6 @@ import {
   preludeFunctionArity2,
 } from './stdlib-utilities.js'
 
-type BooleanNode = 'true' | 'false'
-const nodeIsBoolean = (node: SemanticGraph): node is BooleanNode =>
-  node === 'true' || node === 'false'
-
-const booleanNodeToBoolean = (node: BooleanNode): boolean => node === 'true'
-
 export const boolean = {
   type: makeUnionExpression(
     makeObjectNode({
@@ -134,3 +128,9 @@ export const boolean = {
     },
   ),
 } as const
+
+type BooleanNode = 'true' | 'false'
+const nodeIsBoolean = (node: SemanticGraph) =>
+  node === 'true' || node === 'false'
+
+const booleanNodeToBoolean = (node: BooleanNode): boolean => node === 'true'
