@@ -1361,13 +1361,16 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
 
   [[extendsAnyAtom, object], new Map()],
 
-  // TODO: Handle type parameters within unions:
-  //
-  // [[makeUnionType('', [A, atom]), object], new Map([[A, object]])],
-  //
-  // [[makeUnionType('', [A, atom]), something], new Map([[A, something]])],
-  //
-  // TODO: Which of these is preferable? I believe both are sound.
-  // [[makeUnionType('', [A, atom]), atom], new Map()],
-  // [[makeUnionType('', [A, atom]), atom], new Map([[A, atom]])],
+  [[makeUnionType('', [A, atom]), object], new Map([[A, object]])],
+
+  [[makeUnionType('', [A, atom]), something], new Map([[A, something]])],
+
+  [[makeUnionType('', [A, atom]), atom], new Map([[A, atom]])],
+
+  [
+    [makeUnionType('', [A, object]), makeUnionType('', ['specific atom'])],
+    new Map([[A, makeUnionType('', ['specific atom'])]]),
+  ],
+
+  [[makeUnionType('', [extendsAnyAtom, object]), object], new Map()],
 ])

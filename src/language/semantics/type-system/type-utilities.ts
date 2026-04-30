@@ -348,11 +348,30 @@ export const getTypesForTypeParameters = ({
         ) ?
           new Map([[parameterType, argumentType]])
         : new Map(),
-      // TODO: Handle type parameters in unions. This case will have to check
-      // type parameter constraints (e.g. if `parameterType` is `(A <: object) |
-      // atom`, if `argumentType` is an object type then `A` should be
-      // substituted with that type, but not if `argumentType` is an atom type).
-      union: _ => new Map(),
+      union: parameterType =>
+        // For each member which could accept `argumentType` (with its type
+        // parameters replaced by constraints), recurse to collect bindings
+        // implied by that member.
+        [...parameterType.members]
+          .map(
+            (member): ReadonlyMap<TypeParameter, Type> =>
+              (
+                typeof member !== 'string' &&
+                isAssignable({
+                  source: argumentType,
+                  target: replaceAllTypeParametersWithTheirConstraints(member),
+                })
+              ) ?
+                getTypesForTypeParameters({
+                  parameterType: member,
+                  argumentType,
+                })
+              : new Map(),
+          )
+          .reduce(
+            (types, typesFromMember) => new Map([...typesFromMember, ...types]),
+            new Map<TypeParameter, Type>(),
+          ),
     })
   }
 }
