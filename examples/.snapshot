@@ -3,7 +3,7 @@ exports[`examples > fibonacci.plz > --input=-1 > stderr 1`] = `
 `;
 
 exports[`examples > fibonacci.plz > --input=-1 > stdout 1`] = `
-"--input must be a natural number"
+"missing or invalid --input argument (must be a natural number)"
 
 `;
 
@@ -48,13 +48,13 @@ exports[`examples > fibonacci.plz > --input=\"not a number\" > stderr 1`] = `
 `;
 
 exports[`examples > fibonacci.plz > --input=\"not a number\" > stdout 1`] = `
-"--input must be a natural number"
+"missing or invalid --input argument (must be a natural number)"
 
 `;
 
 exports[`examples > fibonacci.plz > roundtripped syntax tree 1`] = `
 {
-  fibonacci: (n: :integer.type) => @if {
+  fibonacci: (n: :natural_number.type) => @if {
     (:n < 2)
     then: :n
     else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
@@ -62,13 +62,9 @@ exports[`examples > fibonacci.plz > roundtripped syntax tree 1`] = `
   input: @runtime {
     context => :context.arguments.lookup(input)
   }
-  output: :input match {
-    none: _ => "missing --input argument"
-    some: input => @if {
-      :natural_number.is(:input)
-      then: :fibonacci(:input)
-      else: "--input must be a natural number"
-    }
+  output: :input option.flat_map :natural_number.from match {
+    none: _ => "missing or invalid --input argument (must be a natural number)"
+    some: :fibonacci
   }
 }.output
 
@@ -79,7 +75,7 @@ exports[`examples > fibonacci.plz > stderr 1`] = `
 `;
 
 exports[`examples > fibonacci.plz > stdout 1`] = `
-"missing --input argument"
+"missing or invalid --input argument (must be a natural number)"
 
 `;
 
@@ -88,7 +84,7 @@ exports[`examples > fizzbuzz.plz > --input=-1 > stderr 1`] = `
 `;
 
 exports[`examples > fizzbuzz.plz > --input=-1 > stdout 1`] = `
-"--input must be a natural number"
+"missing or invalid --input argument (must be a natural number)"
 
 `;
 
@@ -146,7 +142,7 @@ exports[`examples > fizzbuzz.plz > --input=\"not a number\" > stderr 1`] = `
 `;
 
 exports[`examples > fizzbuzz.plz > --input=\"not a number\" > stdout 1`] = `
-"--input must be a natural number"
+"missing or invalid --input argument (must be a natural number)"
 
 `;
 
@@ -181,13 +177,9 @@ exports[`examples > fizzbuzz.plz > roundtripped syntax tree 1`] = `
   input: @runtime {
     context => :context.arguments.lookup(input)
   }
-  output: :input match {
-    none: _ => "missing --input argument"
-    some: input => @if {
-      :natural_number.is(:input)
-      then: :fizzbuzz(:input)
-      else: "--input must be a natural number"
-    }
+  output: :input option.flat_map :natural_number.from match {
+    none: _ => "missing or invalid --input argument (must be a natural number)"
+    some: :fizzbuzz
   }
 }.output
 
@@ -198,7 +190,7 @@ exports[`examples > fizzbuzz.plz > stderr 1`] = `
 `;
 
 exports[`examples > fizzbuzz.plz > stdout 1`] = `
-"missing --input argument"
+"missing or invalid --input argument (must be a natural number)"
 
 `;
 
