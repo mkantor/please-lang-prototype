@@ -9,6 +9,7 @@ import {
   nothing,
   nullType,
   object,
+  option,
   something,
 } from './type-system/prelude-types.js'
 import { showType } from './type-system/show-type.js'
@@ -19,6 +20,7 @@ import {
   makeTypeParameter,
   makeUnionType,
   type Type,
+  type TypeParameter,
   type UnionType,
 } from './type-system/type-formats.js'
 import {
@@ -1372,5 +1374,31 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
     new Map([[A, makeUnionType('', ['specific atom'])]]),
   ],
 
+  [
+    [
+      makeUnionType('', [extendsAnyAtom, object]),
+      makeUnionType('', ['specific atom', object]),
+    ],
+    new Map([
+      [extendsAnyAtom, makeUnionType('specific atom', ['specific atom'])],
+    ]),
+  ],
+
   [[makeUnionType('', [extendsAnyAtom, object]), object], new Map()],
+
+  [[option(A), option(naturalNumber)], new Map([[A, naturalNumber]])],
+
+  [
+    [
+      makeFunctionType('', { parameter: A, return: option(B) }),
+      makeFunctionType('', {
+        parameter: atom,
+        return: option(naturalNumber),
+      }),
+    ],
+    new Map<TypeParameter, Type>([
+      [A, atom],
+      [B, naturalNumber],
+    ]),
+  ],
 ])
