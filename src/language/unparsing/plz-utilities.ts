@@ -15,6 +15,7 @@ import {
   readFunctionExpression,
   readIndexExpression,
   readLookupExpression,
+  readUnionExpression,
   serialize,
   type ApplyExpression,
   type Expression,
@@ -24,6 +25,7 @@ import {
   type LookupExpression,
   type ObjectNode,
   type SemanticGraph,
+  type UnionExpression,
 } from '../semantics.js'
 import {
   readCheckExpression,
@@ -33,10 +35,6 @@ import {
   readSignatureExpression,
   type SignatureExpression,
 } from '../semantics/expressions/signature-expression.js'
-import {
-  readUnionExpression,
-  type UnionExpression,
-} from '../semantics/expressions/union-expression.js'
 import { applyColor, keyColor, punctuation } from './unparsing-utilities.js'
 
 export type SemanticContext = 'apply' | 'default'
