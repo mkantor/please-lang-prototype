@@ -1,4 +1,5 @@
 import optionAdt from '@matt.kantor/option'
+import { showType } from './show-type.js'
 import {
   makeFunctionType,
   makeObjectType,
@@ -79,7 +80,7 @@ export const typesBySymbol = {
 }
 
 export const option = (value: Type) =>
-  makeUnionType('option', [
+  makeUnionType(`option(${showType(value)})`, [
     makeObjectType('some', {
       tag: makeUnionType('', ['some']),
       value,
