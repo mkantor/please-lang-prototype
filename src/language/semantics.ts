@@ -47,6 +47,10 @@ export {
   type LookupExpression,
 } from './semantics/expressions/lookup-expression.js'
 export {
+  readPanicExpression,
+  type PanicExpression,
+} from './semantics/expressions/panic-expression.js'
+export {
   makeRuntimeExpression,
   readRuntimeExpression,
   type RuntimeExpression,

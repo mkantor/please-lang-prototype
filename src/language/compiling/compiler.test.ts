@@ -606,4 +606,20 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `@if {
+      @runtime { context =>
+        :context.arguments.lookup(a) match {
+          none: _ => false
+          some: _ => true
+        }
+      }
+      then: 42
+      else: @panic
+    } ~ :integer.type`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

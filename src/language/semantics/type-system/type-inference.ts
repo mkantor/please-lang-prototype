@@ -17,6 +17,7 @@ import {
   readIfExpression,
   readIndexExpression,
   readLookupExpression,
+  readPanicExpression,
   readRuntimeExpression,
   type ExpressionContext,
   type KeyPath,
@@ -299,6 +300,12 @@ export const inferType = (
         }
       },
     )
+  }
+
+  // @panic: infer the bottom type.
+  const panicExpressionResult = readPanicExpression(node)
+  if (either.isRight(panicExpressionResult)) {
+    return either.makeRight(types.nothing)
   }
 
   if (isObjectNode(node) && containsAnyUnelaboratedNodes(node)) {
