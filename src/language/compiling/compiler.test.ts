@@ -592,6 +592,15 @@ testCases(
   ],
 
   [
+    `a => :a ~ :boolean.type`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
     // `:a` is a lookup of an unannotated parameter, so its inferred type is an
     // unconstrained type parameter, which is not assignable to `:integer.type`.
     // If the language eventually gains Hindley–Milner-style inference this
@@ -700,6 +709,15 @@ testCases(
 
   [
     `@if { @runtime { _ => "not a boolean" }, a, b }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `@runtime { (context: "not the correct type") => {} }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
