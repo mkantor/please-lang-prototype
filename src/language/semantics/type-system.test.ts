@@ -9,6 +9,7 @@ import {
   nothing,
   nullType,
   object,
+  option,
   something,
 } from './type-system/prelude-types.js'
 import { showType } from './type-system/show-type.js'
@@ -19,6 +20,7 @@ import {
   makeTypeParameter,
   makeUnionType,
   type Type,
+  type TypeParameter,
   type UnionType,
 } from './type-system/type-formats.js'
 import {
@@ -1361,13 +1363,42 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
 
   [[extendsAnyAtom, object], new Map()],
 
-  // TODO: Handle type parameters within unions:
-  //
-  // [[makeUnionType('', [A, atom]), object], new Map([[A, object]])],
-  //
-  // [[makeUnionType('', [A, atom]), something], new Map([[A, something]])],
-  //
-  // TODO: Which of these is preferable? I believe both are sound.
-  // [[makeUnionType('', [A, atom]), atom], new Map()],
-  // [[makeUnionType('', [A, atom]), atom], new Map([[A, atom]])],
+  [[makeUnionType('', [A, atom]), object], new Map([[A, object]])],
+
+  [[makeUnionType('', [A, atom]), something], new Map([[A, something]])],
+
+  [[makeUnionType('', [A, atom]), atom], new Map([[A, atom]])],
+
+  [
+    [makeUnionType('', [A, object]), makeUnionType('', ['specific atom'])],
+    new Map([[A, makeUnionType('', ['specific atom'])]]),
+  ],
+
+  [
+    [
+      makeUnionType('', [extendsAnyAtom, object]),
+      makeUnionType('', ['specific atom', object]),
+    ],
+    new Map([
+      [extendsAnyAtom, makeUnionType('specific atom', ['specific atom'])],
+    ]),
+  ],
+
+  [[makeUnionType('', [extendsAnyAtom, object]), object], new Map()],
+
+  [[option(A), option(naturalNumber)], new Map([[A, naturalNumber]])],
+
+  [
+    [
+      makeFunctionType('', { parameter: A, return: option(B) }),
+      makeFunctionType('', {
+        parameter: atom,
+        return: option(naturalNumber),
+      }),
+    ],
+    new Map<TypeParameter, Type>([
+      [A, atom],
+      [B, naturalNumber],
+    ]),
+  ],
 ])

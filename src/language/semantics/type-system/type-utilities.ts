@@ -321,6 +321,7 @@ export const getTypesForTypeParameters = ({
             }),
           ])
         : new Map(),
+
       object: parameterType =>
         argumentType.kind === 'object' ?
           Object.entries(parameterType.children)
@@ -338,7 +339,9 @@ export const getTypesForTypeParameters = ({
               new Map<TypeParameter, Type>(),
             )
         : new Map(),
+
       opaque: _ => new Map(),
+
       parameter: parameterType =>
         (
           isAssignable({
@@ -348,11 +351,51 @@ export const getTypesForTypeParameters = ({
         ) ?
           new Map([[parameterType, argumentType]])
         : new Map(),
-      // TODO: Handle type parameters in unions. This case will have to check
-      // type parameter constraints (e.g. if `parameterType` is `(A <: object) |
-      // atom`, if `argumentType` is an object type then `A` should be
-      // substituted with that type, but not if `argumentType` is an atom type).
-      union: _ => new Map(),
+
+      union: parameterType => {
+        const argumentCandidates = [
+          argumentType,
+          ...(argumentType.kind === 'union' ?
+            // These additional candidates enable alignment between parameter
+            // unions and argument unions. For example, given a `parameterType`
+            // of `(A <: atom) | object` and an `argumentType` of `atom |
+            // object`, `A` should be inferred as `atom`.
+            [...argumentType.members].flatMap((member): readonly Type[] =>
+              typeof member === 'string' ?
+                [makeUnionType(member, [member])]
+              : [member],
+            )
+          : []),
+        ] as const
+        return [...parameterType.members]
+          .flatMap(parameterMember =>
+            typeof parameterMember === 'string' ?
+              []
+            : argumentCandidates
+                .filter(candidate =>
+                  isAssignable({
+                    source: candidate,
+                    target:
+                      replaceAllTypeParametersWithTheirConstraints(
+                        parameterMember,
+                      ),
+                  }),
+                )
+                .flatMap(candidate => [
+                  ...getTypesForTypeParameters({
+                    parameterType: parameterMember,
+                    argumentType: candidate,
+                  }),
+                ]),
+          )
+          .reduce(
+            (types, [parameter, type]) =>
+              types.has(parameter) ? types : (
+                new Map([...types, [parameter, type]])
+              ),
+            new Map<TypeParameter, Type>(),
+          )
+      },
     })
   }
 }
