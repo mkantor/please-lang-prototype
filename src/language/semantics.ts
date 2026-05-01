@@ -89,6 +89,7 @@ export {
   type SemanticGraph,
 } from './semantics/semantic-graph.js'
 export {
+  applyKeyPathToType,
   containedTypeParameters,
   getTypesForTypeParameters,
   inferType,
