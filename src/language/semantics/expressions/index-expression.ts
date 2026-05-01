@@ -13,7 +13,7 @@ import { readArgumentsFromExpression } from './expression-utilities.js'
 export type IndexExpression = ObjectNode & {
   readonly 0: '@index'
   readonly 1: {
-    readonly object: ObjectNode
+    readonly object: SemanticGraph
     readonly query: ObjectNode
   }
 }
@@ -25,12 +25,7 @@ export const readIndexExpression = (
     either.flatMap(
       readArgumentsFromExpression(node, ['object', 'query']),
       ([object, query]) => {
-        if (!isObjectNode(object)) {
-          return either.makeLeft({
-            kind: 'invalidExpression',
-            message: 'object must be an object',
-          })
-        } else if (!isObjectNode(query)) {
+        if (!isObjectNode(query)) {
           return either.makeLeft({
             kind: 'invalidExpression',
             message: 'query must be an object',
@@ -53,7 +48,7 @@ export const makeIndexExpression = ({
   object,
 }: {
   readonly query: ObjectNode
-  readonly object: ObjectNode
+  readonly object: SemanticGraph
 }): IndexExpression =>
   makeObjectNode({
     0: '@index',
