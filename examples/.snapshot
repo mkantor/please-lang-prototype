@@ -149,7 +149,10 @@ exports[`examples > fizzbuzz.plz > --input=\"not a number\" > stdout 1`] = `
 exports[`examples > fizzbuzz.plz > roundtripped syntax tree 1`] = `
 {
   fizzbuzz: (limit: :natural_number.type) => {
-    fizzbuzz_internal: state => @if {
+    fizzbuzz_internal: (state: {
+      current: :natural_number.type
+      output: :object.type
+    }) => @if {
       (:state.current > :limit)
       then: :state.output
       else: :fizzbuzz_internal({
@@ -166,7 +169,7 @@ exports[`examples > fizzbuzz.plz > roundtripped syntax tree 1`] = `
             }
           }
         } object.from_property :state.current)
-        current: :state.current + 1
+        current: :state.current + 1 assume :natural_number.type
       })
     }
     internal_return: :fizzbuzz_internal({

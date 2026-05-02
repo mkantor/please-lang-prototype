@@ -1,6 +1,6 @@
 {
   fizzbuzz: (limit: :natural_number.type) => {
-    fizzbuzz_internal: state => @if {
+    fizzbuzz_internal: (state: { current: :natural_number.type, output: :object.type }) => @if {
       :state.current > :limit
       then: :state.output
       else: :fizzbuzz_internal({
@@ -17,7 +17,7 @@
             }
           }
         })
-        current: :state.current + 1
+        current: (:state.current + 1) assume :natural_number.type
       })
     }
     internal_return: :fizzbuzz_internal({ current: 1, output: {} })
