@@ -2,7 +2,10 @@ import either from '@matt.kantor/either'
 import { isObjectNode, makeObjectNode } from '../object-node.js'
 import { types } from '../type-system.js'
 import { makeFunctionType } from '../type-system/type-formats.js'
-import { preludeFunctionArity2 } from './stdlib-utilities.js'
+import {
+  preludeFunctionArity1,
+  preludeFunctionArity2,
+} from './stdlib-utilities.js'
 
 export const object = {
   type: makeObjectNode({}),
@@ -41,6 +44,20 @@ export const object = {
         })
       }
     },
+  ),
+
+  from: preludeFunctionArity1(
+    ['object', 'from'],
+    {
+      parameter: types.something,
+      return: types.option(types.object),
+    },
+    argument =>
+      either.makeRight(
+        isObjectNode(argument) ?
+          makeObjectNode({ tag: 'some', value: argument })
+        : makeObjectNode({ tag: 'none', value: {} }),
+      ),
   ),
 
   from_property: preludeFunctionArity2(

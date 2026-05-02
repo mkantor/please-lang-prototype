@@ -26,6 +26,20 @@ export const boolean = {
     argument => either.makeRight(nodeIsBoolean(argument) ? 'true' : 'false'),
   ),
 
+  from: preludeFunctionArity1(
+    ['boolean', 'from'],
+    {
+      parameter: types.something,
+      return: types.option(types.boolean),
+    },
+    argument =>
+      either.makeRight(
+        nodeIsBoolean(argument) ?
+          makeObjectNode({ tag: 'some', value: argument })
+        : makeObjectNode({ tag: 'none', value: {} }),
+      ),
+  ),
+
   not: preludeFunctionArity1(
     ['boolean', 'not'],
     {

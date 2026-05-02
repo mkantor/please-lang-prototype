@@ -1,4 +1,5 @@
 import either from '@matt.kantor/either'
+import { makeObjectNode } from '../object-node.js'
 import { types } from '../type-system.js'
 import { makeFunctionType, makeUnionType } from '../type-system/type-formats.js'
 import {
@@ -27,6 +28,27 @@ export const natural_number = {
         ) ?
           'true'
         : 'false',
+      ),
+  ),
+
+  from: preludeFunctionArity1(
+    ['natural_number', 'from'],
+    {
+      parameter: types.something,
+      return: types.option(types.naturalNumber),
+    },
+    argument =>
+      either.makeRight(
+        (
+          typeof argument === 'string' &&
+            types.naturalNumber.isAssignableFrom({
+              name: '',
+              kind: 'union',
+              members: new Set([argument]),
+            })
+        ) ?
+          makeObjectNode({ tag: 'some', value: argument })
+        : makeObjectNode({ tag: 'none', value: {} }),
       ),
   ),
 

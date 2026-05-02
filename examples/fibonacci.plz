@@ -1,5 +1,5 @@
 {
-  fibonacci: (n: :integer.type) =>
+  fibonacci: (n: :natural_number.type) =>
     @if {
       :n < 2
       then: :n
@@ -11,12 +11,10 @@
     :context.arguments.lookup(input)
   }
 
-  output: :input match {
-    none: _ => "missing --input argument"
-    some: input => @if {
-      :natural_number.is(:input)
-      then: :fibonacci(:input)
-      else: "--input must be a natural number"
+  output: :input
+    option.flat_map :natural_number.from
+    match {
+      none: _ => "missing or invalid --input argument (must be a natural number)"
+      some: :fibonacci
     }
-  }
 }.output

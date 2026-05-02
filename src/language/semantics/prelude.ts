@@ -6,11 +6,13 @@ import { integer } from './stdlib/integer.js'
 import { natural_number } from './stdlib/natural-number.js'
 import { nothing } from './stdlib/nothing.js'
 import { object } from './stdlib/object.js'
+import { option } from './stdlib/option.js'
 import { something } from './stdlib/something.js'
 
 export const prelude = makeObjectNode({
   ...globalFunctions,
   atom: makeObjectNode(atom),
+  option: makeObjectNode(option),
   boolean: makeObjectNode(boolean),
   integer: makeObjectNode(integer),
   natural_number: makeObjectNode(natural_number),
