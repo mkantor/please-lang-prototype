@@ -71,8 +71,10 @@ export const ifKeywordHandler: KeywordHandler = (
                 keywordHandlers: {
                   '@lookup': context.keywordHandlers['@lookup'],
                   '@index': context.keywordHandlers['@index'],
-                  '@apply': doNotElaborate,
-                  '@check': doNotElaborate,
+                  '@check': context.keywordHandlers['@check'],
+                  '@apply': analyzeButPreserveExpression(
+                    context.keywordHandlers['@apply'],
+                  ),
                   '@function': doNotElaborate,
                   '@if': doNotElaborate,
                   '@panic': doNotElaborate,
@@ -85,47 +87,51 @@ export const ifKeywordHandler: KeywordHandler = (
 
               const elaborateNestedIfLookups = (
                 branch: SemanticGraph,
-              ): SemanticGraph =>
+              ): Either<ElaborationError, SemanticGraph> =>
                 isExpression(branch) && branch['0'] === '@if' ?
-                  either.unwrapOrElse(
-                    ifKeywordHandler(branch, partiallyElaboratingContext),
-                    _error => branch,
-                  )
-                : isExpression(branch) && branch['0'] === '@function' ? branch
+                  ifKeywordHandler(branch, partiallyElaboratingContext)
+                : isExpression(branch) && branch['0'] === '@function' ?
+                  either.makeRight(branch)
                 : isObjectNode(branch) ?
-                  makeObjectNode(
-                    Object.fromEntries(
-                      Object.entries(branch).map(([key, value]) => [
-                        key,
-                        elaborateNestedIfLookups(value),
-                      ]),
+                  either.map(
+                    sequenceEithers(
+                      Object.entries(branch).map(([key, value]) =>
+                        either.map(
+                          elaborateNestedIfLookups(value),
+                          elaboratedValue => [key, elaboratedValue] as const,
+                        ),
+                      ),
                     ),
+                    entries => makeObjectNode(Object.fromEntries(entries)),
                   )
-                : branch
+                : either.makeRight(branch)
 
               const elaborateBranch = (
                 branchKey: 'then' | 'else',
-              ): SemanticGraph =>
-                elaborateNestedIfLookups(
-                  either.unwrapOrElse(
-                    either.map(
-                      evaluateSubexpression(
-                        subexpressionKeyPaths[branchKey],
-                        partiallyElaboratingContext,
-                        ifExpression[1][branchKey],
-                      ),
-                      asSemanticGraph,
+              ): Either<ElaborationError, SemanticGraph> =>
+                either.flatMap(
+                  either.map(
+                    evaluateSubexpression(
+                      subexpressionKeyPaths[branchKey],
+                      partiallyElaboratingContext,
+                      ifExpression[1][branchKey],
                     ),
-                    _error => ifExpression[1][branchKey],
+                    asSemanticGraph,
                   ),
+                  elaborateNestedIfLookups,
                 )
 
-              return either.makeRight(
-                makeIfExpression({
-                  condition: asSemanticGraph(condition),
-                  then: elaborateBranch('then'),
-                  else: elaborateBranch('else'),
-                }),
+              return either.map(
+                sequenceEithers([
+                  elaborateBranch('then'),
+                  elaborateBranch('else'),
+                ]),
+                ([elaboratedThen, elaboratedElse]) =>
+                  makeIfExpression({
+                    condition: asSemanticGraph(condition),
+                    then: elaboratedThen,
+                    else: elaboratedElse,
+                  }),
               )
             } else {
               return either.makeLeft({
@@ -151,3 +157,59 @@ const evaluateSubexpression = (
       location: [...context.location, ...subKeyPath],
     }),
   )
+
+// Run a keyword handler for its static analysis, but preserve the original
+// expression.
+const analyzeButPreserveExpression =
+  (handler: KeywordHandler): KeywordHandler =>
+  (expression, context) =>
+    either.match(handler(expression, context), {
+      right: _ => either.makeRight(expression),
+      left: error =>
+        error.kind === 'typeMismatch' ?
+          either.makeLeft(error)
+        : either.makeRight(expression),
+    })
+
+// TODO: Consider adding this to @matt.kantor/either (and a similar function to
+// @matt.kantor/option):
+const sequenceEithers = <
+  const Eithers extends readonly Either<unknown, unknown>[],
+>(
+  eithers: Eithers,
+): SequenceOutput<Eithers> => {
+  type LeftValue = LeftValueOf<Eithers[number]>
+  type RightValue = RightValueOf<Eithers[number]>
+
+  const output: RightValueOf<Eithers[number]>[] = []
+  for (const singleEither of eithers) {
+    // TypeScript unfortunately widens `either` to its constraint, but we know
+    // it conforms to this type.
+    const narrowedEither = singleEither as Either<LeftValue, RightValue>
+    if (either.isLeft(narrowedEither)) {
+      return narrowedEither
+    } else {
+      output.push(narrowedEither.value)
+    }
+  }
+
+  // TypeScript doesn't keep track of how many eithers we've visited, but we
+  // know it's the same amount that were given as input.
+  const knownNumberOfOutputs = output as RightValueOf<SequenceOutput<Eithers>>
+  return either.makeRight(knownNumberOfOutputs)
+}
+
+type SequenceOutput<Eithers extends readonly Either<unknown, unknown>[]> =
+  Either<
+    LeftValueOf<Eithers[number]>,
+    { -readonly [Index in keyof Eithers]: RightValueOf<Eithers[Index]> }
+  > &
+    unknown // Hide `SequenceOutput` from type info.
+
+type RightValueOf<SpecificEither extends Either<unknown, unknown>> =
+  SpecificEither extends { kind: 'right'; value: infer RightValue } ? RightValue
+  : never
+
+type LeftValueOf<SpecificEither extends Either<unknown, unknown>> =
+  SpecificEither extends { kind: 'left'; value: infer LeftValue } ? LeftValue
+  : never
