@@ -4,16 +4,22 @@ import {
   asSemanticGraph,
   containsAnyUnelaboratedNodes,
   elaborateWithContext,
+  inferType,
+  isAssignable,
   isExpression,
   isObjectNode,
   makeIfExpression,
   makeObjectNode,
   readIfExpression,
+  resolveParameterTypes,
   serialize,
+  showType,
+  types,
   type Expression,
   type ExpressionContext,
   type KeyPath,
   type KeywordHandler,
+  type Output,
   type SemanticGraph,
 } from '../../../semantics.js'
 
@@ -57,89 +63,111 @@ export const ifKeywordHandler: KeywordHandler = (
             asSemanticGraph,
           )
         } else {
-          return either.flatMap(serialize(elaboratedCondition), condition => {
-            if (containsAnyUnelaboratedNodes(condition)) {
-              // The condition cannot yet be fully elaborated. Do a lightweight
-              // pass through the branches to substitute `@lookup`s/`@index`es for
-              // values as much as possible. This helps in tricky situations
-              // where referenced properties that are higher up in the program
-              // get erased before the `@if` can be fully elaborated.
+          return either.flatMap(
+            either.flatMap(
+              inferType(
+                elaboratedCondition,
+                resolveParameterTypes(context),
+                new Set(),
+                context,
+              ),
+              (conditionType): Either<ElaborationError, Output> =>
+                (
+                  isAssignable({
+                    source: conditionType,
+                    target: types.boolean,
+                  })
+                ) ?
+                  serialize(elaboratedCondition)
+                : either.makeLeft({
+                    kind: 'typeMismatch',
+                    message: `\`@if\` condition was not assignable to \`${showType(types.boolean)}\` (it was \`${showType(conditionType)}\`)`,
+                  }),
+            ),
+            condition => {
+              if (containsAnyUnelaboratedNodes(condition)) {
+                // The condition cannot yet be fully elaborated. Do a lightweight
+                // pass through the branches to substitute `@lookup`s/`@index`es for
+                // values as much as possible. This helps in tricky situations
+                // where referenced properties that are higher up in the program
+                // get erased before the `@if` can be fully elaborated.
 
-              const doNotElaborate = either.makeRight
-              const partiallyElaboratingContext: ExpressionContext = {
-                ...context,
-                keywordHandlers: {
-                  '@lookup': context.keywordHandlers['@lookup'],
-                  '@index': context.keywordHandlers['@index'],
-                  '@check': context.keywordHandlers['@check'],
-                  '@apply': analyzeButPreserveExpression(
-                    context.keywordHandlers['@apply'],
-                  ),
-                  '@function': doNotElaborate,
-                  '@if': doNotElaborate,
-                  '@panic': doNotElaborate,
-                  '@runtime': doNotElaborate,
-                  '@signature': doNotElaborate,
-                  '@todo': doNotElaborate,
-                  '@union': doNotElaborate,
-                },
-              }
+                const doNotElaborate = either.makeRight
+                const partiallyElaboratingContext: ExpressionContext = {
+                  ...context,
+                  keywordHandlers: {
+                    '@lookup': context.keywordHandlers['@lookup'],
+                    '@index': context.keywordHandlers['@index'],
+                    '@check': context.keywordHandlers['@check'],
+                    '@apply': analyzeButPreserveExpression(
+                      context.keywordHandlers['@apply'],
+                    ),
+                    '@function': doNotElaborate,
+                    '@if': doNotElaborate,
+                    '@panic': doNotElaborate,
+                    '@runtime': doNotElaborate,
+                    '@signature': doNotElaborate,
+                    '@todo': doNotElaborate,
+                    '@union': doNotElaborate,
+                  },
+                }
 
-              const elaborateNestedIfLookups = (
-                branch: SemanticGraph,
-              ): Either<ElaborationError, SemanticGraph> =>
-                isExpression(branch) && branch['0'] === '@if' ?
-                  ifKeywordHandler(branch, partiallyElaboratingContext)
-                : isExpression(branch) && branch['0'] === '@function' ?
-                  either.makeRight(branch)
-                : isObjectNode(branch) ?
-                  either.map(
-                    sequenceEithers(
-                      Object.entries(branch).map(([key, value]) =>
-                        either.map(
-                          elaborateNestedIfLookups(value),
-                          elaboratedValue => [key, elaboratedValue] as const,
+                const elaborateNestedIfLookups = (
+                  branch: SemanticGraph,
+                ): Either<ElaborationError, SemanticGraph> =>
+                  isExpression(branch) && branch['0'] === '@if' ?
+                    ifKeywordHandler(branch, partiallyElaboratingContext)
+                  : isExpression(branch) && branch['0'] === '@function' ?
+                    either.makeRight(branch)
+                  : isObjectNode(branch) ?
+                    either.map(
+                      sequenceEithers(
+                        Object.entries(branch).map(([key, value]) =>
+                          either.map(
+                            elaborateNestedIfLookups(value),
+                            elaboratedValue => [key, elaboratedValue] as const,
+                          ),
                         ),
                       ),
+                      entries => makeObjectNode(Object.fromEntries(entries)),
+                    )
+                  : either.makeRight(branch)
+
+                const elaborateBranch = (
+                  branchKey: 'then' | 'else',
+                ): Either<ElaborationError, SemanticGraph> =>
+                  either.flatMap(
+                    either.map(
+                      evaluateSubexpression(
+                        subexpressionKeyPaths[branchKey],
+                        partiallyElaboratingContext,
+                        ifExpression[1][branchKey],
+                      ),
+                      asSemanticGraph,
                     ),
-                    entries => makeObjectNode(Object.fromEntries(entries)),
+                    elaborateNestedIfLookups,
                   )
-                : either.makeRight(branch)
 
-              const elaborateBranch = (
-                branchKey: 'then' | 'else',
-              ): Either<ElaborationError, SemanticGraph> =>
-                either.flatMap(
-                  either.map(
-                    evaluateSubexpression(
-                      subexpressionKeyPaths[branchKey],
-                      partiallyElaboratingContext,
-                      ifExpression[1][branchKey],
-                    ),
-                    asSemanticGraph,
-                  ),
-                  elaborateNestedIfLookups,
+                return either.map(
+                  sequenceEithers([
+                    elaborateBranch('then'),
+                    elaborateBranch('else'),
+                  ]),
+                  ([elaboratedThen, elaboratedElse]) =>
+                    makeIfExpression({
+                      condition: asSemanticGraph(condition),
+                      then: elaboratedThen,
+                      else: elaboratedElse,
+                    }),
                 )
-
-              return either.map(
-                sequenceEithers([
-                  elaborateBranch('then'),
-                  elaborateBranch('else'),
-                ]),
-                ([elaboratedThen, elaboratedElse]) =>
-                  makeIfExpression({
-                    condition: asSemanticGraph(condition),
-                    then: elaboratedThen,
-                    else: elaboratedElse,
-                  }),
-              )
-            } else {
-              return either.makeLeft({
-                kind: 'invalidExpression',
-                message: 'condition was not boolean',
-              })
-            }
-          })
+              } else {
+                return either.makeLeft({
+                  kind: 'invalidExpression',
+                  message: 'condition was not boolean',
+                })
+              }
+            },
+          )
         }
       },
     )
