@@ -461,10 +461,7 @@ testCases(
   [
     `@if {
       @runtime { context =>
-        :context.arguments.lookup(a) match {
-          none: _ => false
-          some: _ => true
-        }
+        :context.program.start_time atom.equals "arbitrary atom"
       }
       then: 1
       else: "not an integer"
@@ -610,10 +607,7 @@ testCases(
   [
     `@if {
       @runtime { context =>
-        :context.arguments.lookup(a) match {
-          none: _ => false
-          some: _ => true
-        }
+        :context.program.start_time atom.equals "arbitrary atom"
       }
       then: 42
       else: @panic
