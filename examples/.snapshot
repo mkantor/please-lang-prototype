@@ -54,7 +54,7 @@ exports[`examples > fibonacci.plz > --input=\"not a number\" > stdout 1`] = `
 
 exports[`examples > fibonacci.plz > roundtripped syntax tree 1`] = `
 {
-  fibonacci: (n: :natural_number.type) => @if {
+  fibonacci: (n: :integer.type) => @if {
     (:n < 2)
     then: :n
     else: :fibonacci(:n - 1) + :fibonacci(:n - 2)
