@@ -39,118 +39,104 @@ export const ifKeywordHandler: KeywordHandler = (
       else: ['1', 'else' in expression[1] ? 'else' : '2'],
     }
 
-    const elaboratedCondition = evaluateSubexpression(
-      subexpressionKeyPaths.condition,
-      context,
-      ifExpression[1].condition,
-    )
+    return either.flatMap(
+      evaluateSubexpression(
+        subexpressionKeyPaths.condition,
+        context,
+        ifExpression[1].condition,
+      ),
+      elaboratedCondition => {
+        if (elaboratedCondition === 'true' || elaboratedCondition === 'false') {
+          const branchKey = elaboratedCondition === 'true' ? 'then' : 'else'
+          return either.map(
+            evaluateSubexpression(
+              subexpressionKeyPaths[branchKey],
+              context,
+              ifExpression[1][branchKey],
+            ),
+            asSemanticGraph,
+          )
+        } else {
+          return either.flatMap(serialize(elaboratedCondition), condition => {
+            if (containsAnyUnelaboratedNodes(condition)) {
+              // The condition cannot yet be fully elaborated. Do a lightweight
+              // pass through the branches to substitute `@lookup`s/`@index`es for
+              // values as much as possible. This helps in tricky situations
+              // where referenced properties that are higher up in the program
+              // get erased before the `@if` can be fully elaborated.
 
-    return either.flatMap(elaboratedCondition, elaboratedCondition => {
-      if (elaboratedCondition === 'true') {
-        return either.map(
-          evaluateSubexpression(
-            subexpressionKeyPaths.then,
-            context,
-            ifExpression[1].then,
-          ),
-          asSemanticGraph,
-        )
-      } else if (elaboratedCondition === 'false') {
-        return either.map(
-          evaluateSubexpression(
-            subexpressionKeyPaths.else,
-            context,
-            ifExpression[1].else,
-          ),
-          asSemanticGraph,
-        )
-      } else {
-        return either.flatMap(serialize(elaboratedCondition), condition => {
-          if (containsAnyUnelaboratedNodes(condition)) {
-            // The condition cannot yet be fully elaborated. Do a lightweight
-            // pass through the branches to substitute `@lookup`s/`@index`es for
-            // values as much as possible. This helps in tricky situations
-            // where referenced properties that are higher up in the program
-            // get erased before the `@if` can be fully elaborated.
+              const doNotElaborate = either.makeRight
+              const partiallyElaboratingContext: ExpressionContext = {
+                ...context,
+                keywordHandlers: {
+                  '@lookup': context.keywordHandlers['@lookup'],
+                  '@index': context.keywordHandlers['@index'],
+                  '@apply': doNotElaborate,
+                  '@check': doNotElaborate,
+                  '@function': doNotElaborate,
+                  '@if': doNotElaborate,
+                  '@panic': doNotElaborate,
+                  '@runtime': doNotElaborate,
+                  '@signature': doNotElaborate,
+                  '@todo': doNotElaborate,
+                  '@union': doNotElaborate,
+                },
+              }
 
-            const doNotElaborate = either.makeRight
-            const contextWhichOnlyElaboratesLookups: ExpressionContext = {
-              ...context,
-              keywordHandlers: {
-                '@lookup': context.keywordHandlers['@lookup'],
-                '@index': context.keywordHandlers['@index'],
-                '@apply': doNotElaborate,
-                '@check': doNotElaborate,
-                '@function': doNotElaborate,
-                '@if': doNotElaborate,
-                '@panic': doNotElaborate,
-                '@runtime': doNotElaborate,
-                '@signature': doNotElaborate,
-                '@todo': doNotElaborate,
-                '@union': doNotElaborate,
-              },
-            }
+              const elaborateNestedIfLookups = (
+                branch: SemanticGraph,
+              ): SemanticGraph =>
+                isExpression(branch) && branch['0'] === '@if' ?
+                  either.unwrapOrElse(
+                    ifKeywordHandler(branch, partiallyElaboratingContext),
+                    _error => branch,
+                  )
+                : isExpression(branch) && branch['0'] === '@function' ? branch
+                : isObjectNode(branch) ?
+                  makeObjectNode(
+                    Object.fromEntries(
+                      Object.entries(branch).map(([key, value]) => [
+                        key,
+                        elaborateNestedIfLookups(value),
+                      ]),
+                    ),
+                  )
+                : branch
 
-            const thenWithElaboratedLookups = either.unwrapOrElse(
-              either.map(
-                evaluateSubexpression(
-                  subexpressionKeyPaths.then,
-                  contextWhichOnlyElaboratesLookups,
-                  ifExpression[1].then,
-                ),
-                asSemanticGraph,
-              ),
-              _error => ifExpression[1].then,
-            )
-
-            const elseWithElaboratedLookups = either.unwrapOrElse(
-              either.map(
-                evaluateSubexpression(
-                  subexpressionKeyPaths.else,
-                  contextWhichOnlyElaboratesLookups,
-                  ifExpression[1].else,
-                ),
-                asSemanticGraph,
-              ),
-              _error => ifExpression[1].else,
-            )
-
-            const elaborateNestedIfLookups = (
-              branch: SemanticGraph,
-            ): SemanticGraph =>
-              isExpression(branch) && branch['0'] === '@if' ?
-                either.unwrapOrElse(
-                  ifKeywordHandler(branch, contextWhichOnlyElaboratesLookups),
-                  _error => branch,
-                )
-              : isExpression(branch) && branch['0'] === '@function' ? branch
-              : isObjectNode(branch) ?
-                makeObjectNode(
-                  Object.fromEntries(
-                    Object.entries(branch).map(([key, value]) => [
-                      key,
-                      elaborateNestedIfLookups(value),
-                    ]),
+              const elaborateBranch = (
+                branchKey: 'then' | 'else',
+              ): SemanticGraph =>
+                elaborateNestedIfLookups(
+                  either.unwrapOrElse(
+                    either.map(
+                      evaluateSubexpression(
+                        subexpressionKeyPaths[branchKey],
+                        partiallyElaboratingContext,
+                        ifExpression[1][branchKey],
+                      ),
+                      asSemanticGraph,
+                    ),
+                    _error => ifExpression[1][branchKey],
                   ),
                 )
-              : branch
 
-            return either.makeRight(
-              makeIfExpression({
-                condition: asSemanticGraph(condition),
-                then: elaborateNestedIfLookups(thenWithElaboratedLookups),
-                else: elaborateNestedIfLookups(elseWithElaboratedLookups),
-              }),
-            )
-          } else {
-            return either.makeLeft({
-              kind: 'invalidExpression',
-              message: 'condition was not boolean',
-            })
-          }
-        })
-      }
-    })
+              return either.makeRight(
+                makeIfExpression({
+                  condition: asSemanticGraph(condition),
+                  then: elaborateBranch('then'),
+                  else: elaborateBranch('else'),
+                }),
+              )
+            } else {
+              return either.makeLeft({
+                kind: 'invalidExpression',
+                message: 'condition was not boolean',
+              })
+            }
+          })
+        }
+      },
+    )
   })
 
 const evaluateSubexpression = (
