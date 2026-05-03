@@ -665,7 +665,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     either.makeRight('it works'),
   ],
   [
-    `(inner => @if {
+    `((inner: { a: :boolean.type }) => @if {
       :inner.a
       then: "it works"
       else: { @panic }

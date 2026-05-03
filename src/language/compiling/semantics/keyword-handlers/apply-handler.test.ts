@@ -118,7 +118,7 @@ elaborationSuite('@apply', [
         function: {
           0: '@function',
           1: {
-            0: 'x',
+            0: { x: { a: 'it works' } },
             1: {
               0: '@index',
               1: {
