@@ -1,5 +1,5 @@
 {
-  fibonacci: (n: :natural_number.type) =>
+  fibonacci: (n: :integer.type) =>
     @if {
       :n < 2
       then: :n

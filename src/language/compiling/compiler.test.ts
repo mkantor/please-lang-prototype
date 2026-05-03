@@ -622,4 +622,22 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `@if { @runtime { _ => true }, :boolean.not("not a boolean"), oops }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `@if { @runtime { _ => true }, "not a boolean" ~ :boolean.type, oops }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])
