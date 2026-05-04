@@ -461,10 +461,7 @@ testCases(
   [
     `@if {
       @runtime { context =>
-        :context.arguments.lookup(a) match {
-          none: _ => false
-          some: _ => true
-        }
+        :context.program.start_time atom.equals "arbitrary atom"
       }
       then: 1
       else: "not an integer"
@@ -610,10 +607,7 @@ testCases(
   [
     `@if {
       @runtime { context =>
-        :context.arguments.lookup(a) match {
-          none: _ => false
-          some: _ => true
-        }
+        :context.program.start_time atom.equals "arbitrary atom"
       }
       then: 42
       else: @panic
@@ -697,6 +691,15 @@ testCases(
 
   [
     `{ a: :identity, :a.non_existent_property }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `@if { @runtime { _ => "not a boolean" }, a, b }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
