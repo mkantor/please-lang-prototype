@@ -32,12 +32,12 @@ import * as types from './prelude-types.js'
 import {
   makeFunctionType,
   makeObjectType,
-  makeTypeParameter,
   makeUnionType,
   type Type,
 } from './type-formats.js'
 import {
   applyKeyPathToType,
+  genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
   supplyTypeArguments,
@@ -329,13 +329,30 @@ export const inferType = (
   }
 }
 
+/**
+ * Functions are implicitly generic.
+ *
+ * With no explicit parameter annotation, a new type parameter (constrained to
+ * the top type) is created for the function parameter. If there is an
+ * annotation, it's used to create one or more type parameters with constraints
+ * derived from the annotation (see `genericizeFunctionParameterAnnotation` for
+ * specifics).
+ */
 const getFunctionParameterType = (
   expression: FunctionExpression,
   context: ExpressionContext,
 ): Either<Bug, Type> =>
   option.match(getParameterTypeAnnotation(expression), {
-    some: literalTypeFromSemanticGraph,
+    some: annotation =>
+      either.map(literalTypeFromSemanticGraph(annotation), annotationType =>
+        genericizeFunctionParameterAnnotation(
+          getParameterName(expression),
+          annotationType,
+        ),
+      ),
     none: _ => {
+      // TODO: Generalize contextual type inference of un-annotated parameters
+      // (it currently only happens for `@runtime` functions).
       if (
         isEnclosedInRuntimeExpression(
           context.program,
@@ -344,15 +361,11 @@ const getFunctionParameterType = (
       ) {
         return either.makeRight(types.runtimeContext)
       } else {
-        // Conjure up a fresh type parameter when there is no type annotation. This
-        // gives inference a chance to derive a nice signature, e.g. `a => :a` can
-        // be inferred as a true generic identity function.
-        // TODO: Generalize contextual type inference of un-annotated parameters
-        // (this currently only happens for `@runtime` functions).
         return either.makeRight(
-          makeTypeParameter(getParameterName(expression), {
-            assignableTo: types.something,
-          }),
+          genericizeFunctionParameterAnnotation(
+            getParameterName(expression),
+            types.something,
+          ),
         )
       }
     },

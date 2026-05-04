@@ -141,6 +141,95 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
   }
 }
 
+/**
+ * Traverse a function parameter type annotation, replacing each leaf (opaque
+ * type, union type, or existing type parameter) with a fresh `TypeParameter`
+ * constrained to the leaf. This is used to make functions implicitly generic,
+ * even when annotated. For example:
+ *
+ * ```plz
+ * ((x: { a: :integer.type }) => :x.a)({ a: 42 }) ~ 42
+ * ```
+ */
+export const genericizeFunctionParameterAnnotation = (
+  parameterName: Atom,
+  annotationType: Type,
+): Type =>
+  genericizeFunctionParameterAnnotationAtKeyPath(
+    parameterName,
+    annotationType,
+    [],
+  )
+
+const genericizeFunctionParameterAnnotationAtKeyPath = (
+  parameterName: Atom,
+  type: Type,
+  keyPath: TypeKeyPath,
+): Type =>
+  matchTypeFormat(type, {
+    function: (type): Type =>
+      makeFunctionType(type.name, {
+        parameter: genericizeFunctionParameterAnnotationAtKeyPath(
+          parameterName,
+          type.signature.parameter,
+          [...keyPath, functionParameter],
+        ),
+        return: genericizeFunctionParameterAnnotationAtKeyPath(
+          parameterName,
+          type.signature.return,
+          [...keyPath, functionReturn],
+        ),
+      }),
+    object: type =>
+      makeObjectType(
+        type.name,
+        Object.fromEntries(
+          Object.entries(type.children).map(
+            ([key, child]) =>
+              [
+                key,
+                genericizeFunctionParameterAnnotationAtKeyPath(
+                  parameterName,
+                  child,
+                  [...keyPath, key],
+                ),
+              ] as const,
+          ),
+        ),
+      ),
+    opaque: leafType =>
+      makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
+        assignableTo: leafType,
+      }),
+    parameter: leafType =>
+      makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
+        assignableTo: leafType,
+      }),
+    union: leafType =>
+      makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
+        assignableTo: leafType,
+      }),
+  })
+
+const synthesizeTypeParameterName = (
+  parameterName: Atom,
+  keyPath: TypeKeyPath,
+): string =>
+  keyPath.reduce<string>((name, key) => {
+    // TODO: Consider surfacing this in plz syntax (allowing programmatic access
+    // of un-elaborated function parameters/returns and type parameter
+    // constraints).
+    if (key === functionParameter) {
+      return `${name}.#parameter`
+    } else if (key === functionReturn) {
+      return `${name}.#return`
+    } else if (key === typeParameterAssignableToConstraint) {
+      return `${name}.#constraint`
+    } else {
+      return `${name}.${key}`
+    }
+  }, parameterName)
+
 export const containedTypeParameters = (type: Type): TypeParametersByKeyPath =>
   containedTypeParametersImplementation(type, [])
 
