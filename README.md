@@ -73,6 +73,7 @@ Properties are delimited by newlines or commas; these mean the same thing:
   b: 2
 }
 ```
+
 ```plz
 { a: 1, b: 2 }
 ```
