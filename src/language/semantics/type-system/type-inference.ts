@@ -1,5 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
-import option from '@matt.kantor/option'
+import option, { type Option } from '@matt.kantor/option'
 import type { Bug, ElaborationError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import {
@@ -351,40 +351,44 @@ const getFunctionParameterType = (
         ),
       ),
     none: _ => {
-      // TODO: Generalize contextual type inference of un-annotated parameters
-      // (it currently only happens for `@runtime` functions).
-      if (
-        isEnclosedInRuntimeExpression(
+      const pathToFunction = context.location.slice(0, -2)
+      const contextualType = option.flatMap(
+        enclosingExpressionFromPropertyOfExpressionArgument(
           context.program,
-          context.location.slice(0, -2),
-        )
-      ) {
-        return either.makeRight(types.runtimeContext)
-      } else {
-        return either.makeRight(
-          genericizeFunctionParameterAnnotation(
-            getParameterName(expression),
-            types.something,
+          pathToFunction,
+        ),
+        enclosingExpression =>
+          // TODO: Generalize contextual type inference (it currently only
+          // happens for `@runtime` functions).
+          isKeywordExpressionWithArgument('@runtime', enclosingExpression) ?
+            option.makeSome(types.runtimeContext)
+          : option.none,
+      )
+
+      return option.match(contextualType, {
+        some: either.makeRight,
+        none: _ =>
+          either.makeRight(
+            genericizeFunctionParameterAnnotation(
+              getParameterName(expression),
+              types.something,
+            ),
           ),
-        )
-      }
+      })
     },
   })
 
-const isEnclosedInRuntimeExpression = (
+const enclosingExpressionFromPropertyOfExpressionArgument = (
   program: SemanticGraph,
-  pathToFunction: KeyPath,
-): boolean => {
-  if (pathToFunction.length < 2) {
-    return false
+  pathToNode: KeyPath,
+): Option<SemanticGraph> => {
+  if (pathToNode.length < 2) {
+    return option.none
   } else {
-    const pathToPossibleRuntimeExpression = pathToFunction.slice(0, -2)
-    return option.match(
-      applyKeyPathToSemanticGraph(program, pathToPossibleRuntimeExpression),
-      {
-        none: () => false,
-        some: node => isKeywordExpressionWithArgument('@runtime', node),
-      },
+    const pathToPossibleExpression = pathToNode.slice(0, -2)
+    return option.filter(
+      applyKeyPathToSemanticGraph(program, pathToPossibleExpression),
+      isExpression,
     )
   }
 }
