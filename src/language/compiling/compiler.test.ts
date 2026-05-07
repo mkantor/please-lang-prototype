@@ -724,4 +724,16 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [`((a: :integer.type) => :a)(42) ~ 42`, success('42')],
+
+  [
+    `{
+      swap: (parameters: { :something.type, :something.type }) =>
+        { :parameters.1, :parameters.0 }
+    }.swap({ a, b }) ~ { b, a }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

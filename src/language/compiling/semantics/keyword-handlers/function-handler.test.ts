@@ -62,12 +62,18 @@ elaborationSuite('@function', [
         }),
       )
       const parameterType = elaboratedFunction.value.signature.parameter
-      if (parameterType.kind !== 'union') {
+      if (parameterType.kind !== 'parameter') {
         assert.fail(
-          `expected a union type, but got a ${parameterType.kind} type`,
+          `expected a type parameter, but got a ${parameterType.kind} type`,
         )
       } else {
-        assert.deepEqual(parameterType.members, new Set(['an arbitrary type']))
+        assert.deepEqual(parameterType.name, 'x')
+        const constraint = parameterType.constraint.assignableTo
+        assert.deepEqual(constraint.kind, 'union')
+        assert.deepEqual(
+          constraint.kind === 'union' ? constraint.members : undefined,
+          new Set(['an arbitrary type']),
+        )
         assert.deepEqual(
           elaboratedFunction.value.signature.return,
           parameterType,

@@ -25,6 +25,7 @@ import {
 } from './type-system/type-formats.js'
 import {
   applyKeyPathToType,
+  genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
 } from './type-system/type-utilities.js'
 
@@ -1401,4 +1402,61 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
       [B, naturalNumber],
     ]),
   ],
+])
+
+const genericizeParameterAnnotationSuite = testCases(
+  ([parameterName, annotation]: readonly [
+    parameterName: string,
+    annotation: Type,
+  ]) =>
+    // I'd prefer to check the actual `Type` rather than its string
+    // representation, but since synthesized type parameters contain fresh
+    // symbols they can't be structurally compared to `Type`s instantiated here.
+    // TODO: Consider traversing the returned type to substitute symbols.
+    showType(genericizeFunctionParameterAnnotation(parameterName, annotation)),
+  ([parameterName, annotation]) =>
+    `genericizing \`${parameterName}: ${showType(annotation)}\``,
+)
+
+genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
+  [['a', atom], '(a <: atom)'],
+
+  [['a', integer], '(a <: integer)'],
+
+  [['a', makeUnionType('', ['foo', 'bar'])], '(a <: ("foo" | "bar"))'],
+
+  [['a', something], 'a'],
+
+  [
+    [
+      'x',
+      makeObjectType('', {
+        a: integer,
+        b: atom,
+      }),
+    ],
+    '{ a: (x.a <: integer), b: (x.b <: atom) }',
+  ],
+
+  [
+    [
+      'x',
+      makeObjectType('', {
+        a: makeObjectType('', { b: atom }),
+      }),
+    ],
+    '{ a: { b: (x.a.b <: atom) } }',
+  ],
+
+  [
+    [
+      'x',
+      makeObjectType('', {
+        callback: makeFunctionType('', { parameter: atom, return: integer }),
+      }),
+    ],
+    '{ callback: (x.callback.#parameter <: atom) ~> (x.callback.#return <: integer) }',
+  ],
+
+  [['empty', makeObjectType('', {})], '{}'],
 ])
