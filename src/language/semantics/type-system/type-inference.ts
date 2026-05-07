@@ -68,25 +68,22 @@ export const resolveParameterTypes = (
       option.isSome(parentNodeOption) &&
       isExpression(parentNodeOption.value)
     ) {
-      const lastKey = pathToCurrentScope[pathToCurrentScope.length - 1]
-      if (lastKey === '1') {
-        const functionResult = readFunctionExpression(parentNodeOption.value)
-        if (either.isRight(functionResult)) {
-          const parameterName = getParameterName(functionResult.value)
-          if (!parameterTypes.has(parameterName)) {
-            const parameterTypeResult = getFunctionParameterType(
-              functionResult.value,
-              {
-                keywordHandlers: context.keywordHandlers,
-                program: context.program,
-                location: currentLocation,
-              },
-            )
-            // Ignore errors here (they should be surfaced elsewhere).
-            if (either.isRight(parameterTypeResult)) {
-              // Side-effect: add the parameter.
-              parameterTypes.set(parameterName, parameterTypeResult.value)
-            }
+      const functionResult = readFunctionExpression(parentNodeOption.value)
+      if (either.isRight(functionResult)) {
+        const parameterName = getParameterName(functionResult.value)
+        if (!parameterTypes.has(parameterName)) {
+          const parameterTypeResult = getFunctionParameterType(
+            functionResult.value,
+            {
+              keywordHandlers: context.keywordHandlers,
+              program: context.program,
+              location: currentLocation,
+            },
+          )
+          // Ignore errors here (they should be surfaced elsewhere).
+          if (either.isRight(parameterTypeResult)) {
+            // Side-effect: add the parameter.
+            parameterTypes.set(parameterName, parameterTypeResult.value)
           }
         }
       }
