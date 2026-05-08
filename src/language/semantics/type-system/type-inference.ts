@@ -76,7 +76,7 @@ export const resolveParameterTypes = (
           {
             keywordHandlers: context.keywordHandlers,
             program: context.program,
-            location: currentLocation,
+            location: currentLocation.slice(0, -2),
           },
         )
 
@@ -98,6 +98,9 @@ export const resolveParameterTypes = (
   return parameterTypes
 }
 
+// TODO: Consider a higher-level externally-visible wrapper which only requires
+// `node` and `context`. External call sites currently all look like this:
+// `inferType(node, resolveParameterTypes(context), new Set(), context)`
 export const inferType = (
   node: SemanticGraph,
   parameterTypes: ReadonlyMap<Atom, Type>,
@@ -116,7 +119,14 @@ export const inferType = (
   const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
     return either.flatMap(
-      getFunctionParameterType(functionExpressionResult.value, context),
+      getFunctionParameterType(
+        functionExpressionResult.value,
+        // TODO: `getFunctionParameterType` expects `context.location` to point
+        // at the function, but `context.location` isn't updated when
+        // `inferType` recurses, so this context often points somewhere else.
+        // Could be fixed by threading the current path through recursive calls.
+        context,
+      ),
       parameterType =>
         either.map(
           inferType(
@@ -341,7 +351,7 @@ export const inferType = (
  */
 const getFunctionParameterType = (
   expression: FunctionExpression,
-  context: ExpressionContext,
+  contextOfFunction: ExpressionContext,
 ): Either<Bug, Type> =>
   option.match(getParameterTypeAnnotation(expression), {
     some: annotation =>
@@ -352,11 +362,10 @@ const getFunctionParameterType = (
         ),
       ),
     none: _ => {
-      const pathToFunction = context.location.slice(0, -2)
       const contextualType = option.flatMap(
         enclosingExpressionFromPropertyOfExpressionArgument(
-          context.program,
-          pathToFunction,
+          contextOfFunction.program,
+          contextOfFunction.location,
         ),
         (enclosingExpression): Option<Type> => {
           if (
@@ -368,9 +377,9 @@ const getFunctionParameterType = (
           const applyExpressionResult = readApplyExpression(enclosingExpression)
           if (either.isRight(applyExpressionResult)) {
             const contextOfEnclosingExpression: ExpressionContext = {
-              program: context.program,
-              keywordHandlers: context.keywordHandlers,
-              location: pathToFunction.slice(0, -2),
+              program: contextOfFunction.program,
+              keywordHandlers: contextOfFunction.keywordHandlers,
+              location: contextOfFunction.location.slice(0, -2),
             }
             const contextuallyAppliedFunctionType = inferType(
               applyExpressionResult.value[1].function,
