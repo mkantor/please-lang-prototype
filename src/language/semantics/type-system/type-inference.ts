@@ -332,11 +332,13 @@ export const inferType = (
 /**
  * Functions are implicitly generic.
  *
- * With no explicit parameter annotation, a new type parameter (constrained to
- * the top type) is created for the function parameter. If there is an
- * annotation, it's used to create one or more type parameters with constraints
- * derived from the annotation (see `genericizeFunctionParameterAnnotation` for
- * specifics).
+ * With no explicit parameter annotation, an attempt is made to infer a type
+ * from the context. If that fails, a new type parameter (constrained to the top
+ * type) is created for the function parameter.
+ *
+ * If there is an annotation, it's used to create one or more type parameters
+ * with constraints derived from the annotation (see
+ * `genericizeFunctionParameterAnnotation` for specifics).
  */
 const getFunctionParameterType = (
   expression: FunctionExpression,
@@ -357,12 +359,44 @@ const getFunctionParameterType = (
           context.program,
           pathToFunction,
         ),
-        enclosingExpression =>
-          // TODO: Generalize contextual type inference (it currently only
-          // happens for `@runtime` functions).
-          isKeywordExpressionWithArgument('@runtime', enclosingExpression) ?
-            option.makeSome(types.runtimeContext)
-          : option.none,
+        (enclosingExpression): Option<Type> => {
+          if (
+            isKeywordExpressionWithArgument('@runtime', enclosingExpression)
+          ) {
+            return option.makeSome(types.runtimeContext)
+          }
+
+          const applyExpressionResult = readApplyExpression(enclosingExpression)
+          if (either.isRight(applyExpressionResult)) {
+            const contextOfEnclosingExpression: ExpressionContext = {
+              program: context.program,
+              keywordHandlers: context.keywordHandlers,
+              location: pathToFunction.slice(0, -2),
+            }
+            const contextuallyAppliedFunctionType = inferType(
+              applyExpressionResult.value[1].function,
+              resolveParameterTypes(contextOfEnclosingExpression),
+              new Set(),
+              contextOfEnclosingExpression,
+            )
+
+            // If the applied function's signature is `(a ~> b) ~> c`, the
+            // function passed to it should have its parameter typed as `a`.
+            if (
+              either.isRight(contextuallyAppliedFunctionType) &&
+              contextuallyAppliedFunctionType.value.kind === 'function' &&
+              contextuallyAppliedFunctionType.value.signature.parameter.kind ===
+                'function'
+            ) {
+              return option.makeSome(
+                contextuallyAppliedFunctionType.value.signature.parameter
+                  .signature.parameter,
+              )
+            }
+          }
+
+          return option.none
+        },
       )
 
       return option.match(contextualType, {

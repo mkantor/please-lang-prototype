@@ -736,4 +736,14 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      constrain_function: (f: { a: :atom.type } ~> :atom.type) => :f({ a: hello })
+      should_use_contextual_type: :constrain_function(x => :x.a)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
