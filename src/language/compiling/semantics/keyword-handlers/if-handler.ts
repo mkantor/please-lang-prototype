@@ -11,7 +11,6 @@ import {
   makeIfExpression,
   makeObjectNode,
   readIfExpression,
-  resolveParameterTypes,
   serialize,
   showType,
   types,
@@ -65,12 +64,7 @@ export const ifKeywordHandler: KeywordHandler = (
         } else {
           return either.flatMap(
             either.flatMap(
-              inferType(
-                elaboratedCondition,
-                resolveParameterTypes(context),
-                new Set(),
-                context,
-              ),
+              inferType(elaboratedCondition, context),
               (conditionType): Either<ElaborationError, Output> =>
                 (
                   isAssignable({

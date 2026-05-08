@@ -7,7 +7,6 @@ import {
   isAssignable,
   isFunctionNode,
   readApplyExpression,
-  resolveParameterTypes,
   showType,
   stringifySemanticGraphForEndUser,
   supplyTypeArguments,
@@ -23,30 +22,27 @@ const checkArgumentType = (
   parameterType: Type,
   context: ExpressionContext,
 ): Either<ElaborationError, undefined> =>
-  either.flatMap(
-    inferType(argument, resolveParameterTypes(context), new Set(), context),
-    argumentType => {
-      // Instantiate type parameters contained in `parameterType` before the
-      // assignability check.
-      const instantiatedParameterType = supplyTypeArguments(
-        parameterType,
-        getTypesForTypeParameters({ parameterType, argumentType }),
-      )
-      return (
-          isAssignable({
-            source: argumentType,
-            target: instantiatedParameterType,
-          })
-        ) ?
-          either.makeRight(undefined)
-        : either.makeLeft({
-            kind: 'typeMismatch',
-            message: `the value \`${stringifySemanticGraphForEndUser(
-              argument,
-            )}\` (inferred to have type \`${showType(argumentType)}\`) is not assignable to the type \`${showType(parameterType)}\``,
-          })
-    },
-  )
+  either.flatMap(inferType(argument, context), argumentType => {
+    // Instantiate type parameters contained in `parameterType` before the
+    // assignability check.
+    const instantiatedParameterType = supplyTypeArguments(
+      parameterType,
+      getTypesForTypeParameters({ parameterType, argumentType }),
+    )
+    return (
+        isAssignable({
+          source: argumentType,
+          target: instantiatedParameterType,
+        })
+      ) ?
+        either.makeRight(undefined)
+      : either.makeLeft({
+          kind: 'typeMismatch',
+          message: `the value \`${stringifySemanticGraphForEndUser(
+            argument,
+          )}\` (inferred to have type \`${showType(argumentType)}\`) is not assignable to the type \`${showType(parameterType)}\``,
+        })
+  })
 
 export const applyKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -59,12 +55,7 @@ export const applyKeywordHandler: KeywordHandler = (
       const argument = applyExpression[1].argument
 
       const argumentTypeCheck = either.flatMap(
-        inferType(
-          functionToApply,
-          resolveParameterTypes(context),
-          new Set(),
-          context,
-        ),
+        inferType(functionToApply, context),
         functionType =>
           functionType.kind === 'function' ?
             checkArgumentType(

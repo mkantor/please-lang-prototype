@@ -8,7 +8,6 @@ import {
   inferType,
   keyPathFromObjectNodeOrMolecule,
   readIndexExpression,
-  resolveParameterTypes,
   showType,
   stringifyKeyPathForEndUser,
   type Expression,
@@ -23,22 +22,17 @@ const checkKeyPathExistsInType = (
   keyPath: KeyPath,
   context: ExpressionContext,
 ): Either<ElaborationError, undefined> =>
-  either.flatMap(
-    inferType(object, resolveParameterTypes(context), new Set(), context),
-    objectType => {
-      const typeAtKeyPath = applyKeyPathToType(objectType, keyPath)
-      return (
-          typeAtKeyPath.kind === 'union' && typeAtKeyPath.members.size === 0
-        ) ?
-          either.makeLeft({
-            kind: 'typeMismatch',
-            message: `property \`${stringifyKeyPathForEndUser(
-              keyPath,
-            )}\` does not exist on type \`${showType(objectType)}\``,
-          })
-        : either.makeRight(undefined)
-    },
-  )
+  either.flatMap(inferType(object, context), objectType => {
+    const typeAtKeyPath = applyKeyPathToType(objectType, keyPath)
+    return typeAtKeyPath.kind === 'union' && typeAtKeyPath.members.size === 0 ?
+        either.makeLeft({
+          kind: 'typeMismatch',
+          message: `property \`${stringifyKeyPathForEndUser(
+            keyPath,
+          )}\` does not exist on type \`${showType(objectType)}\``,
+        })
+      : either.makeRight(undefined)
+  })
 
 export const indexKeywordHandler: KeywordHandler = (
   expression: Expression,

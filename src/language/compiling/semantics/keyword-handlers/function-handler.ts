@@ -8,7 +8,6 @@ import {
   makeFunctionNode,
   makeObjectNode,
   readFunctionExpression,
-  resolveParameterTypes,
   serialize,
   updateValueAtKeyPathInSemanticGraph,
   type Expression,
@@ -24,33 +23,30 @@ export const functionKeywordHandler: KeywordHandler = (
   context: ExpressionContext,
 ): Either<ElaborationError, FunctionNode> =>
   either.flatMap(readFunctionExpression(expression), functionExpression =>
-    either.flatMap(
-      inferType(expression, resolveParameterTypes(context), new Set(), context),
-      inferredType => {
-        if (inferredType.kind !== 'function') {
-          return either.makeLeft({
-            kind: 'bug',
-            message:
-              'inferred type of function expression was not a function type',
-          })
-        } else {
-          return either.makeRight(
-            makeFunctionNode(
-              inferredType.signature,
-              () => either.makeRight(functionExpression),
-              option.makeSome(getParameterName(functionExpression)),
-              argument =>
-                apply(
-                  functionExpression,
-                  inferredType.signature,
-                  argument,
-                  context,
-                ),
-            ),
-          )
-        }
-      },
-    ),
+    either.flatMap(inferType(expression, context), inferredType => {
+      if (inferredType.kind !== 'function') {
+        return either.makeLeft({
+          kind: 'bug',
+          message:
+            'inferred type of function expression was not a function type',
+        })
+      } else {
+        return either.makeRight(
+          makeFunctionNode(
+            inferredType.signature,
+            () => either.makeRight(functionExpression),
+            option.makeSome(getParameterName(functionExpression)),
+            argument =>
+              apply(
+                functionExpression,
+                inferredType.signature,
+                argument,
+                context,
+              ),
+          ),
+        )
+      }
+    }),
   )
 
 const apply = (

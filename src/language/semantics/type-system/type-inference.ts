@@ -98,10 +98,18 @@ export const resolveParameterTypes = (
   return parameterTypes
 }
 
-// TODO: Consider a higher-level externally-visible wrapper which only requires
-// `node` and `context`. External call sites currently all look like this:
-// `inferType(node, resolveParameterTypes(context), new Set(), context)`
 export const inferType = (
+  node: SemanticGraph,
+  context: ExpressionContext,
+): Either<ElaborationError, Type> =>
+  inferTypeImplementation(
+    node,
+    resolveParameterTypes(context),
+    new Set(),
+    context,
+  )
+
+const inferTypeImplementation = (
   node: SemanticGraph,
   parameterTypes: ReadonlyMap<Atom, Type>,
   lookingUpKeys: ReadonlySet<Atom>,
@@ -123,13 +131,14 @@ export const inferType = (
         functionExpressionResult.value,
         // TODO: `getFunctionParameterType` expects `context.location` to point
         // at the function, but `context.location` isn't updated when
-        // `inferType` recurses, so this context often points somewhere else.
-        // Could be fixed by threading the current path through recursive calls.
+        // `inferTypeImplementation` recurses, so this context often points
+        // somewhere else. Could be fixed by threading the current path through
+        // recursive calls.
         context,
       ),
       parameterType =>
         either.map(
-          inferType(
+          inferTypeImplementation(
             functionExpressionResult.value[1].body,
             new Map([
               ...parameterTypes,
@@ -158,7 +167,7 @@ export const inferType = (
     } else if (!lookingUpKeys.has(key)) {
       const lookupResult = lookup({ key, context })
       if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
-        return inferType(
+        return inferTypeImplementation(
           lookupResult.value.value,
           parameterTypes,
           new Set([...lookingUpKeys, key]),
@@ -178,7 +187,7 @@ export const inferType = (
   const indexExpressionResult = readIndexExpression(node)
   if (either.isRight(indexExpressionResult)) {
     return either.flatMap(
-      inferType(
+      inferTypeImplementation(
         indexExpressionResult.value[1].object,
         parameterTypes,
         lookingUpKeys,
@@ -201,7 +210,7 @@ export const inferType = (
         either.flatMap(runtimeFunction.serialize(), readFunctionExpression)
       : readFunctionExpression(runtimeFunction)
     if (either.isRight(functionExpressionResult)) {
-      return inferType(
+      return inferTypeImplementation(
         functionExpressionResult.value[1].body,
         new Map([
           ...parameterTypes,
@@ -224,7 +233,7 @@ export const inferType = (
   // @apply: infer the return type from the function being applied.
   const applyExpressionResult = readApplyExpression(node)
   if (either.isRight(applyExpressionResult)) {
-    const inferredFunctionType = inferType(
+    const inferredFunctionType = inferTypeImplementation(
       applyExpressionResult.value[1].function,
       parameterTypes,
       lookingUpKeys,
@@ -245,7 +254,7 @@ export const inferType = (
         some: ({
           signature: { parameter: parameterType, return: returnType },
         }) => {
-          const argumentTypeResult = inferType(
+          const argumentTypeResult = inferTypeImplementation(
             applyExpressionResult.value[1].argument,
             parameterTypes,
             lookingUpKeys,
@@ -284,12 +293,17 @@ export const inferType = (
     const { condition, then, else: otherwise } = ifExpressionResult.value[1]
 
     const inferThen = () =>
-      inferType(then, parameterTypes, lookingUpKeys, context)
+      inferTypeImplementation(then, parameterTypes, lookingUpKeys, context)
     const inferElse = () =>
-      inferType(otherwise, parameterTypes, lookingUpKeys, context)
+      inferTypeImplementation(otherwise, parameterTypes, lookingUpKeys, context)
 
     return either.flatMap(
-      inferType(condition, parameterTypes, lookingUpKeys, context),
+      inferTypeImplementation(
+        condition,
+        parameterTypes,
+        lookingUpKeys,
+        context,
+      ),
       conditionType => {
         if (isAssignable({ source: conditionType, target: 'true' })) {
           return inferThen()
@@ -321,7 +335,7 @@ export const inferType = (
     // Infer unelaborated descendants' types.
     const children: Record<string, Type> = {}
     for (const [key, value] of Object.entries(node)) {
-      const childTypeResult = inferType(
+      const childTypeResult = inferTypeImplementation(
         value,
         parameterTypes,
         lookingUpKeys,
@@ -380,8 +394,6 @@ const getFunctionParameterType = (
             }
             const contextuallyAppliedFunctionType = inferType(
               applyExpressionResult.value[1].function,
-              resolveParameterTypes(contextOfEnclosingExpression),
-              new Set(),
               contextOfEnclosingExpression,
             )
 
