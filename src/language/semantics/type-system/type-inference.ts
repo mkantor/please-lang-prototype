@@ -56,41 +56,43 @@ export const resolveParameterTypes = (
   // Walk upwards towards the program root, keeping track of parameter names and
   // their types.
   while (currentLocation.length >= 2) {
-    const pathToCurrentScope = currentLocation.slice(0, -1)
-    const pathToParentScope = pathToCurrentScope.slice(0, -1)
-
-    const parentNodeOption = applyKeyPathToSemanticGraph(
-      context.program,
-      pathToParentScope,
+    const enclosingFunction = option.flatMap(
+      enclosingExpressionFromPropertyOfExpressionArgument(
+        context.program,
+        currentLocation,
+      ),
+      expression =>
+        either.match(readFunctionExpression(expression), {
+          left: _ => option.none,
+          right: option.makeSome,
+        }),
     )
 
-    if (
-      option.isSome(parentNodeOption) &&
-      isExpression(parentNodeOption.value)
-    ) {
-      const functionResult = readFunctionExpression(parentNodeOption.value)
-      if (either.isRight(functionResult)) {
-        const parameterName = getParameterName(functionResult.value)
-        if (!parameterTypes.has(parameterName)) {
-          const parameterTypeResult = getFunctionParameterType(
-            functionResult.value,
-            {
-              keywordHandlers: context.keywordHandlers,
-              program: context.program,
-              location: currentLocation,
-            },
+    if (option.isSome(enclosingFunction)) {
+      const parameterName = getParameterName(enclosingFunction.value)
+      if (!parameterTypes.has(parameterName)) {
+        const parameterTypeResult = getFunctionParameterType(
+          enclosingFunction.value,
+          {
+            keywordHandlers: context.keywordHandlers,
+            program: context.program,
+            location: currentLocation,
+          },
+        )
+
+        if (either.isLeft(parameterTypeResult)) {
+          throw new Error(
+            'Cannot determine parameter type of function. This is a bug!',
+            { cause: parameterTypeResult.value },
           )
-          // Ignore errors here (they should be surfaced elsewhere).
-          if (either.isRight(parameterTypeResult)) {
-            // Side-effect: add the parameter.
-            parameterTypes.set(parameterName, parameterTypeResult.value)
-          }
         }
+
+        // Side-effect: add the parameter.
+        parameterTypes.set(parameterName, parameterTypeResult.value)
       }
-      currentLocation = pathToParentScope
-    } else {
-      currentLocation = pathToCurrentScope
     }
+
+    currentLocation = currentLocation.slice(0, -1)
   }
 
   return parameterTypes
