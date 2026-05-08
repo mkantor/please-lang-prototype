@@ -57,10 +57,10 @@ export const resolveParameterTypes = (
   // their types.
   while (currentLocation.length >= 2) {
     const enclosingFunction = option.flatMap(
-      enclosingExpressionFromPropertyOfExpressionArgument(
-        context.program,
-        currentLocation,
-      ),
+      enclosingExpressionFromPropertyOfExpressionArgument({
+        program: context.program,
+        location: currentLocation,
+      }),
       expression =>
         either.match(readFunctionExpression(expression), {
           left: _ => option.none,
@@ -363,10 +363,7 @@ const getFunctionParameterType = (
       ),
     none: _ => {
       const contextualType = option.flatMap(
-        enclosingExpressionFromPropertyOfExpressionArgument(
-          contextOfFunction.program,
-          contextOfFunction.location,
-        ),
+        enclosingExpressionFromPropertyOfExpressionArgument(contextOfFunction),
         (enclosingExpression): Option<Type> => {
           if (
             isKeywordExpressionWithArgument('@runtime', enclosingExpression)
@@ -420,14 +417,17 @@ const getFunctionParameterType = (
     },
   })
 
-const enclosingExpressionFromPropertyOfExpressionArgument = (
-  program: SemanticGraph,
-  pathToNode: KeyPath,
-): Option<SemanticGraph> => {
-  if (pathToNode.length < 2) {
+const enclosingExpressionFromPropertyOfExpressionArgument = ({
+  program,
+  location,
+}: {
+  readonly program: SemanticGraph
+  readonly location: KeyPath
+}): Option<SemanticGraph> => {
+  if (location.length < 2) {
     return option.none
   } else {
-    const pathToPossibleExpression = pathToNode.slice(0, -2)
+    const pathToPossibleExpression = location.slice(0, -2)
     return option.filter(
       applyKeyPathToSemanticGraph(program, pathToPossibleExpression),
       isExpression,
