@@ -115,6 +115,19 @@ const inferTypeImplementation = (
   lookingUpKeys: ReadonlySet<Atom>,
   context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
+  /**
+   * Build context for a descendant node by appending `subPath` to
+   * `context.location`.
+   *
+   * Warning: Call sites are coupled to specific expression structures and
+   * TypeScript won't warn you if things become mis-aligned. Pay special
+   * attention whenever an expression shape is revised.
+   */
+  const descendantContext = (subPath: KeyPath): ExpressionContext => ({
+    ...context,
+    location: [...context.location, ...subPath],
+  })
+
   if (
     typeof node === 'string' ||
     typeof node === 'symbol' ||
@@ -127,15 +140,7 @@ const inferTypeImplementation = (
   const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
     return either.flatMap(
-      getFunctionParameterType(
-        functionExpressionResult.value,
-        // TODO: `getFunctionParameterType` expects `context.location` to point
-        // at the function, but `context.location` isn't updated when
-        // `inferTypeImplementation` recurses, so this context often points
-        // somewhere else. Could be fixed by threading the current path through
-        // recursive calls.
-        context,
-      ),
+      getFunctionParameterType(functionExpressionResult.value, context),
       parameterType =>
         either.map(
           inferTypeImplementation(
@@ -145,7 +150,7 @@ const inferTypeImplementation = (
               [getParameterName(functionExpressionResult.value), parameterType],
             ]),
             lookingUpKeys,
-            context,
+            descendantContext(['1', 'body']),
           ),
           returnType =>
             makeFunctionType('', {
@@ -171,6 +176,9 @@ const inferTypeImplementation = (
           lookupResult.value.value,
           parameterTypes,
           new Set([...lookingUpKeys, key]),
+          // TODO: Possibly adjust `context.location` to point at the looked-up
+          // value? To do so, `lookup` would need to return a `KeyPath` along
+          // with the resolved value.
           context,
         )
       } else {
@@ -191,7 +199,7 @@ const inferTypeImplementation = (
         indexExpressionResult.value[1].object,
         parameterTypes,
         lookingUpKeys,
-        context,
+        descendantContext(['1', 'object']),
       ),
       objectType =>
         either.map(
@@ -220,7 +228,7 @@ const inferTypeImplementation = (
           ],
         ]),
         lookingUpKeys,
-        context,
+        descendantContext(['1', 'function', '1', 'body']),
       )
     } else {
       return either.makeLeft({
@@ -237,7 +245,7 @@ const inferTypeImplementation = (
       applyExpressionResult.value[1].function,
       parameterTypes,
       lookingUpKeys,
-      context,
+      descendantContext(['1', 'function']),
     )
     if (either.isRight(inferredFunctionType)) {
       const inferredFunctionTypeAsFunctionType =
@@ -258,7 +266,7 @@ const inferTypeImplementation = (
             applyExpressionResult.value[1].argument,
             parameterTypes,
             lookingUpKeys,
-            context,
+            descendantContext(['1', 'argument']),
           )
           if (either.isRight(argumentTypeResult)) {
             // Supply type arguments to the return type based on the inferred
@@ -293,16 +301,26 @@ const inferTypeImplementation = (
     const { condition, then, else: otherwise } = ifExpressionResult.value[1]
 
     const inferThen = () =>
-      inferTypeImplementation(then, parameterTypes, lookingUpKeys, context)
+      inferTypeImplementation(
+        then,
+        parameterTypes,
+        lookingUpKeys,
+        descendantContext(['1', 'then']),
+      )
     const inferElse = () =>
-      inferTypeImplementation(otherwise, parameterTypes, lookingUpKeys, context)
+      inferTypeImplementation(
+        otherwise,
+        parameterTypes,
+        lookingUpKeys,
+        descendantContext(['1', 'else']),
+      )
 
     return either.flatMap(
       inferTypeImplementation(
         condition,
         parameterTypes,
         lookingUpKeys,
-        context,
+        descendantContext(['1', 'condition']),
       ),
       conditionType => {
         if (isAssignable({ source: conditionType, target: 'true' })) {
@@ -339,7 +357,7 @@ const inferTypeImplementation = (
         value,
         parameterTypes,
         lookingUpKeys,
-        context,
+        descendantContext([key]),
       )
       if (either.isLeft(childTypeResult)) {
         return childTypeResult
@@ -385,8 +403,13 @@ const getFunctionParameterType = (
             return option.makeSome(types.runtimeContext)
           }
 
+          const positionInEnclosingExpression =
+            contextOfFunction.location[contextOfFunction.location.length - 1]
           const applyExpressionResult = readApplyExpression(enclosingExpression)
-          if (either.isRight(applyExpressionResult)) {
+          if (
+            either.isRight(applyExpressionResult) &&
+            positionInEnclosingExpression === 'argument'
+          ) {
             const contextOfEnclosingExpression: ExpressionContext = {
               program: contextOfFunction.program,
               keywordHandlers: contextOfFunction.keywordHandlers,
