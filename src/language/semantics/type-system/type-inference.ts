@@ -56,50 +56,60 @@ export const resolveParameterTypes = (
   // Walk upwards towards the program root, keeping track of parameter names and
   // their types.
   while (currentLocation.length >= 2) {
-    const pathToCurrentScope = currentLocation.slice(0, -1)
-    const pathToParentScope = pathToCurrentScope.slice(0, -1)
-
-    const parentNodeOption = applyKeyPathToSemanticGraph(
-      context.program,
-      pathToParentScope,
+    const enclosingFunction = option.flatMap(
+      enclosingExpressionFromPropertyOfExpressionArgument({
+        program: context.program,
+        location: currentLocation,
+      }),
+      expression =>
+        either.match(readFunctionExpression(expression), {
+          left: _ => option.none,
+          right: option.makeSome,
+        }),
     )
 
-    if (
-      option.isSome(parentNodeOption) &&
-      isExpression(parentNodeOption.value)
-    ) {
-      const lastKey = pathToCurrentScope[pathToCurrentScope.length - 1]
-      if (lastKey === '1') {
-        const functionResult = readFunctionExpression(parentNodeOption.value)
-        if (either.isRight(functionResult)) {
-          const parameterName = getParameterName(functionResult.value)
-          if (!parameterTypes.has(parameterName)) {
-            const parameterTypeResult = getFunctionParameterType(
-              functionResult.value,
-              {
-                keywordHandlers: context.keywordHandlers,
-                program: context.program,
-                location: currentLocation,
-              },
-            )
-            // Ignore errors here (they should be surfaced elsewhere).
-            if (either.isRight(parameterTypeResult)) {
-              // Side-effect: add the parameter.
-              parameterTypes.set(parameterName, parameterTypeResult.value)
-            }
-          }
+    if (option.isSome(enclosingFunction)) {
+      const parameterName = getParameterName(enclosingFunction.value)
+      if (!parameterTypes.has(parameterName)) {
+        const parameterTypeResult = getFunctionParameterType(
+          enclosingFunction.value,
+          {
+            keywordHandlers: context.keywordHandlers,
+            program: context.program,
+            location: currentLocation.slice(0, -2),
+          },
+        )
+
+        if (either.isLeft(parameterTypeResult)) {
+          throw new Error(
+            'Cannot determine parameter type of function. This is a bug!',
+            { cause: parameterTypeResult.value },
+          )
         }
+
+        // Side-effect: add the parameter.
+        parameterTypes.set(parameterName, parameterTypeResult.value)
       }
-      currentLocation = pathToParentScope
-    } else {
-      currentLocation = pathToCurrentScope
     }
+
+    currentLocation = currentLocation.slice(0, -1)
   }
 
   return parameterTypes
 }
 
 export const inferType = (
+  node: SemanticGraph,
+  context: ExpressionContext,
+): Either<ElaborationError, Type> =>
+  inferTypeImplementation(
+    node,
+    resolveParameterTypes(context),
+    new Set(),
+    context,
+  )
+
+const inferTypeImplementation = (
   node: SemanticGraph,
   parameterTypes: ReadonlyMap<Atom, Type>,
   lookingUpKeys: ReadonlySet<Atom>,
@@ -117,10 +127,18 @@ export const inferType = (
   const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
     return either.flatMap(
-      getFunctionParameterType(functionExpressionResult.value, context),
+      getFunctionParameterType(
+        functionExpressionResult.value,
+        // TODO: `getFunctionParameterType` expects `context.location` to point
+        // at the function, but `context.location` isn't updated when
+        // `inferTypeImplementation` recurses, so this context often points
+        // somewhere else. Could be fixed by threading the current path through
+        // recursive calls.
+        context,
+      ),
       parameterType =>
         either.map(
-          inferType(
+          inferTypeImplementation(
             functionExpressionResult.value[1].body,
             new Map([
               ...parameterTypes,
@@ -149,7 +167,7 @@ export const inferType = (
     } else if (!lookingUpKeys.has(key)) {
       const lookupResult = lookup({ key, context })
       if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
-        return inferType(
+        return inferTypeImplementation(
           lookupResult.value.value,
           parameterTypes,
           new Set([...lookingUpKeys, key]),
@@ -169,7 +187,7 @@ export const inferType = (
   const indexExpressionResult = readIndexExpression(node)
   if (either.isRight(indexExpressionResult)) {
     return either.flatMap(
-      inferType(
+      inferTypeImplementation(
         indexExpressionResult.value[1].object,
         parameterTypes,
         lookingUpKeys,
@@ -192,7 +210,7 @@ export const inferType = (
         either.flatMap(runtimeFunction.serialize(), readFunctionExpression)
       : readFunctionExpression(runtimeFunction)
     if (either.isRight(functionExpressionResult)) {
-      return inferType(
+      return inferTypeImplementation(
         functionExpressionResult.value[1].body,
         new Map([
           ...parameterTypes,
@@ -215,7 +233,7 @@ export const inferType = (
   // @apply: infer the return type from the function being applied.
   const applyExpressionResult = readApplyExpression(node)
   if (either.isRight(applyExpressionResult)) {
-    const inferredFunctionType = inferType(
+    const inferredFunctionType = inferTypeImplementation(
       applyExpressionResult.value[1].function,
       parameterTypes,
       lookingUpKeys,
@@ -236,7 +254,7 @@ export const inferType = (
         some: ({
           signature: { parameter: parameterType, return: returnType },
         }) => {
-          const argumentTypeResult = inferType(
+          const argumentTypeResult = inferTypeImplementation(
             applyExpressionResult.value[1].argument,
             parameterTypes,
             lookingUpKeys,
@@ -275,12 +293,17 @@ export const inferType = (
     const { condition, then, else: otherwise } = ifExpressionResult.value[1]
 
     const inferThen = () =>
-      inferType(then, parameterTypes, lookingUpKeys, context)
+      inferTypeImplementation(then, parameterTypes, lookingUpKeys, context)
     const inferElse = () =>
-      inferType(otherwise, parameterTypes, lookingUpKeys, context)
+      inferTypeImplementation(otherwise, parameterTypes, lookingUpKeys, context)
 
     return either.flatMap(
-      inferType(condition, parameterTypes, lookingUpKeys, context),
+      inferTypeImplementation(
+        condition,
+        parameterTypes,
+        lookingUpKeys,
+        context,
+      ),
       conditionType => {
         if (isAssignable({ source: conditionType, target: 'true' })) {
           return inferThen()
@@ -312,7 +335,7 @@ export const inferType = (
     // Infer unelaborated descendants' types.
     const children: Record<string, Type> = {}
     for (const [key, value] of Object.entries(node)) {
-      const childTypeResult = inferType(
+      const childTypeResult = inferTypeImplementation(
         value,
         parameterTypes,
         lookingUpKeys,
@@ -342,7 +365,7 @@ export const inferType = (
  */
 const getFunctionParameterType = (
   expression: FunctionExpression,
-  context: ExpressionContext,
+  contextOfFunction: ExpressionContext,
 ): Either<Bug, Type> =>
   option.match(getParameterTypeAnnotation(expression), {
     some: annotation =>
@@ -353,12 +376,8 @@ const getFunctionParameterType = (
         ),
       ),
     none: _ => {
-      const pathToFunction = context.location.slice(0, -2)
       const contextualType = option.flatMap(
-        enclosingExpressionFromPropertyOfExpressionArgument(
-          context.program,
-          pathToFunction,
-        ),
+        enclosingExpressionFromPropertyOfExpressionArgument(contextOfFunction),
         (enclosingExpression): Option<Type> => {
           if (
             isKeywordExpressionWithArgument('@runtime', enclosingExpression)
@@ -369,14 +388,12 @@ const getFunctionParameterType = (
           const applyExpressionResult = readApplyExpression(enclosingExpression)
           if (either.isRight(applyExpressionResult)) {
             const contextOfEnclosingExpression: ExpressionContext = {
-              program: context.program,
-              keywordHandlers: context.keywordHandlers,
-              location: pathToFunction.slice(0, -2),
+              program: contextOfFunction.program,
+              keywordHandlers: contextOfFunction.keywordHandlers,
+              location: contextOfFunction.location.slice(0, -2),
             }
             const contextuallyAppliedFunctionType = inferType(
               applyExpressionResult.value[1].function,
-              resolveParameterTypes(contextOfEnclosingExpression),
-              new Set(),
               contextOfEnclosingExpression,
             )
 
@@ -412,14 +429,17 @@ const getFunctionParameterType = (
     },
   })
 
-const enclosingExpressionFromPropertyOfExpressionArgument = (
-  program: SemanticGraph,
-  pathToNode: KeyPath,
-): Option<SemanticGraph> => {
-  if (pathToNode.length < 2) {
+const enclosingExpressionFromPropertyOfExpressionArgument = ({
+  program,
+  location,
+}: {
+  readonly program: SemanticGraph
+  readonly location: KeyPath
+}): Option<SemanticGraph> => {
+  if (location.length < 2) {
     return option.none
   } else {
-    const pathToPossibleExpression = pathToNode.slice(0, -2)
+    const pathToPossibleExpression = location.slice(0, -2)
     return option.filter(
       applyKeyPathToSemanticGraph(program, pathToPossibleExpression),
       isExpression,

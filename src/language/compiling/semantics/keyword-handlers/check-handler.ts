@@ -12,7 +12,6 @@ import {
 import {
   inferType,
   literalTypeFromSemanticGraph,
-  resolveParameterTypes,
   showType,
 } from '../../../semantics/type-system.js'
 
@@ -25,26 +24,24 @@ const check = ({
   readonly type: SemanticGraph
   readonly context: ExpressionContext
 }): Either<ElaborationError, SemanticGraph> =>
-  either.flatMap(
-    inferType(value, resolveParameterTypes(context), new Set(), context),
-    valueAsType =>
-      either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
-        if (
-          isAssignable({
-            source: valueAsType,
-            target: typeAsType,
-          })
-        ) {
-          return either.makeRight(value)
-        } else {
-          return either.makeLeft({
-            kind: 'typeMismatch',
-            message: `the value \`${stringifySemanticGraphForEndUser(
-              value,
-            )}\` (inferred to have type \`${showType(valueAsType)}\`) is not assignable to the type \`${showType(typeAsType)}\``,
-          })
-        }
-      }),
+  either.flatMap(inferType(value, context), valueAsType =>
+    either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
+      if (
+        isAssignable({
+          source: valueAsType,
+          target: typeAsType,
+        })
+      ) {
+        return either.makeRight(value)
+      } else {
+        return either.makeLeft({
+          kind: 'typeMismatch',
+          message: `the value \`${stringifySemanticGraphForEndUser(
+            value,
+          )}\` (inferred to have type \`${showType(valueAsType)}\`) is not assignable to the type \`${showType(typeAsType)}\``,
+        })
+      }
+    }),
   )
 
 export const checkKeywordHandler: KeywordHandler = (
