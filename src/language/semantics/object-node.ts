@@ -131,19 +131,18 @@ export const withProperty = <Key extends Atom, Value extends SemanticGraph>(
 
 export const serializeObjectNode = (
   node: ObjectNode,
-): Either<UnserializableValueError, Molecule> => {
-  const serializedEntries: (readonly [Atom, Output])[] = []
-  for (const [key, propertyValue] of orderedEntriesOfObjectNode(node)) {
-    const serializedPropertyValueResult =
-      serializeObjectPropertyValue(propertyValue)
-    if (either.isLeft(serializedPropertyValueResult)) {
-      return serializedPropertyValueResult
-    } else {
-      serializedEntries.push([key, serializedPropertyValueResult.value])
-    }
-  }
-  return either.makeRight(orderedRecord.make(serializedEntries))
-}
+): Either<UnserializableValueError, Molecule> =>
+  either.map(
+    either.sequence(
+      orderedEntriesOfObjectNode(node).map(([key, propertyValue]) =>
+        either.map(
+          serializeObjectPropertyValue(propertyValue),
+          serializedValue => [key, serializedValue] as const,
+        ),
+      ),
+    ),
+    orderedRecord.make,
+  )
 
 const serializeObjectPropertyValue = (
   propertyValue: ObjectNode[string],

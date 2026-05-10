@@ -714,27 +714,20 @@ export const literalTypeFromSemanticGraph = (
     // *-expression.ts modules causes a dependency cycle. This needs
     // investigation.
     if (isKeywordExpressionWithArgument('@union', node)) {
-      let members = new Set<Atom | Exclude<Type, UnionType>>()
-      for (const result of Object.values(node[1]).map(
-        literalTypeFromSemanticGraph,
-      )) {
-        if (either.isLeft(result)) {
-          return result
-        } else {
-          if (result.value.kind === 'union') {
-            for (const member of result.value.members) {
-              members.add(member)
-            }
-          } else {
-            members.add(result.value)
-          }
-        }
-      }
-      return either.makeRight({
-        name: '',
-        kind: 'union',
-        members,
-      })
+      return either.map(
+        either.sequence(
+          Object.values(node[1]).map(literalTypeFromSemanticGraph),
+        ),
+        memberTypes =>
+          makeUnionType(
+            '',
+            memberTypes.flatMap(memberType =>
+              memberType.kind === 'union' ?
+                [...memberType.members]
+              : [memberType],
+            ),
+          ),
+      )
     } else if (isKeywordExpressionWithArgument('@signature', node)) {
       const signature = node[1]
       if (
@@ -742,23 +735,17 @@ export const literalTypeFromSemanticGraph = (
         'parameter' in signature &&
         'return' in signature
       ) {
-        const parameterSemanticGraph = signature['parameter']
-        const returnSemanticGraph = signature['return']
         return either.mapLeft(
-          either.flatMap(
-            literalTypeFromSemanticGraph(parameterSemanticGraph),
-            parameterType =>
-              either.map(
-                literalTypeFromSemanticGraph(returnSemanticGraph),
-                returnType => ({
-                  name: '',
-                  kind: 'function',
-                  signature: {
-                    parameter: parameterType,
-                    return: returnType,
-                  },
-                }),
-              ),
+          either.map(
+            either.sequence([
+              literalTypeFromSemanticGraph(signature['parameter']),
+              literalTypeFromSemanticGraph(signature['return']),
+            ]),
+            ([parameterType, returnType]) =>
+              makeFunctionType('', {
+                parameter: parameterType,
+                return: returnType,
+              }),
           ),
           error => ({ kind: 'bug', message: error.message }),
         )
@@ -770,21 +757,17 @@ export const literalTypeFromSemanticGraph = (
       }
     } else {
       // `node` is an object type.
-      const children: Writable<ObjectType['children']> = {}
-      for (const [key, value] of Object.entries(node)) {
-        const childAsTypeResult = literalTypeFromSemanticGraph(value)
-        if (either.isLeft(childAsTypeResult)) {
-          return childAsTypeResult
-        } else {
-          children[key] = childAsTypeResult.value
-        }
-      }
-
-      return either.makeRight({
-        name: '',
-        kind: 'object',
-        children,
-      })
+      return either.map(
+        either.sequence(
+          Object.entries(node).map(([key, value]) =>
+            either.map(
+              literalTypeFromSemanticGraph(value),
+              childType => [key, childType] as const,
+            ),
+          ),
+        ),
+        entries => makeObjectType('', Object.fromEntries(entries)),
+      )
     }
   }
 }
