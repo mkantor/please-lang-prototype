@@ -84,7 +84,7 @@ export const atom = {
       either.makeRight(
         typeof argument === 'string' ?
           makeObjectNode({ tag: 'some', value: argument })
-        : makeObjectNode({ tag: 'none', value: {} }),
+        : makeObjectNode({ tag: 'none', value: makeObjectNode({}) }),
       ),
   ),
 

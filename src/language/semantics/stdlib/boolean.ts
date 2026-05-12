@@ -36,7 +36,7 @@ export const boolean = {
       either.makeRight(
         nodeIsBoolean(argument) ?
           makeObjectNode({ tag: 'some', value: argument })
-        : makeObjectNode({ tag: 'none', value: {} }),
+        : makeObjectNode({ tag: 'none', value: makeObjectNode({}) }),
       ),
   ),
 

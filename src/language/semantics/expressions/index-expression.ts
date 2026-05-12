@@ -1,7 +1,7 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
-import { keyPathFromObjectNodeOrMolecule } from '../key-path.js'
+import { keyPathFromObjectNode } from '../key-path.js'
 import {
   isObjectNode,
   makeObjectNode,
@@ -31,9 +31,8 @@ export const readIndexExpression = (
             message: 'query must be an object',
           })
         } else {
-          return either.map(
-            keyPathFromObjectNodeOrMolecule(query),
-            _validKeyPath => makeIndexExpression({ object, query }),
+          return either.map(keyPathFromObjectNode(query), _validKeyPath =>
+            makeIndexExpression({ object, query }),
           )
         }
       },

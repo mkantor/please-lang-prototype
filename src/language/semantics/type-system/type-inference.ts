@@ -10,7 +10,7 @@ import {
   isExpression,
   isFunctionNode,
   isObjectNode,
-  keyPathFromObjectNodeOrMolecule,
+  keyPathFromObjectNode,
   lookup,
   readApplyExpression,
   readFunctionExpression,
@@ -203,7 +203,7 @@ const inferTypeImplementation = (
       ),
       objectType =>
         either.map(
-          keyPathFromObjectNodeOrMolecule(indexExpressionResult.value[1].query),
+          keyPathFromObjectNode(indexExpressionResult.value[1].query),
           keyPath => applyKeyPathToType(objectType, keyPath),
         ),
     )

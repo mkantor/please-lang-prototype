@@ -1,12 +1,8 @@
 import option, { type Option } from '@matt.kantor/option'
 import { map, sequence, type Parser } from '@matt.kantor/parsing'
+import * as orderedRecord from '../../ordered-record.js'
 import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
-import type {
-  JsonArray,
-  JsonRecord,
-  JsonValue,
-  Writable,
-} from '../../utility-types.js'
+import type { JsonArray, JsonRecord, JsonValue } from '../../utility-types.js'
 import type { KeyPath } from '../semantics.js'
 import { type Atom } from './atom.js'
 import { expression, type Molecule } from './expression.js'
@@ -23,41 +19,32 @@ export const applyKeyPathToSyntaxTree = (
   const [firstKey, ...remainingKeyPath] = keyPath
   if (firstKey === undefined) {
     return option.makeSome(syntaxTree)
+  } else if (typeof syntaxTree === 'string') {
+    return option.none
   } else {
-    if (typeof syntaxTree === 'string') {
-      return option.none
-    } else {
-      const next = withPhantomData<Canonicalized>()(syntaxTree[firstKey])
-      if (next === undefined) {
-        return option.none
-      } else {
-        return applyKeyPathToSyntaxTree(next, remainingKeyPath)
-      }
-    }
+    return option.flatMap(orderedRecord.get(syntaxTree, firstKey), next =>
+      applyKeyPathToSyntaxTree(
+        withPhantomData<Canonicalized>()(next),
+        remainingKeyPath,
+      ),
+    )
   }
 }
 
 /**
  * Canonicalized syntax trees are made of strings and (potentially-nested)
- * objects with string-valued properties.
- *
- * The JSON value `["a", 1, null]` is canonicalized as `{ "0": "a", "1": "1",
- * "2": "null" }`.
+ * `OrderedRecord`s with string-valued properties.
  */
 export const canonicalize = (
   input: JsonValueForbiddingSymbolicKeys,
-): SyntaxTree => {
-  let canonicalized: Atom | Writable<Molecule>
-  if (typeof input === 'object' && input !== null) {
-    canonicalized = {}
-    for (let [key, value] of Object.entries(input)) {
-      canonicalized[key] = canonicalize(value)
-    }
-  } else {
-    canonicalized = typeof input === 'string' ? input : String(input)
-  }
-  return withPhantomData<Canonicalized>()(canonicalized)
-}
+): SyntaxTree =>
+  withPhantomData<Canonicalized>()(
+    typeof input === 'string' ? input
+    : input === null || typeof input !== 'object' ? String(input)
+    : orderedRecord.make(
+        Object.entries(input).map(([key, value]) => [key, canonicalize(value)]),
+      ),
+  )
 
 /**
  * `canonicalize` inputs should not have symbolic keys. This type doesn't
@@ -80,5 +67,6 @@ type JsonRecordForbiddingSymbolicKeys = {
 
 export const syntaxTreeParser: Parser<SyntaxTree> = map(
   sequence([optionalTrivia, expression, optionalTrivia]),
-  ([_leadingTrivia, syntaxTree, _trailingTrivia]) => canonicalize(syntaxTree),
+  ([_leadingTrivia, syntaxTree, _trailingTrivia]) =>
+    withPhantomData<Canonicalized>()(syntaxTree),
 )

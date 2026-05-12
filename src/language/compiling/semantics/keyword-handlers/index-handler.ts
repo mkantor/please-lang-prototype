@@ -6,7 +6,7 @@ import {
   applyKeyPathToType,
   containsAnyUnelaboratedNodes,
   inferType,
-  keyPathFromObjectNodeOrMolecule,
+  keyPathFromObjectNode,
   readIndexExpression,
   showType,
   stringifyKeyPathForEndUser,
@@ -39,27 +39,24 @@ export const indexKeywordHandler: KeywordHandler = (
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readIndexExpression(expression), indexExpression =>
-    either.flatMap(
-      keyPathFromObjectNodeOrMolecule(indexExpression[1].query),
-      keyPath => {
-        const object = indexExpression[1].object
-        return either.flatMap(
-          checkKeyPathExistsInType(object, keyPath, context),
-          _ =>
-            containsAnyUnelaboratedNodes(object) ?
-              // The object isn't ready, so keep the @index unelaborated.
-              either.makeRight(indexExpression)
-            : option.match(applyKeyPathToSemanticGraph(object, keyPath), {
-                none: () =>
-                  either.makeLeft({
-                    kind: 'typeMismatch',
-                    message: `property \`${stringifyKeyPathForEndUser(
-                      keyPath,
-                    )}\` not found`,
-                  }),
-                some: either.makeRight,
-              }),
-        )
-      },
-    ),
+    either.flatMap(keyPathFromObjectNode(indexExpression[1].query), keyPath => {
+      const object = indexExpression[1].object
+      return either.flatMap(
+        checkKeyPathExistsInType(object, keyPath, context),
+        _ =>
+          containsAnyUnelaboratedNodes(object) ?
+            // The object isn't ready, so keep the @index unelaborated.
+            either.makeRight(indexExpression)
+          : option.match(applyKeyPathToSemanticGraph(object, keyPath), {
+              none: () =>
+                either.makeLeft({
+                  kind: 'typeMismatch',
+                  message: `property \`${stringifyKeyPathForEndUser(
+                    keyPath,
+                  )}\` not found`,
+                }),
+              some: either.makeRight,
+            }),
+      )
+    }),
   )

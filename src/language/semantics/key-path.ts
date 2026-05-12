@@ -1,4 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
+import * as orderedRecord from '../../ordered-record.js'
 import type { InvalidExpressionError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { inlinePlz, unparse } from '../unparsing.js'
@@ -14,10 +15,10 @@ export const stringifyKeyPathForEndUser = (keyPath: KeyPath): string =>
   })
 
 export const keyPathToMolecule = (keyPath: KeyPath): Molecule =>
-  Object.fromEntries(keyPath.flatMap((key, index) => [[index, key]]))
+  orderedRecord.make(keyPath.map((key, index) => [String(index), key]))
 
-export const keyPathFromObjectNodeOrMolecule = (
-  node: ObjectNode | Molecule,
+export const keyPathFromObjectNode = (
+  node: ObjectNode,
 ): Either<InvalidExpressionError, KeyPath> => {
   const relativePath: string[] = []
   let queryIndex = 0

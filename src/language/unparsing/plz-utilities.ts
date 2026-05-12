@@ -2,6 +2,7 @@ import either, { type Either, type Right } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import parsing from '@matt.kantor/parsing'
 import { styleText } from 'node:util'
+import * as orderedRecord from '../../ordered-record.js'
 import type { ElaborationError, UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { unquotedAtomParser } from '../parsing/atom.js'
@@ -60,7 +61,11 @@ export const moleculeUnparser =
     const context: Context = { unparseAtomOrMolecule, semanticContext }
     const sugar = unparseSugaredExpression(context, unparseSugarFreeMolecule)
     return (value: Molecule): Either<UnserializableValueError, string> => {
-      switch (value['0']) {
+      const keyword = option.match(orderedRecord.get(value, '0'), {
+        none: () => undefined,
+        some: keyword => keyword,
+      })
+      switch (keyword) {
         case '@apply':
           return sugar(value, readApplyExpression, unparseSugaredApply)
         case '@check':
@@ -99,7 +104,7 @@ export const moleculeAsKeyValuePairStrings = (
 ): Either<UnserializableValueError, readonly string[]> => {
   const { colon, openGroupingParenthesis, closeGroupingParenthesis } =
     punctuation(styleText)
-  const entries = Object.entries(value)
+  const entries = value.entries
 
   const keyValuePairsAsStrings: string[] = []
   let ordinalPropertyKeyCounter = 0n
@@ -384,7 +389,7 @@ const unparseSugaredIndex = (
 }
 
 const unparseKeyPathOfSugaredIndex = (
-  query: ObjectNode | Molecule,
+  query: ObjectNode,
   { semanticContext }: Context,
 ) => {
   const keyPath = Object.entries(query).reduce(

@@ -1,23 +1,29 @@
 import either from '@matt.kantor/either'
+import option from '@matt.kantor/option'
 import assert from 'node:assert'
 import { compile } from './language/compiling.js'
+import { canonicalize } from './language/parsing.js'
 import { parse } from './language/parsing/parser.js'
 import { evaluate } from './language/runtime.js'
+import * as orderedRecord from './ordered-record.js'
 import {
   parseAndCompileAndRun,
   testCases,
   unparseAndRoundtrip,
   type ProgramResult,
 } from './test-utilities.test.js'
+import type { JsonValue } from './utility-types.js'
+
+const success = (value: JsonValue) => either.makeRight(canonicalize(value))
 
 const endToEnd = (input: string) => {
-  const syntaxTree: ProgramResult = parse(input)
+  const syntaxTree = parse(input)
   const runtimeOutputFromRoundtrippingSyntaxTree = either.flatMap(
     syntaxTree,
     unparseAndRoundtrip,
   )
 
-  const program: ProgramResult = either.flatMap(syntaxTree, compile)
+  const program = either.flatMap(syntaxTree, compile)
   const runtimeOutputFromRoundtrippingProgram = either.flatMap(
     program,
     unparseAndRoundtrip,
@@ -66,7 +72,7 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
         }
       }
     }.output`,
-    either.makeRight('42'),
+    success('42'),
   ],
   [
     `((a: :natural_number.type) => {
@@ -81,7 +87,7 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
       }
       return: :my_function(0)
     })(2).return`,
-    either.makeRight('5'),
+    success('5'),
   ],
   [
     `{
@@ -102,26 +108,26 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
         return: :count_internal({ current: 0, output: "" })
       }.return
     }.count(2)`,
-    either.makeRight(
+    success(
       '0 (not greater than one) 1 (not greater than one) 2 (greater than one) ',
     ),
   ],
 ])
 
 testCases(endToEnd, code => code)('end-to-end tests', [
-  ['""', either.makeRight('')],
-  ['{}', either.makeRight({})],
-  ['hi', either.makeRight('hi')],
-  ['1.1', either.makeRight('1.1')],
-  ['{{{}}}', either.makeRight({ 0: { 0: {} } })],
-  ['"hello world"', either.makeRight('hello world')],
-  ['{foo:bar}', either.makeRight({ foo: 'bar' })],
-  ['{hi}', either.makeRight({ 0: 'hi' })],
-  ['{a,b,c}', either.makeRight({ 0: 'a', 1: 'b', 2: 'c' })],
-  ['{,a,b,c,}', either.makeRight({ 0: 'a', 1: 'b', 2: 'c' })],
-  ['{a,1:overwritten,c}', either.makeRight({ 0: 'a', 1: 'c' })],
-  ['{overwritten,0:a,c}', either.makeRight({ 0: 'a', 1: 'c' })],
-  ['@check {type:true, value:true}', either.makeRight('true')],
+  ['""', success('')],
+  ['{}', success({})],
+  ['hi', success('hi')],
+  ['1.1', success('1.1')],
+  ['{{{}}}', success({ 0: { 0: {} } })],
+  ['"hello world"', success('hello world')],
+  ['{foo:bar}', success({ foo: 'bar' })],
+  ['{hi}', success({ 0: 'hi' })],
+  ['{a,b,c}', success({ 0: 'a', 1: 'b', 2: 'c' })],
+  ['{,a,b,c,}', success({ 0: 'a', 1: 'b', 2: 'c' })],
+  ['{a,1:overwritten,c}', success({ 0: 'a', 1: 'c' })],
+  ['{overwritten,0:a,c}', success({ 0: 'a', 1: 'c' })],
+  ['@check {type:true, value:true}', success('true')],
   [
     '@panic',
     result => {
@@ -130,10 +136,10 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       assert.deepEqual(result.value.kind, 'panic')
     },
   ],
-  ['{a:A, b:{"@lookup", {a}}}', either.makeRight({ a: 'A', b: 'A' })],
-  ['{a:A, {"@lookup", {a}}}', either.makeRight({ a: 'A', 0: 'A' })],
-  ['{a:A, b: :a}', either.makeRight({ a: 'A', b: 'A' })],
-  ['{a:A, :a}', either.makeRight({ a: 'A', 0: 'A' })],
+  ['{a:A, b:{"@lookup", {a}}}', success({ a: 'A', b: 'A' })],
+  ['{a:A, {"@lookup", {a}}}', success({ a: 'A', 0: 'A' })],
+  ['{a:A, b: :a}', success({ a: 'A', b: 'A' })],
+  ['{a:A, :a}', success({ a: 'A', 0: 'A' })],
   [
     '@runtime {_ => @panic}',
     result => {
@@ -144,7 +150,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     'a => :a',
-    either.makeRight({
+    success({
       0: '@function',
       1: {
         parameter: 'a',
@@ -154,7 +160,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     '(a => :a)',
-    either.makeRight({
+    success({
       0: '@function',
       1: {
         parameter: 'a',
@@ -162,22 +168,19 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       },
     }),
   ],
-  ['{ a: ({ A }) }', either.makeRight({ a: { 0: 'A' } })],
-  ['{ a: ( A ) }', either.makeRight({ a: 'A' })],
-  ['{ a: ("A A A") }', either.makeRight({ a: 'A A A' })],
-  ['{ ("a"): A }', either.makeRight({ a: 'A' })],
-  ['{ a: :(b), b: B }', either.makeRight({ a: 'B', b: 'B' })],
-  ['{ a: :("b"), b: B }', either.makeRight({ a: 'B', b: 'B' })],
-  ['{ (a: A), (b: B) }', either.makeRight({ a: 'A', b: 'B' })],
-  ['( { ((a): :(b)), ( ( b ): B ) } )', either.makeRight({ a: 'B', b: 'B' })],
-  ['{ (a: :(")")), (")": (B)) }', either.makeRight({ a: 'B', ')': 'B' })],
-  [`/**/a/**/`, either.makeRight('a')],
-  ['hello//world', either.makeRight('hello')],
-  [`"hello//world"`, either.makeRight('hello//world')],
-  [
-    `/**/{/**/a:/**/b/**/,/**/c:/**/d/**/}/**/`,
-    either.makeRight({ a: 'b', c: 'd' }),
-  ],
+  ['{ a: ({ A }) }', success({ a: { 0: 'A' } })],
+  ['{ a: ( A ) }', success({ a: 'A' })],
+  ['{ a: ("A A A") }', success({ a: 'A A A' })],
+  ['{ ("a"): A }', success({ a: 'A' })],
+  ['{ a: :(b), b: B }', success({ a: 'B', b: 'B' })],
+  ['{ a: :("b"), b: B }', success({ a: 'B', b: 'B' })],
+  ['{ (a: A), (b: B) }', success({ a: 'A', b: 'B' })],
+  ['( { ((a): :(b)), ( ( b ): B ) } )', success({ a: 'B', b: 'B' })],
+  ['{ (a: :(")")), (")": (B)) }', success({ a: 'B', ')': 'B' })],
+  [`/**/a/**/`, success('a')],
+  ['hello//world', success('hello')],
+  [`"hello//world"`, success('hello//world')],
+  [`/**/{/**/a:/**/b/**/,/**/c:/**/d/**/}/**/`, success({ a: 'b', c: 'd' })],
   [
     `{
       // foo: bar
@@ -195,30 +198,30 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         }
       }
     }`,
-    either.makeRight({
+    success({
       'static data': 'blah blah blah',
       'evaluated data': { tag: 'none', value: {} },
     }),
   ],
-  ['(a => :a)(A)', either.makeRight('A')],
-  ['{ a: (a => :a)(A) }', either.makeRight({ a: 'A' })],
-  ['{ a: ( a => :a )( A ) }', either.makeRight({ a: 'A' })],
-  ['(_ => B)(A)', either.makeRight('B')],
-  ['{ success }.0', either.makeRight('success')],
-  ['{ f: :identity }.f(success)', either.makeRight('success')],
-  ['{ f: :identity }.f({ a: success }).a', either.makeRight('success')],
+  ['(a => :a)(A)', success('A')],
+  ['{ a: (a => :a)(A) }', success({ a: 'A' })],
+  ['{ a: ( a => :a )( A ) }', success({ a: 'A' })],
+  ['(_ => B)(A)', success('B')],
+  ['{ success }.0', success('success')],
+  ['{ f: :identity }.f(success)', success('success')],
+  ['{ f: :identity }.f({ a: success }).a', success('success')],
   [
     '{ f: :identity }.f({ g: :identity }).g({ a: success }).a',
-    either.makeRight('success'),
+    success('success'),
   ],
-  ['{ a: { b: success } }.a.b', either.makeRight('success')],
+  ['{ a: { b: success } }.a.b', success('success')],
   [
     '{ a: { "b.c(d) e \\" {}": success } }.a."b.c(d) e \\" {}"',
-    either.makeRight('success'),
+    success('success'),
   ],
-  ['(a => { b: :a }.b)(success)', either.makeRight('success')],
-  ['(a => { b: :a })(success).b', either.makeRight('success')],
-  ['{ success }/**/./**/0', either.makeRight('success')],
+  ['(a => { b: :a }.b)(success)', success('success')],
+  ['(a => { b: :a })(success).b', success('success')],
+  ['{ success }/**/./**/0', success('success')],
   [
     `
       { a: { b: success } } // blah
@@ -227,13 +230,10 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         // blah
         .b // blah
     `,
-    either.makeRight('success'),
+    success('success'),
   ],
-  [
-    `/**/(/**/a/**/=>/**/:a/**/)(/**/output/**/)/**/`,
-    either.makeRight('output'),
-  ],
-  [':identity(output)', either.makeRight('output')],
+  [`/**/(/**/a/**/=>/**/:a/**/)(/**/output/**/)/**/`, success('output')],
+  [':identity(output)', success('output')],
   [
     '{ a: a => :a, b: :a(A) }',
     result => {
@@ -241,19 +241,22 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(result.value.message)
       }
       assert(typeof result.value === 'object')
-      assert.deepEqual(result.value['b'], 'A')
+      assert.deepEqual(
+        orderedRecord.get(result.value, 'b'),
+        option.makeSome('A'),
+      )
     },
   ],
-  [':boolean.or(false)(false)', either.makeRight('false')],
-  [':boolean.or(false)(true)', either.makeRight('true')],
-  [':boolean.or(true)(false)', either.makeRight('true')],
-  [':boolean.or(true)(true)', either.makeRight('true')],
-  [':boolean.and(false)(false)', either.makeRight('false')],
-  [':boolean.and(false)(true)', either.makeRight('false')],
-  [':boolean.and(true)(false)', either.makeRight('false')],
-  [':boolean.and(true)(true)', either.makeRight('true')],
-  [':match({ a: A })({ tag: a, value: {} })', either.makeRight('A')],
-  [':atom.prepend(a)(b)', either.makeRight('ab')],
+  [':boolean.or(false)(false)', success('false')],
+  [':boolean.or(false)(true)', success('true')],
+  [':boolean.or(true)(false)', success('true')],
+  [':boolean.or(true)(true)', success('true')],
+  [':boolean.and(false)(false)', success('false')],
+  [':boolean.and(false)(true)', success('false')],
+  [':boolean.and(true)(false)', success('false')],
+  [':boolean.and(true)(true)', success('true')],
+  [':match({ a: A })({ tag: a, value: {} })', success('A')],
+  [':atom.prepend(a)(b)', success('ab')],
   [
     `{
       :atom.equals(hello)(hello)
@@ -261,32 +264,32 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       :atom.equals(hello)(Hello)
       :atom.equals("1.0")("1.00")
     }`,
-    either.makeRight({ 0: 'true', 1: 'true', 2: 'false', 3: 'false' }),
+    success({ 0: 'true', 1: 'true', 2: 'false', 3: 'false' }),
   ],
-  [`:integer.add(1)(1)`, either.makeRight('2')],
+  [`:integer.add(1)(1)`, success('2')],
   [
     `:integer.add(one)(juan)`,
     output => {
       assert(either.isLeft(output))
     },
   ],
-  [`:integer.add(42)(-1)`, either.makeRight('41')],
-  [`42 + -1`, either.makeRight('41')],
-  [`:integer.subtract(-1)(-1)`, either.makeRight('0')],
-  [`-1 - -1`, either.makeRight('0')],
-  [`2 - 1`, either.makeRight('1')],
-  [`1 - 2 - 3`, either.makeRight('-4')],
-  [`1 - (2 - 3)`, either.makeRight('2')],
-  [`(1 - 2) - 3`, either.makeRight('-4')],
-  [`:integer.multiply(2)(2)`, either.makeRight('4')],
-  [`2 * 2`, either.makeRight('4')],
-  [`2 * -2`, either.makeRight('-4')],
-  [`-2 * -2`, either.makeRight('4')],
-  [`2 * 0`, either.makeRight('0')],
-  [':flow(:atom.append(b))(:atom.append(a))(z)', either.makeRight('zab')],
+  [`:integer.add(42)(-1)`, success('41')],
+  [`42 + -1`, success('41')],
+  [`:integer.subtract(-1)(-1)`, success('0')],
+  [`-1 - -1`, success('0')],
+  [`2 - 1`, success('1')],
+  [`1 - 2 - 3`, success('-4')],
+  [`1 - (2 - 3)`, success('2')],
+  [`(1 - 2) - 3`, success('-4')],
+  [`:integer.multiply(2)(2)`, success('4')],
+  [`2 * 2`, success('4')],
+  [`2 * -2`, success('-4')],
+  [`-2 * -2`, success('4')],
+  [`2 * 0`, success('0')],
+  [':flow(:atom.append(b))(:atom.append(a))(z)', success('zab')],
   [
     `@runtime { :object.lookup("key which does not exist in runtime context") }`,
-    either.makeRight({ tag: 'none', value: {} }),
+    success({ tag: 'none', value: {} }),
   ],
   [
     `:object.lookup(output)({
@@ -294,7 +297,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       is_less_than_three: :integer.is_less_than(3)
       output: :is_less_than_three(:add_one(1))
     })`,
-    either.makeRight({
+    success({
       tag: 'some',
       value: 'true',
     }),
@@ -305,14 +308,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     )(
       :integer.subtract(2)(4)
     )`,
-    either.makeRight('3'),
+    success('3'),
   ],
   [
     `{
       true: true
       false: :boolean.not(:true)
     }`,
-    either.makeRight({ true: 'true', false: 'false' }),
+    success({ true: 'true', false: 'false' }),
   ],
   [
     `@runtime {
@@ -337,13 +340,19 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(output.value.message)
       }
       assert(typeof output.value === 'object')
-      assert.deepEqual(output.value['tag'], 'some')
-      assert.deepEqual(typeof output.value['value'], 'string')
+      assert.deepEqual(
+        orderedRecord.get(output.value, 'tag'),
+        option.makeSome('some'),
+      )
+      option.match(orderedRecord.get(output.value, 'value'), {
+        none: () => assert.fail('expected `value` property'),
+        some: value => assert.equal(typeof value, 'string'),
+      })
     },
   ],
   [
     `(a => b => c => { :a, :b, :c })(0)(1)(2)`,
-    either.makeRight({ 0: 0, 1: 1, 2: 2 }),
+    success({ 0: '0', 1: '1', 2: '2' }),
   ],
   [
     `{
@@ -359,7 +368,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         }
       }
     }.a.b.c(a).d(b)(c).e.f(d).g`,
-    either.makeRight({ 0: 'a', 1: 'b', 2: 'c', 3: 'd' }),
+    success({ 0: 'a', 1: 'b', 2: 'c', 3: 'd' }),
   ],
   [
     `@runtime { context =>
@@ -370,8 +379,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         assert.fail(output.value.message)
       }
       assert(typeof output.value === 'object')
-      assert.deepEqual(output.value['tag'], 'some')
-      assert.deepEqual(typeof output.value['value'], 'string')
+      assert.deepEqual(
+        orderedRecord.get(output.value, 'tag'),
+        option.makeSome('some'),
+      )
+      option.match(orderedRecord.get(output.value, 'value'), {
+        none: () => assert.fail('expected `value` property'),
+        some: value => assert.equal(typeof value, 'string'),
+      })
     },
   ],
   [
@@ -380,7 +395,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       "it works!"
       @panic
     }`,
-    either.makeRight('it works!'),
+    success('it works!'),
   ],
   [
     `{
@@ -388,7 +403,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       b
       c
     }`,
-    either.makeRight({ 0: 'a', 1: 'b', 2: 'c' }),
+    success({ 0: 'a', 1: 'b', 2: 'c' }),
   ],
   [
     `@runtime { context =>
@@ -398,7 +413,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         @panic
       }
     }`,
-    either.makeRight('it works!'),
+    success('it works!'),
   ],
   [
     `{
@@ -410,57 +425,57 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         }
       result: :fibonacci(10)
     }.result`,
-    either.makeRight('55'),
+    success('55'),
   ],
   [
     `{
       +: (a: :integer.type) => (b: :integer.type) => :integer.add(:a)(:b)
       result: 1 + 1
      }.result`,
-    either.makeRight('2'),
+    success('2'),
   ],
-  [`1 + 1`, either.makeRight('2')],
-  [`1 integer.add 1`, either.makeRight('2')],
-  [`(1 + 1)`, either.makeRight('2')],
-  [`(2 - 1) + (4 - 2)`, either.makeRight('3')],
-  [`0 < 1`, either.makeRight('true')],
-  [`1 > 0`, either.makeRight('true')],
-  [`0 < 0`, either.makeRight('false')],
-  [`0 > 0`, either.makeRight('false')],
-  [`1 < 0`, either.makeRight('false')],
-  [`0 > 1`, either.makeRight('false')],
-  [`((a: :integer.type) => (1 + :a))(1)`, either.makeRight('2')],
-  [`2 |> (a => :a)`, either.makeRight('2')],
-  [`a atom.append b atom.append c`, either.makeRight('abc')],
-  [`b atom.append c atom.prepend a`, either.makeRight('abc')],
-  [`(b atom.append c) atom.prepend a`, either.makeRight('abc')],
-  [`a atom.append (c atom.prepend b)`, either.makeRight('abc')],
+  [`1 + 1`, success('2')],
+  [`1 integer.add 1`, success('2')],
+  [`(1 + 1)`, success('2')],
+  [`(2 - 1) + (4 - 2)`, success('3')],
+  [`0 < 1`, success('true')],
+  [`1 > 0`, success('true')],
+  [`0 < 0`, success('false')],
+  [`0 > 0`, success('false')],
+  [`1 < 0`, success('false')],
+  [`0 > 1`, success('false')],
+  [`((a: :integer.type) => (1 + :a))(1)`, success('2')],
+  [`2 |> (a => :a)`, success('2')],
+  [`a atom.append b atom.append c`, success('abc')],
+  [`b atom.append c atom.prepend a`, success('abc')],
+  [`(b atom.append c) atom.prepend a`, success('abc')],
+  [`a atom.append (c atom.prepend b)`, success('abc')],
   [
     `{ a: "it works!" } object.lookup a`,
-    either.makeRight({ tag: 'some', value: 'it works!' }),
+    success({ tag: 'some', value: 'it works!' }),
   ],
-  [`{ a: :identity }.a(1) + 1`, either.makeRight('2')],
+  [`{ a: :identity }.a(1) + 1`, success('2')],
   [
     `1
       + 2
       + 3
       + 4`,
-    either.makeRight('10'),
+    success('10'),
   ],
   [
     `1 +
      2 +
      3 +
      4`,
-    either.makeRight('10'),
+    success('10'),
   ],
-  [`{ f: _ => 5 % 3 }.f(whatever)`, either.makeRight('2')],
+  [`{ f: _ => 5 % 3 }.f(whatever)`, success('2')],
   [
     `{
       one: 1
       two: :one + :one
     }.two`,
-    either.makeRight('2'),
+    success('2'),
   ],
   [
     `@runtime { context =>
@@ -490,21 +505,21 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       four: 4
       ten: :one + :two + :three + :four
     }.ten`,
-    either.makeRight('10'),
+    success('10'),
   ],
   [
     `{
       add_ten: :integer.add(1) >> :integer.add(9)
     }.add_ten(0)`,
-    either.makeRight('10'),
+    success('10'),
   ],
-  [`1 + @if { true, 9, 1 }`, either.makeRight('10')],
+  [`1 + @if { true, 9, 1 }`, success('10')],
   [
     `{
       1 + @if
       { true, 9, 1 }
     }.0`,
-    either.makeRight('10'),
+    success('10'),
   ],
   [
     `(
@@ -513,7 +528,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         >> :+(3)
         >> :+(4)
     )(0)`,
-    either.makeRight('10'),
+    success('10'),
   ],
   [
     `(
@@ -522,17 +537,17 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       :+(3) >>
       :+(4)
     )(0)`,
-    either.makeRight('10'),
+    success('10'),
   ],
-  [`a |> :atom.append(b) |> :atom.append(c)`, either.makeRight('abc')],
-  [`a |> (:atom.append(b) >> :atom.append(c))`, either.makeRight('abc')],
-  [`:|>(:>>(:atom.append(c))(:atom.append(b)))(a)`, either.makeRight('abc')],
+  [`a |> :atom.append(b) |> :atom.append(c)`, success('abc')],
+  [`a |> (:atom.append(b) >> :atom.append(c))`, success('abc')],
+  [`:|>(:>>(:atom.append(c))(:atom.append(b)))(a)`, success('abc')],
   [
     `{
       append_bc: :atom.append(b) >> :atom.append(c)
       abc: a |> :append_bc
     }.abc`,
-    either.makeRight('abc'),
+    success('abc'),
   ],
   [
     `{
@@ -557,7 +572,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         some: :identity
       }
     }.output`,
-    either.makeRight('it works!'),
+    success('it works!'),
   ],
   [
     // Lookups should never target keyword expression properties.
@@ -602,7 +617,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         }.result
       }.result
     }`,
-    either.makeRight({
+    success({
       0: 'it works!',
       1: 'it works!',
       2: 'it works!',
@@ -622,7 +637,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       d: { z: -42 } assume { z: :integer.type }
       e: "not a number" assume @union { :integer.type, "not a number" }
     }`,
-    either.makeRight({
+    success({
       a: '42',
       b: 'true',
       c: {},
@@ -645,12 +660,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       none: _ => a
       some: _ => b
     }`,
-    either.makeRight('a'),
+    success('a'),
   ],
-  [
-    `((a: :integer.type) => (b: :integer.type) => :a + :b)(1)(1)`,
-    either.makeRight('2'),
-  ],
+  [`((a: :integer.type) => (b: :integer.type) => :a + :b)(1)(1)`, success('2')],
   [
     `{
       f: (state: { current: :integer.type, limit: :integer.type }) => @if {
@@ -662,7 +674,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         })
       }
     }.f({ current: 0, limit: 3 })`,
-    either.makeRight('it works'),
+    success('it works'),
   ],
   [
     `((inner: { a: :boolean.type }) => @if {
@@ -670,7 +682,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       then: "it works"
       else: { @panic }
     })({ a: true })`,
-    either.makeRight('it works'),
+    success('it works'),
   ],
   [
     `((outer: :boolean.type) =>
@@ -682,7 +694,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         }
       )({ value: false })
     )(false)`,
-    either.makeRight('true'),
+    success('true'),
   ],
   [
     `((outer: :boolean.type) =>
@@ -694,12 +706,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
         }
       )({ value: false })
     )(true)`,
-    either.makeRight('it works'),
+    success('it works'),
   ],
-  [
-    `(:boolean.not ~ (:boolean.type ~> :boolean.type))(false)`,
-    either.makeRight('true'),
-  ],
+  [`(:boolean.not ~ (:boolean.type ~> :boolean.type))(false)`, success('true')],
   [
     `:boolean.not ~ (:boolean.type ~> :integer.type)`,
     result => {
@@ -710,14 +719,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{ 1 integer.equals 1, 1 integer.equals 2 }`,
-    either.makeRight({ 0: 'true', 1: 'false' }),
+    success({ 0: 'true', 1: 'false' }),
   ],
   [
     `{ b: 1, c: 1, d: 1 } object.overlay { a: 1, b: 2, c: 3 }`,
-    either.makeRight({ a: '1', b: '2', c: '3', d: '1' }),
+    success({ b: '2', c: '3', d: '1', a: '1' }),
   ],
-  [`:object.from_property(key)(value)`, either.makeRight({ key: 'value' })],
-  [`(1 + 1) ~ :integer.type`, either.makeRight('2')],
+  [`:object.from_property(key)(value)`, success({ key: 'value' })],
+  [`(1 + 1) ~ :integer.type`, success('2')],
   [
     `{
       1 ~ :something.type
@@ -740,7 +749,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [
     // `true | (false || true) | false`
     'true | false || true | false',
-    either.makeRight({
+    success({
       0: '@union',
       // TODO: Consider normalizing away the duplicate `true`s.
       1: { 0: 'true', 1: 'true', 2: 'false' },
@@ -749,7 +758,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [
     // `true | (false ~> (true | false))`
     'true | false ~> true | false',
-    either.makeRight({
+    success({
       '0': '@union',
       '1': {
         '0': 'true',
@@ -766,7 +775,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [
     // `true | (false => (true | false))`
     'true | false => true | false',
-    either.makeRight({
+    success({
       '0': '@union',
       '1': {
         '0': 'true',
@@ -783,7 +792,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   [
     // `false | (true ~ true) | false`
     'false | true ~ true | false',
-    either.makeRight({
+    success({
       '0': '@union',
       // TODO: Consider normalizing away the duplicate `false`s.
       '1': { '0': 'false', '1': 'true', '2': 'false' },
@@ -796,7 +805,7 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       ab: a |> :atom.append(b)
       abc: :ab |> :atom.append(c)
     }.abc`,
-    either.makeRight('abc'),
+    success('abc'),
   ],
   [
     `{
@@ -806,6 +815,6 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       }
       two: :increment(1)
     }.two`,
-    either.makeRight('2'),
+    success('2'),
   ],
 ])

@@ -26,11 +26,11 @@ const unparseAtom = (value: Atom): Right<string> => {
 
 const unparseMolecule = (value: Molecule): Right<string> => {
   const { closeBrace, colon, comma, openBrace } = punctuation(styleText)
-  const entries = Object.entries(value)
+  const entries = value.entries
   if (entries.length === 0) {
     return either.makeRight(openBrace.concat(closeBrace))
   } else {
-    const keyValuePairs: string = Object.entries(value)
+    const keyValuePairs: string = entries
       .map(([propertyKey, propertyValue]) =>
         key(propertyKey).concat(
           colon,

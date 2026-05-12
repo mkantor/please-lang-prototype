@@ -20,6 +20,7 @@ import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import { isExemptFromElaboration, isKeyword } from './keyword.js'
 import {
   makeObjectNode,
+  objectNodeFromMolecule,
   serializeObjectNode,
   type ObjectNode,
 } from './object-node.js'
@@ -66,9 +67,7 @@ export const applyKeyPathToSemanticGraph = (
   }
 }
 
-export const containsAnyUnelaboratedNodes = (
-  node: SemanticGraph | Molecule,
-): boolean => {
+export const containsAnyUnelaboratedNodes = (node: SemanticGraph): boolean => {
   const nodeAsSemanticGraph = asSemanticGraph(node)
   if (
     isExpression(nodeAsSemanticGraph) &&
@@ -218,4 +217,6 @@ export const stringifySemanticGraphForEndUser = (
 const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,
 ): ObjectNode | Atom =>
-  typeof syntaxTree === 'string' ? syntaxTree : makeObjectNode(syntaxTree)
+  typeof syntaxTree === 'string' ? syntaxTree : (
+    objectNodeFromMolecule(syntaxTree)
+  )
