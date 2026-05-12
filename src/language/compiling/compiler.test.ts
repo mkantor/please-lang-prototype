@@ -1,5 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import assert from 'node:assert'
+import * as orderedRecord from '../../ordered-record.js'
 import { withPhantomData } from '../../phantom-data.js'
 import { testCases } from '../../test-utilities.test.js'
 import type { JsonValue } from '../../utility-types.js'
@@ -7,13 +8,22 @@ import type { ElaborationError } from '../errors.js'
 import {
   canonicalize,
   type JsonValueForbiddingSymbolicKeys,
+  type Molecule,
 } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
 import type { Output } from '../semantics.js'
 import { compile } from './compiler.js'
 
-const success = (expectedOutput: JsonValue): Either<ElaborationError, Output> =>
-  either.makeRight(withPhantomData<never>()(canonicalize(expectedOutput)))
+const success = (
+  expectedOutput: JsonValue | Molecule,
+): Either<ElaborationError, Output> =>
+  either.makeRight(
+    withPhantomData<never>()(
+      orderedRecord.isOrderedRecord(expectedOutput) ? expectedOutput : (
+        canonicalize(expectedOutput)
+      ),
+    ),
+  )
 
 const canonicalizeAndCompile = (input: JsonValueForbiddingSymbolicKeys) =>
   compile(canonicalize(input))
@@ -206,16 +216,37 @@ testCases(
 
   ['{ a: :b, b: :identity(42) }', success({ a: '42', b: '42' })],
 
-  ['{ a: @if { true, true, 42 }, :a }', success({ a: 'true', '0': 'true' })],
+  [
+    '{ a: @if { true, true, 42 }, :a }',
+    success(
+      orderedRecord.make([
+        ['a', 'true'],
+        ['0', 'true'],
+      ]),
+    ),
+  ],
 
   [
     '{ a: @if { true, true, 42 }, b: :a, :b }',
-    success({ a: 'true', b: 'true', '0': 'true' }),
+    success(
+      orderedRecord.make([
+        ['a', 'true'],
+        ['b', 'true'],
+        ['0', 'true'],
+      ]),
+    ),
   ],
 
   [
     '{ a: :identity(1), b: :identity(2), :a, :b }',
-    success({ a: '1', b: '2', '0': '1', '1': '2' }),
+    success(
+      orderedRecord.make([
+        ['a', '1'],
+        ['b', '2'],
+        ['0', '1'],
+        ['1', '2'],
+      ]),
+    ),
   ],
 
   [

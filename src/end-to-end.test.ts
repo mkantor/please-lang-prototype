@@ -137,9 +137,25 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     },
   ],
   ['{a:A, b:{"@lookup", {a}}}', success({ a: 'A', b: 'A' })],
-  ['{a:A, {"@lookup", {a}}}', success({ a: 'A', 0: 'A' })],
+  [
+    '{a:A, {"@lookup", {a}}}',
+    either.makeRight(
+      orderedRecord.make([
+        ['a', 'A'],
+        ['0', 'A'],
+      ]),
+    ),
+  ],
   ['{a:A, b: :a}', success({ a: 'A', b: 'A' })],
-  ['{a:A, :a}', success({ a: 'A', 0: 'A' })],
+  [
+    '{a:A, :a}',
+    either.makeRight(
+      orderedRecord.make([
+        ['a', 'A'],
+        ['0', 'A'],
+      ]),
+    ),
+  ],
   [
     '@runtime {_ => @panic}',
     result => {
@@ -723,7 +739,14 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{ b: 1, c: 1, d: 1 } object.overlay { a: 1, b: 2, c: 3 }`,
-    success({ b: '2', c: '3', d: '1', a: '1' }),
+    either.makeRight(
+      orderedRecord.make([
+        ['b', '2'],
+        ['c', '3'],
+        ['d', '1'],
+        ['a', '1'],
+      ]),
+    ),
   ],
   [`:object.from_property(key)(value)`, success({ key: 'value' })],
   [`(1 + 1) ~ :integer.type`, success('2')],
