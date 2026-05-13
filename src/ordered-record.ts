@@ -131,6 +131,14 @@ export const mapValues = <Value, NewValue>(
     record.entries.map(([key, value]) => [key, transform(value, key)]),
   )
 
+export const mapKeys = <Value>(
+  record: OrderedRecord<Value>,
+  transform: (key: string, value: Value) => string,
+): OrderedRecord<Value> =>
+  fromUniqueEntries(
+    record.entries.map(([key, value]) => [transform(key, value), value]),
+  )
+
 export const filter = <Value>(
   record: OrderedRecord<Value>,
   predicate: (value: Value, key: string) => boolean,
