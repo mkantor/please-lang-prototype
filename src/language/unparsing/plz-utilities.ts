@@ -562,9 +562,18 @@ const unparseSugaredGeneralizedKeywordExpression = (
     const unparsedKeyword = styleText(['bold', 'underline'], expression['0'])
     if ('1' in expression) {
       return either.map(
-        either.flatMap(
-          serializeIfNeeded(expression['1']),
-          unparseAtomOrMolecule(semanticContext),
+        either.flatMap(serializeIfNeeded(expression['1']), expressionArgument =>
+          unparseAtomOrMolecule(semanticContext)(
+            // If there's only a single property in the argument, unparse it
+            // with an implicit key (e.g. `@runtime { a => b }` rather than
+            // `@runtime { function: a => b }`).
+            (
+              typeof expressionArgument !== 'string' &&
+                orderedRecord.size(expressionArgument) === 1
+            ) ?
+              orderedRecord.mapKeys(expressionArgument, _ => '0')
+            : expressionArgument,
+          ),
         ),
         unparsedArgument => unparsedKeyword.concat(' ', unparsedArgument),
       )
