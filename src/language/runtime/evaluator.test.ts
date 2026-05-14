@@ -1,14 +1,10 @@
 import either, { type Either } from '@matt.kantor/either'
 import assert from 'node:assert'
 import { withPhantomData } from '../../phantom-data.js'
-import { testCases } from '../../test-utilities.test.js'
+import { testCases, toSyntaxTree } from '../../test-utilities.test.js'
+import type { JsonValue } from '../../utility-types.js'
 import type { ElaborationError } from '../errors.js'
-import {
-  canonicalize,
-  type Atom,
-  type JsonValueForbiddingSymbolicKeys,
-  type Molecule,
-} from '../parsing.js'
+import type { Atom, Molecule } from '../parsing.js'
 import type { Output } from '../semantics.js'
 import { evaluate } from './evaluator.js'
 
@@ -17,8 +13,8 @@ const success = (
 ): Either<ElaborationError, Output> =>
   either.makeRight(withPhantomData<never>()(expectedOutput))
 
-const canonicalizeAndEvaluate = (input: JsonValueForbiddingSymbolicKeys) =>
-  evaluate(canonicalize(input))
+const canonicalizeAndEvaluate = (input: JsonValue) =>
+  evaluate(toSyntaxTree(input))
 
 testCases(
   canonicalizeAndEvaluate,

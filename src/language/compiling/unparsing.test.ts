@@ -1,10 +1,9 @@
 import either from '@matt.kantor/either'
 import assert from 'node:assert'
 import { stripVTControlCharacters } from 'node:util'
-import * as orderedRecord from '../../ordered-record.js'
-import { testCases } from '../../test-utilities.test.js'
+import { testCases, toSyntaxTree } from '../../test-utilities.test.js'
 import type { JsonValue } from '../../utility-types.js'
-import { canonicalize, type Molecule } from '../parsing.js'
+import { parseJson } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
 import {
   inlinePlz,
@@ -18,7 +17,7 @@ import {
 import { compile } from './compiler.js'
 
 const unparsers = (rawValue: JsonValue) => {
-  const value = canonicalize(rawValue)
+  const value = toSyntaxTree(rawValue)
   const unparseAndStripAnsi = (notation: Notation) =>
     either.map(
       unparse(value, notation),
@@ -60,25 +59,13 @@ const unparsers = (rawValue: JsonValue) => {
         return unparsedSugarFreePrettyPlz
       },
     ).value,
-    prettyJson: either.map(unparsedPrettyJson, json => {
-      // TODO: Refine this once there's an order-preserving JSON parser.
-      const moleculeToJsonValue = (molecule: Molecule): JsonValue =>
-        Object.fromEntries(
-          molecule.entries.map(([key, value]) => [
-            key,
-            orderedRecord.isOrderedRecord(value) ?
-              moleculeToJsonValue(value)
-            : value,
-          ]),
-        )
-      assert.deepEqual(
-        JSON.parse(json),
-        orderedRecord.isOrderedRecord(value) ?
-          moleculeToJsonValue(value)
-        : value,
-      )
-      return json
-    }).value,
+    prettyJson: either.flatMap(
+      either.flatMap(unparsedPrettyJson, parseJson),
+      roundtrippedValue => {
+        assert.deepEqual(roundtrippedValue, value)
+        return unparsedPrettyJson
+      },
+    ).value,
   }
 }
 

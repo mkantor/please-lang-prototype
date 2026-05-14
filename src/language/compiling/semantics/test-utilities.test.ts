@@ -1,9 +1,9 @@
 import either, { type Either } from '@matt.kantor/either'
 import { withPhantomData } from '../../../phantom-data.js'
-import { testCases } from '../../../test-utilities.test.js'
+import { testCases, toSyntaxTree } from '../../../test-utilities.test.js'
 import type { JsonValue, Writable } from '../../../utility-types.js'
 import type { ElaborationError } from '../../errors.js'
-import { canonicalize, type Molecule } from '../../parsing.js'
+import { type Molecule } from '../../parsing.js'
 import {
   elaborate,
   makeObjectNode,
@@ -14,14 +14,14 @@ import type { SemanticGraph } from '../../semantics/semantic-graph.js'
 import { keywordHandlers } from './keywords.js'
 
 export const elaborationSuite = testCases(
-  (input: JsonValue) => elaborate(canonicalize(input), keywordHandlers),
+  (input: JsonValue) => elaborate(toSyntaxTree(input), keywordHandlers),
   input => `elaborating \`${JSON.stringify(input)}\``,
 )
 
 export const success = (
   expectedOutput: JsonValue,
 ): Either<ElaborationError, ElaboratedSemanticGraph> => {
-  const canonicalized = canonicalize(expectedOutput)
+  const canonicalized = toSyntaxTree(expectedOutput)
   return either.makeRight(
     withPhantomData<never>()(
       typeof canonicalized === 'string' ? canonicalized : (

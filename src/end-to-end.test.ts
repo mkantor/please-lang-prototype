@@ -2,19 +2,19 @@ import either from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import assert from 'node:assert'
 import { compile } from './language/compiling.js'
-import { canonicalize } from './language/parsing.js'
 import { parse } from './language/parsing/parser.js'
 import { evaluate } from './language/runtime.js'
 import * as orderedRecord from './ordered-record.js'
 import {
   parseAndCompileAndRun,
   testCases,
+  toSyntaxTree,
   unparseAndRoundtrip,
   type ProgramResult,
 } from './test-utilities.test.js'
 import type { JsonValue } from './utility-types.js'
 
-const success = (value: JsonValue) => either.makeRight(canonicalize(value))
+const success = (value: JsonValue) => either.makeRight(toSyntaxTree(value))
 
 const endToEnd = (input: string) => {
   const syntaxTree = parse(input)
