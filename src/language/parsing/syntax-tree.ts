@@ -1,16 +1,13 @@
 import option, { type Option } from '@matt.kantor/option'
 import { map, sequence, type Parser } from '@matt.kantor/parsing'
 import * as orderedRecord from '../../ordered-record.js'
-import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { JsonArray, JsonRecord, JsonValue } from '../../utility-types.js'
 import type { KeyPath } from '../semantics.js'
 import { type Atom } from './atom.js'
 import { expression, type Molecule } from './expression.js'
 import { optionalTrivia } from './trivia.js'
 
-declare const _canonicalized: unique symbol
-export type Canonicalized = { readonly [_canonicalized]: true }
-export type SyntaxTree = WithPhantomData<Atom | Molecule, Canonicalized>
+export type SyntaxTree = Atom | Molecule
 
 export const applyKeyPathToSyntaxTree = (
   syntaxTree: SyntaxTree,
@@ -23,10 +20,7 @@ export const applyKeyPathToSyntaxTree = (
     return option.none
   } else {
     return option.flatMap(orderedRecord.get(syntaxTree, firstKey), next =>
-      applyKeyPathToSyntaxTree(
-        withPhantomData<Canonicalized>()(next),
-        remainingKeyPath,
-      ),
+      applyKeyPathToSyntaxTree(next, remainingKeyPath),
     )
   }
 }
@@ -38,13 +32,11 @@ export const applyKeyPathToSyntaxTree = (
 export const canonicalize = (
   input: JsonValueForbiddingSymbolicKeys,
 ): SyntaxTree =>
-  withPhantomData<Canonicalized>()(
-    typeof input === 'string' ? input
-    : input === null || typeof input !== 'object' ? String(input)
-    : orderedRecord.make(
-        Object.entries(input).map(([key, value]) => [key, canonicalize(value)]),
-      ),
-  )
+  typeof input === 'string' ? input
+  : input === null || typeof input !== 'object' ? String(input)
+  : orderedRecord.make(
+      Object.entries(input).map(([key, value]) => [key, canonicalize(value)]),
+    )
 
 /**
  * `canonicalize` inputs should not have symbolic keys. This type doesn't
@@ -67,6 +59,5 @@ type JsonRecordForbiddingSymbolicKeys = {
 
 export const syntaxTreeParser: Parser<SyntaxTree> = map(
   sequence([optionalTrivia, expression, optionalTrivia]),
-  ([_leadingTrivia, syntaxTree, _trailingTrivia]) =>
-    withPhantomData<Canonicalized>()(syntaxTree),
+  ([_leadingTrivia, syntaxTree, _trailingTrivia]) => syntaxTree,
 )

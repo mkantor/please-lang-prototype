@@ -6,7 +6,6 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import type { Canonicalized } from '../parsing/syntax-tree.js'
 import {
   asSemanticGraph,
   makeIndexExpression,
@@ -166,10 +165,7 @@ export const matchSemanticGraph = <Result>(
 
 declare const _serialized: unique symbol
 type Serialized = { readonly [_serialized]: true }
-export type Output = WithPhantomData<
-  Atom | Molecule,
-  Serialized & Canonicalized
->
+export type Output = WithPhantomData<Atom | Molecule, Serialized>
 
 export const serialize = (
   node: SemanticGraph,
@@ -199,7 +195,7 @@ export const serialize = (
           }),
         ),
     }),
-    withPhantomData<Serialized & Canonicalized>(),
+    withPhantomData<Serialized>(),
   )
 
 export const stringifySemanticGraphForEndUser = (

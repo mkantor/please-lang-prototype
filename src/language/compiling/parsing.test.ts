@@ -1,21 +1,17 @@
 import either from '@matt.kantor/either'
 import assert from 'node:assert'
 import * as orderedRecord from '../../ordered-record.js'
-import { withPhantomData } from '../../phantom-data.js'
 import { testCases } from '../../test-utilities.test.js'
 import { canonicalize, type Atom, type SyntaxTree } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
-import { type Canonicalized } from '../parsing/syntax-tree.js'
 
 type Entries = readonly (readonly [string, Atom | Entries])[]
 
 const syntaxTree = (input: Atom | Entries): SyntaxTree =>
-  withPhantomData<Canonicalized>()(
-    typeof input === 'string' ? input : (
-      orderedRecord.make(
-        [...input].map(([key, value]) => [key, syntaxTree(value)]),
-      )
-    ),
+  typeof input === 'string' ? input : (
+    orderedRecord.make(
+      [...input].map(([key, value]) => [key, syntaxTree(value)]),
+    )
   )
 
 testCases(parse, input => `parsing \`${input}\``)('parsing', [
