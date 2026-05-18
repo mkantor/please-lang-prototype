@@ -28,7 +28,7 @@ import {
 
 const A = makeTypeParameter('a', { assignableTo: types.something })
 const B = makeTypeParameter('b', { assignableTo: types.something })
-const C = makeTypeParameter('b', { assignableTo: types.something })
+const C = makeTypeParameter('c', { assignableTo: types.something })
 
 type TaggedNode = ObjectNode & {
   readonly tag: Atom
