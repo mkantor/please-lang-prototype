@@ -187,6 +187,12 @@ testCases(
   parseAndCompile,
   input => `parsing & compiling \`${JSON.stringify(input)}\``,
 )('parser + compiler', [
+  // NOTE: @runtime is used in many of these test cases to defer elaboration.
+  // Otherwise some of these programs would reduce at compile time such that
+  // they don't assert anything interesting (e.g. type inference; it's more
+  // useful to test `(a => :a)(1) ~ 1` in an unelaborated form than what would
+  // happen after compile-time evaluation: `1 ~ 1`).
+
   ['{ a: :b, b: :c, c: 42 }', success({ a: '42', b: '42', c: '42' })],
 
   [
@@ -379,12 +385,14 @@ testCases(
   ['@if { true, true, 42 } ~ :boolean.type', success('true')],
 
   [
-    '{ a: 42, b: :a, :b ~ :integer.type }',
-    success({ a: '42', b: '42', '0': '42' }),
+    '{ a: 42, b: :a, @runtime { _ => :b } ~ :integer.type }',
+    result => {
+      assert(either.isRight(result))
+    },
   ],
 
   [
-    '{ a: 42, (_ => :a)(_) ~ :integer.type }',
+    '{ a: 42, (_ => :a)(@runtime { _ => _ }) ~ :integer.type }',
     result => {
       assert(either.isRight(result))
     },
@@ -398,7 +406,7 @@ testCases(
   ],
 
   [
-    '{ a: 42, b: _ => :a, :b(_) ~ :integer.type }',
+    '{ a: 42, b: _ => :a, :b(@runtime { _ => _ }) ~ :integer.type }',
     result => {
       assert(either.isRight(result))
     },
@@ -412,7 +420,7 @@ testCases(
   ],
 
   [
-    '{ a: _ => 42, b: :a, :b(_) ~ :integer.type }',
+    '{ a: _ => 42, b: :a, :b(@runtime { _ => _ }) ~ :integer.type }',
     result => {
       assert(either.isRight(result))
     },
@@ -435,20 +443,24 @@ testCases(
   ],
 
   [
-    '{ a: 42, f: _ => :a, :f ~ (:something.type ~> :integer.type) }',
+    '{ a: 42, f: _ => :a, @runtime { _ => :f } ~ (:something.type ~> :integer.type) }',
     result => {
       assert(either.isRight(result))
     },
   ],
 
   [
-    '{ a: @if { true, true, 42 }, :a ~ :boolean.type }',
-    success({ a: 'true', '0': 'true' }),
+    '{ a: @if { true, true, 42 }, @runtime { _ => :a } ~ :boolean.type }',
+    result => {
+      assert(either.isRight(result))
+    },
   ],
 
   [
-    '{ a: true, b: 42, @if { true, :a, :b } ~ :boolean.type }',
-    success({ a: 'true', b: '42', '0': 'true' }),
+    '{ a: true, b: 42, @runtime { _ => @if { true, :a, :b } } ~ :boolean.type }',
+    result => {
+      assert(either.isRight(result))
+    },
   ],
 
   [
@@ -504,14 +516,14 @@ testCases(
   ],
 
   [
-    '{ f: :identity, :f(1) ~ 1 }',
+    ':identity(@runtime { _ => 1 }) ~ 1',
     result => {
       assert(either.isRight(result))
     },
   ],
 
   [
-    '{ f: :identity >> :identity, :f(1) ~ 1 }',
+    '{ f: :identity >> :identity, :f(@runtime { _ => 1 }) ~ 1 }',
     result => {
       assert(either.isRight(result))
     },
@@ -538,7 +550,7 @@ testCases(
   ],
 
   [
-    '{ f: a => :a, :f(1) ~ 1 }',
+    '(a => :a)(@runtime { _ => 1 }) ~ 1',
     result => {
       assert(either.isRight(result))
     },
@@ -645,7 +657,7 @@ testCases(
   ],
 
   [
-    `{ a: {}, :a.non_existent_property }`,
+    `{ a: {}, @runtime { _ => :a.non_existent_property } }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
@@ -663,7 +675,7 @@ testCases(
   ],
 
   [
-    `{ a: {}, @if { @runtime { _ => true }, :a.non_existent_property, oops } }`,
+    `{ a: {}, @runtime { _ => @if { @runtime { _ => true }, :a.non_existent_property, oops } } }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
@@ -672,7 +684,7 @@ testCases(
   ],
 
   [
-    `{ a: { b: {} }, :a.b.non_existent_property }`,
+    `{ a: { b: {} }, @runtime { _ => :a.b.non_existent_property } }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
@@ -681,7 +693,7 @@ testCases(
   ],
 
   [
-    `{ a: "not an object", :a.non_existent_property }`,
+    `{ a: "not an object", @runtime { _ => :a.non_existent_property } }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
@@ -690,7 +702,7 @@ testCases(
   ],
 
   [
-    `{ a: { b: 1 }, :a.non_existent_property.another_non_existent_property }`,
+    `{ a: { b: 1 }, @runtime { _ => :a.non_existent_property.another_non_existent_property } }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
@@ -699,7 +711,7 @@ testCases(
   ],
 
   [
-    `{ a: :identity, :a.non_existent_property }`,
+    `{ a: :identity, @runtime { _ => :a.non_existent_property } }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
