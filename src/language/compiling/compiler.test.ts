@@ -737,6 +737,15 @@ testCases(
     },
   ],
 
+  [
+    `@runtime { (context: { program: { start_time: yesterday } }) => {} }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
   [`((a: :integer.type) => :a)(42) ~ 42`, success('42')],
 
   [
