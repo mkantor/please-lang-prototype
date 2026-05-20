@@ -88,7 +88,9 @@ const apply = (
             ),
             // Put the argument in scope.
             [parameterName]: argument,
-            [returnKey]: body,
+            // Use the serialized form so the body in the program matches what
+            // gets re-elaborated.
+            [returnKey]: serializedBody,
           }),
       ),
       updatedProgram =>
