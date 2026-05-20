@@ -831,4 +831,15 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      a: 2
+      b: { a: 1, :a }
+      :b.0 ~ 1
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
