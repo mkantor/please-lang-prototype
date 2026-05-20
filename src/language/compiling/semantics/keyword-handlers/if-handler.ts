@@ -9,7 +9,8 @@ import {
   isExpression,
   isObjectNode,
   makeIfExpression,
-  makeObjectNode,
+  objectNodeFromOrderedEntries,
+  orderedEntriesOfObjectNode,
   readIfExpression,
   serialize,
   showType,
@@ -115,14 +116,14 @@ export const ifKeywordHandler: KeywordHandler = (
                   : isObjectNode(branch) ?
                     either.map(
                       sequenceEithers(
-                        Object.entries(branch).map(([key, value]) =>
+                        orderedEntriesOfObjectNode(branch).map(([key, value]) =>
                           either.map(
                             elaborateNestedIfLookups(value),
                             elaboratedValue => [key, elaboratedValue] as const,
                           ),
                         ),
                       ),
-                      entries => makeObjectNode(Object.fromEntries(entries)),
+                      entries => objectNodeFromOrderedEntries(entries),
                     )
                   : either.makeRight(branch)
 
