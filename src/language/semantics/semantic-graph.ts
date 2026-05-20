@@ -6,11 +6,7 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import {
-  asSemanticGraph,
-  makeIndexExpression,
-  makeLookupExpression,
-} from '../semantics.js'
+import { makeIndexExpression, makeLookupExpression } from '../semantics.js'
 import { inlinePlz, unparse, type Notation } from '../unparsing.js'
 import { isExpression } from './expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
@@ -68,11 +64,10 @@ export const applyKeyPathToSemanticGraph = (
 }
 
 export const containsAnyUnelaboratedNodes = (node: SemanticGraph): boolean => {
-  const nodeAsSemanticGraph = asSemanticGraph(node)
   if (
-    isExpression(nodeAsSemanticGraph) &&
-    isKeyword(nodeAsSemanticGraph[0]) &&
-    !isExemptFromElaboration(nodeAsSemanticGraph[0])
+    isExpression(node) &&
+    isKeyword(node[0]) &&
+    !isExemptFromElaboration(node[0])
   ) {
     return true
   } else if (typeof node === 'object') {
