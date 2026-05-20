@@ -34,7 +34,7 @@ export const option = {
             }),
             1: makeObjectNode({
               tag: 'none',
-              value: {},
+              value: makeObjectNode({}),
             }),
           }),
         ),

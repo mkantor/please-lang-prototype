@@ -9,7 +9,11 @@ import {
   type KeyPath,
   type NonEmptyKeyPath,
 } from '../key-path.js'
-import { makeObjectNode, type ObjectNode } from '../object-node.js'
+import {
+  makeObjectNode,
+  objectNodeFromMolecule,
+  type ObjectNode,
+} from '../object-node.js'
 import { prelude } from '../prelude.js'
 import {
   applyKeyPathToSemanticGraph,
@@ -68,7 +72,7 @@ export const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
   } else {
     return makeIndexExpression({
       object: initialLookup,
-      query: makeObjectNode(keyPathToMolecule(indexes)),
+      query: objectNodeFromMolecule(keyPathToMolecule(indexes)),
     })
   }
 }

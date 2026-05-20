@@ -9,7 +9,8 @@ import {
   zeroOrMore,
   type Parser,
 } from '@matt.kantor/parsing'
-import type { Writable } from '../../utility-types.js'
+import * as orderedRecord from '../../ordered-record.js'
+import { type OrderedRecord } from '../../ordered-record.js'
 import { keyPathToMolecule, type KeyPath } from '../semantics.js'
 import {
   atom,
@@ -36,7 +37,12 @@ import {
 } from './parentheses.js'
 import { optionalTrivia, trivia, triviaExceptNewlines } from './trivia.js'
 
-export type Molecule = { readonly [key: Atom]: Molecule | Atom }
+// `interface` (not `type`) is used to avoid a circular reference error.
+export interface Molecule extends OrderedRecord<Atom | Molecule> {}
+
+const molecule = (
+  entries: Iterable<readonly [string, Atom | Molecule]>,
+): Molecule => orderedRecord.make(entries)
 
 // Keyless properties are automatically assigned numeric indexes, which uses
 // some mutable state.
@@ -58,25 +64,31 @@ const optional = <Output>(
 const trailingIndexesAndArgumentsToExpression = (
   root: Atom | Molecule,
   trailingIndexesAndArguments: readonly TrailingIndexOrArgument[],
-) =>
+): Atom | Molecule =>
   trailingIndexesAndArguments.reduce((expression, indexOrArgument) => {
     switch (indexOrArgument.kind) {
       case 'argument':
-        return {
-          0: '@apply',
-          1: {
-            function: expression,
-            argument: indexOrArgument.argument,
-          },
-        }
+        return molecule([
+          ['0', '@apply'],
+          [
+            '1',
+            molecule([
+              ['function', expression],
+              ['argument', indexOrArgument.argument],
+            ]),
+          ],
+        ])
       case 'index':
-        return {
-          0: '@index',
-          1: {
-            object: expression,
-            query: keyPathToMolecule(indexOrArgument.query),
-          },
-        }
+        return molecule([
+          ['0', '@index'],
+          [
+            '1',
+            molecule([
+              ['object', expression],
+              ['query', keyPathToMolecule(indexOrArgument.query)],
+            ]),
+          ],
+        ])
     }
   }, root)
 
@@ -93,21 +105,28 @@ const signatureTokensToExpression = (
     throw new Error('Signature parameter type did not exist. This is a bug!')
   }
 
-  const initialSignature = {
-    0: '@signature',
-    1: {
-      parameter: lastParameterType,
-      return: lastReturnType,
-    },
-  }
+  const initialSignature = molecule([
+    ['0', '@signature'],
+    [
+      '1',
+      molecule([
+        ['parameter', lastParameterType],
+        ['return', lastReturnType],
+      ]),
+    ],
+  ])
   return additionalParameterTypes.reduce(
-    (expression, additionalParameter) => ({
-      0: '@signature',
-      1: {
-        parameter: additionalParameter,
-        return: expression,
-      },
-    }),
+    (expression, additionalParameter) =>
+      molecule([
+        ['0', '@signature'],
+        [
+          '1',
+          molecule([
+            ['parameter', additionalParameter],
+            ['return', expression],
+          ]),
+        ],
+      ]),
     initialSignature,
   )
 }
@@ -115,11 +134,11 @@ const signatureTokensToExpression = (
 const unionTokensToExpression = (
   tokens: readonly [Atom | Molecule, ...(Atom | Molecule)[], Atom | Molecule],
 ): Molecule | Atom => {
-  const members: Record<number, Atom | Molecule> = { ...tokens }
-  return {
-    0: '@union',
-    1: members,
-  }
+  const members = molecule(tokens.map((token, index) => [String(index), token]))
+  return molecule([
+    ['0', '@union'],
+    ['1', members],
+  ])
 }
 
 type InfixOperator = readonly [Atom, readonly TrailingIndexOrArgument[]]
@@ -172,23 +191,35 @@ const infixTokensToExpression = (
     }
 
     const leftmostFunction = trailingIndexesAndArgumentsToExpression(
-      { 0: '@lookup', 1: { key: leftmostOperator[0] } },
+      molecule([
+        ['0', '@lookup'],
+        ['1', molecule([['key', leftmostOperator[0]]])],
+      ]),
       leftmostOperator[1],
     )
 
-    const reducedLeftmostOperation: Molecule = {
-      0: '@apply',
-      1: {
-        function: {
-          0: '@apply',
-          1: {
-            function: leftmostFunction,
-            argument: leftmostOperationRHS,
-          },
-        },
-        argument: leftmostOperationLHS,
-      },
-    }
+    const reducedLeftmostOperation = molecule([
+      ['0', '@apply'],
+      [
+        '1',
+        molecule([
+          [
+            'function',
+            molecule([
+              ['0', '@apply'],
+              [
+                '1',
+                molecule([
+                  ['function', leftmostFunction],
+                  ['argument', leftmostOperationRHS],
+                ]),
+              ],
+            ]),
+          ],
+          ['argument', leftmostOperationLHS],
+        ]),
+      ],
+    ])
 
     return infixTokensToExpression([
       reducedLeftmostOperation,
@@ -262,16 +293,13 @@ const sugarFreeMolecule: Parser<Molecule> = map(
         [optionalInitialProperty, ...remainingProperties]
       )
     const enumerate = makeIncrementingIndexer()
-    return properties.reduce((molecule: Writable<Molecule>, [key, value]) => {
-      if (key === undefined) {
+    return molecule(
+      properties.map(([key, value]) =>
         // Note that `enumerate()` increments its internal counter as a side
         // effect.
-        molecule[enumerate()] = value
-      } else {
-        molecule[key] = value
-      }
-      return molecule
-    }, {})
+        [key ?? enumerate(), value],
+      ),
+    )
   },
 )
 
@@ -415,10 +443,17 @@ const trailingCheckToken = map(
 const checkTokenToExpression = (
   value: Atom | Molecule,
   type: Atom | Molecule,
-): Molecule => ({
-  0: '@check',
-  1: { value, type },
-})
+): Molecule =>
+  molecule([
+    ['0', '@check'],
+    [
+      '1',
+      molecule([
+        ['value', value],
+        ['type', type],
+      ]),
+    ],
+  ])
 
 const trailingInfixTokens = oneOrMore(
   map(
@@ -463,7 +498,7 @@ const typedFunctionParameter: Parser<Molecule> = surroundedByParentheses(
       optionalTrivia,
       lazy(() => expression),
     ]),
-    ([name, _trivia1, _colon, _trivia2, type]) => ({ [name]: type }),
+    ([name, _trivia1, _colon, _trivia2, type]) => molecule([[name, type]]),
   ),
 )
 
@@ -505,21 +540,28 @@ const precededByAtomThenFunctionArrow = map(
       ...trailingParameters.toReversed(),
       initialParameter,
     ]
-    const initialFunction = {
-      0: '@function',
-      1: {
-        parameter: lastParameter,
-        body: body,
-      },
-    }
+    const initialFunction = molecule([
+      ['0', '@function'],
+      [
+        '1',
+        molecule([
+          ['parameter', lastParameter],
+          ['body', body],
+        ]),
+      ],
+    ])
     return additionalParameters.reduce(
-      (expression, additionalParameter) => ({
-        0: '@function',
-        1: {
-          parameter: additionalParameter,
-          body: expression,
-        },
-      }),
+      (expression, additionalParameter) =>
+        molecule([
+          ['0', '@function'],
+          [
+            '1',
+            molecule([
+              ['parameter', additionalParameter],
+              ['body', expression],
+            ]),
+          ],
+        ]),
       initialFunction,
     )
   },
@@ -535,10 +577,11 @@ const precededByAtSign = map(
     optionalTrivia,
     optional(lazy(() => compactExpression)),
   ]),
-  ([_atSign, keyword, _trivia, argument]) => ({
-    0: `@${keyword}`,
-    1: argument === undefined ? {} : argument,
-  }),
+  ([_atSign, keyword, _trivia, argument]) =>
+    molecule([
+      ['0', `@${keyword}`],
+      ['1', argument === undefined ? orderedRecord.empty : argument],
+    ]),
 )
 
 // :a
@@ -550,7 +593,10 @@ const precededByColonThenAtom = map(
   sequence([colon, atomRequiringDotQuotation, trailingIndexesAndArguments]),
   ([_colon, key, trailingIndexesAndArguments]) =>
     trailingIndexesAndArgumentsToExpression(
-      { 0: '@lookup', 1: { key } },
+      molecule([
+        ['0', '@lookup'],
+        ['1', molecule([['key', key]])],
+      ]),
       trailingIndexesAndArguments,
     ),
 )

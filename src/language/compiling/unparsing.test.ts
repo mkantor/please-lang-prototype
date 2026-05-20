@@ -1,8 +1,10 @@
 import either from '@matt.kantor/either'
 import assert from 'node:assert'
 import { stripVTControlCharacters } from 'node:util'
+import * as orderedRecord from '../../ordered-record.js'
 import { testCases } from '../../test-utilities.test.js'
-import { type Atom, type Molecule } from '../parsing.js'
+import type { JsonValue } from '../../utility-types.js'
+import { canonicalize, type Molecule } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
 import {
   inlinePlz,
@@ -15,7 +17,8 @@ import {
 } from '../unparsing.js'
 import { compile } from './compiler.js'
 
-const unparsers = (value: Atom | Molecule) => {
+const unparsers = (rawValue: JsonValue) => {
+  const value = canonicalize(rawValue)
   const unparseAndStripAnsi = (notation: Notation) =>
     either.map(
       unparse(value, notation),
@@ -31,34 +34,49 @@ const unparsers = (value: Atom | Molecule) => {
   return {
     inlinePlz: either.flatMap(
       either.flatMap(unparsedInlinePlz, parse),
-      (roundtrippedValue: {}) => {
+      roundtrippedValue => {
         assert.deepEqual(compile(roundtrippedValue).value, compile(value).value)
         return unparsedInlinePlz
       },
     ).value,
     sugarFreeInlinePlz: either.flatMap(
       either.flatMap(unparsedSugarFreeInlinePlz, parse),
-      (roundtrippedValue: {}) => {
+      roundtrippedValue => {
         assert.deepEqual(compile(roundtrippedValue).value, compile(value).value)
         return unparsedSugarFreeInlinePlz
       },
     ).value,
     prettyPlz: either.flatMap(
       either.flatMap(unparsedPrettyPlz, parse),
-      (roundtrippedValue: {}) => {
+      roundtrippedValue => {
         assert.deepEqual(compile(roundtrippedValue).value, compile(value).value)
         return unparsedPrettyPlz
       },
     ).value,
     sugarFreePrettyPlz: either.flatMap(
       either.flatMap(unparsedSugarFreePrettyPlz, parse),
-      (roundtrippedValue: {}) => {
+      roundtrippedValue => {
         assert.deepEqual(compile(roundtrippedValue).value, compile(value).value)
         return unparsedSugarFreePrettyPlz
       },
     ).value,
     prettyJson: either.map(unparsedPrettyJson, json => {
-      assert.deepEqual(JSON.parse(json), value)
+      // TODO: Refine this once there's an order-preserving JSON parser.
+      const moleculeToJsonValue = (molecule: Molecule): JsonValue =>
+        Object.fromEntries(
+          molecule.entries.map(([key, value]) => [
+            key,
+            orderedRecord.isOrderedRecord(value) ?
+              moleculeToJsonValue(value)
+            : value,
+          ]),
+        )
+      assert.deepEqual(
+        JSON.parse(json),
+        orderedRecord.isOrderedRecord(value) ?
+          moleculeToJsonValue(value)
+        : value,
+      )
       return json
     }).value,
   }

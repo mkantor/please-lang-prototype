@@ -18,7 +18,6 @@ import {
   type ExpressionContext,
   type KeyPath,
   type KeywordHandler,
-  type Output,
   type SemanticGraph,
 } from '../../../semantics.js'
 
@@ -65,14 +64,14 @@ export const ifKeywordHandler: KeywordHandler = (
           return either.flatMap(
             either.flatMap(
               inferType(elaboratedCondition, context),
-              (conditionType): Either<ElaborationError, Output> =>
+              conditionType =>
                 (
                   isAssignable({
                     source: conditionType,
                     target: types.boolean,
                   })
                 ) ?
-                  serialize(elaboratedCondition)
+                  either.makeRight(elaboratedCondition)
                 : either.makeLeft({
                     kind: 'typeMismatch',
                     message: `\`@if\` condition was not assignable to \`${showType(types.boolean)}\` (it was \`${showType(conditionType)}\`)`,
@@ -149,7 +148,7 @@ export const ifKeywordHandler: KeywordHandler = (
                   ]),
                   ([elaboratedThen, elaboratedElse]) =>
                     makeIfExpression({
-                      condition: asSemanticGraph(condition),
+                      condition,
                       then: elaboratedThen,
                       else: elaboratedElse,
                     }),

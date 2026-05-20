@@ -8,7 +8,11 @@ import { asSemanticGraph } from '../semantics.js'
 import { isExpression, type Expression } from './expression.js'
 import type { KeyPath } from './key-path.js'
 import { isKeyword, type Keyword } from './keyword.js'
-import { makeObjectNode, type ObjectNode } from './object-node.js'
+import {
+  makeObjectNode,
+  objectNodeFromMolecule,
+  type ObjectNode,
+} from './object-node.js'
 import {
   containsAnyUnelaboratedNodes,
   extractStringValueIfPossible,
@@ -44,7 +48,8 @@ export const elaborate = (
   elaborateWithContext(program, {
     keywordHandlers,
     location: [],
-    program: typeof program === 'string' ? program : makeObjectNode(program),
+    program:
+      typeof program === 'string' ? program : objectNodeFromMolecule(program),
   })
 
 export const elaborateWithContext = (
@@ -84,7 +89,7 @@ const elaborateWithinMolecule = (
     const keysNeedingReelaboration = new Set<Atom>()
     let moleculeIsKeywordExpression = false
 
-    for (let [key, value] of Object.entries(molecule)) {
+    for (const [key, value] of molecule.entries) {
       const keyUpdateResult = handleAtomWhichMayNotBeAKeyword(key)
       if (either.isLeft(keyUpdateResult)) {
         // Immediately bail on error.
@@ -159,10 +164,7 @@ const elaborateWithinMolecule = (
     // properties have been processed. This resolves forward references where a
     // `@lookup` is elaborated before its target (e.g. in a program like
     // `{ a: :b, b: :identity(42) }`, the `:b` lookup originally resolved to the
-    // raw `:identity` application rather than its return value, and this
-    // behavior could sneakily arise even in programs without explicit forward
-    // references (such as `{ a: :identity(42), 999: :a }`), because JavaScript
-    // runtimes iterate over integer keys before others).
+    // raw `:identity` application rather than its return value.
     //
     // Re-elaboration repeats until a fixed point is reached where no progress
     // is made (a chain of forward references may require multiple passes, and

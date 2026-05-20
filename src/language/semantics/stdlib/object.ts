@@ -56,7 +56,7 @@ export const object = {
       either.makeRight(
         isObjectNode(argument) ?
           makeObjectNode({ tag: 'some', value: argument })
-        : makeObjectNode({ tag: 'none', value: {} }),
+        : makeObjectNode({ tag: 'none', value: makeObjectNode({}) }),
       ),
   ),
 

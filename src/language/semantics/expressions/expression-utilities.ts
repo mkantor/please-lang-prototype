@@ -10,7 +10,7 @@ import { isSemanticGraph } from '../is-semantic-graph.js'
 import { stringifyKeyPathForEndUser } from '../key-path.js'
 import {
   lookupPropertyOfObjectNode,
-  makeObjectNode,
+  objectNodeFromMolecule,
   type ObjectNode,
 } from '../object-node.js'
 import {
@@ -21,7 +21,8 @@ import {
 
 export const asSemanticGraph = (
   value: SemanticGraph | Molecule,
-): SemanticGraph => (isSemanticGraph(value) ? value : makeObjectNode(value))
+): SemanticGraph =>
+  isSemanticGraph(value) ? value : objectNodeFromMolecule(value)
 
 export const locateSelf = (context: ExpressionContext) =>
   option.match(applyKeyPathToSemanticGraph(context.program, context.location), {
@@ -64,7 +65,7 @@ export const readArgumentsFromExpression = <
   } else {
     const expressionArguments: ObjectNode[string][] = []
     for (const [position, keyword] of specification.entries()) {
-      const argument = lookupWithinMolecule(
+      const argument = lookupWithinObjectNode(
         [keyword, String(position)],
         expression[1],
       )
@@ -98,12 +99,12 @@ export const stringifyKeyForEndUser = (key: Atom): string =>
     left: error => `(unserializable key: ${error.message})`,
   })
 
-const lookupWithinMolecule = (
+const lookupWithinObjectNode = (
   keyAliases: readonly [Atom, ...(readonly Atom[])],
-  molecule: Molecule | ObjectNode,
+  node: ObjectNode,
 ): Option<SemanticGraph> => {
   for (const key of keyAliases) {
-    const result = lookupPropertyOfObjectNode(key, makeObjectNode(molecule))
+    const result = lookupPropertyOfObjectNode(key, node)
     if (!option.isNone(result)) {
       return result
     }

@@ -1,6 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
-import type { Writable } from '../../utility-types.js'
+import * as orderedRecord from '../../ordered-record.js'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { asSemanticGraph } from './expressions/expression-utilities.js'
@@ -30,7 +30,7 @@ type PropertyValueToSemanticGraph<
   PropertyValue extends SemanticGraph | Molecule,
 > =
   PropertyValue extends SemanticGraph ? PropertyValue
-  : PropertyValue extends Molecule ? PropertiesToSemanticGraphs<PropertyValue>
+  : PropertyValue extends Molecule ? ObjectNode
   : never
 
 type PropertiesToSemanticGraphs<
@@ -53,29 +53,42 @@ export const makeObjectNode = <
     SemanticGraph
   > as PropertiesToSemanticGraphs<Properties> // This type assertion assumes no excess properties are present.
 
-  // The index signature from `ObjectNode` is necessary to make this typecheck.
-  const objectNodeTagProperty: ObjectNode = { [nodeTag]: 'object' }
-
   return {
     ...propertiesAsSemanticGraphs,
-    ...objectNodeTagProperty,
+    [nodeTag]: 'object',
+  }
+}
+
+/**
+ * Convert an OrderedRecord-backed `Molecule` to an `ObjectNode`. Property
+ * values that are themselves `Molecule`s are converted recursively.
+ */
+export const objectNodeFromMolecule = (molecule: Molecule): ObjectNode => {
+  const propertiesAsSemanticGraphs = Object.fromEntries(
+    molecule.entries.map(
+      ([key, value]) => [key, asSemanticGraph(value)] as const,
+    ),
+  )
+  return {
+    ...propertiesAsSemanticGraphs,
+    [nodeTag]: 'object',
   }
 }
 
 export const serializeObjectNode = (
   node: ObjectNode,
 ): Either<UnserializableValueError, Molecule> => {
-  const molecule: Writable<Molecule> = {}
+  const serializedEntries: (readonly [Atom, Output])[] = []
   for (const [key, propertyValue] of Object.entries(node)) {
     const serializedPropertyValueResult =
       serializeObjectPropertyValue(propertyValue)
     if (either.isLeft(serializedPropertyValueResult)) {
       return serializedPropertyValueResult
     } else {
-      molecule[key] = serializedPropertyValueResult.value
+      serializedEntries.push([key, serializedPropertyValueResult.value])
     }
   }
-  return either.makeRight(molecule)
+  return either.makeRight(orderedRecord.make(serializedEntries))
 }
 
 const serializeObjectPropertyValue = (

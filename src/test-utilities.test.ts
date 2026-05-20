@@ -62,10 +62,10 @@ export const testCases =
       }),
     )
 
-export const parseAndCompileAndRun = (input: string) => {
-  const syntaxTree: ProgramResult = parse(input)
-  const program: ProgramResult = either.flatMap(syntaxTree, compile)
-  const runtimeOutput: ProgramResult = either.flatMap(program, evaluate)
+export const parseAndCompileAndRun = (input: string): ProgramResult => {
+  const syntaxTree = parse(input)
+  const program = either.flatMap(syntaxTree, compile)
+  const runtimeOutput = either.flatMap(program, evaluate)
   return runtimeOutput
 }
 
