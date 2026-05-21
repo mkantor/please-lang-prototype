@@ -21,6 +21,7 @@ import {
   makeObjectNode,
   objectNodeFromMolecule,
   serializeObjectNode,
+  withProperty,
   type ObjectNode,
 } from './object-node.js'
 import { nodeTag } from './semantic-graph-node-tag.js'
@@ -128,11 +129,7 @@ export const updateValueAtKeyPathInSemanticGraph = (
               remainingKeyPath,
               operation,
             ),
-            updatedNode =>
-              (isExpression(node) ? makeObjectNode : makeObjectNode)({
-                ...node,
-                [firstKey]: updatedNode,
-              }),
+            updatedNode => withProperty(node, firstKey, updatedNode),
           )
         }
       },

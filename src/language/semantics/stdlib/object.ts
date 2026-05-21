@@ -1,5 +1,10 @@
 import either from '@matt.kantor/either'
-import { isObjectNode, makeObjectNode } from '../object-node.js'
+import {
+  isObjectNode,
+  makeObjectNode,
+  objectNodeFromOrderedEntries,
+  orderedEntriesOfObjectNode,
+} from '../object-node.js'
 import { types } from '../type-system.js'
 import { makeFunctionType } from '../type-system/type-formats.js'
 import {
@@ -108,7 +113,19 @@ export const object = {
               message: '`overlay` expected an object',
             })
           } else {
-            return either.makeRight({ ...object1, ...object2 })
+            // `object1` supplies the initial property order with `object2`
+            // overwriting values for shared keys in-place. New keys from
+            // `object2` are appended at the end in their original order.
+            return either.makeRight(
+              objectNodeFromOrderedEntries([
+                ...orderedEntriesOfObjectNode(object1).map(
+                  ([key, value]) => [key, object2[key] ?? value] as const,
+                ),
+                ...orderedEntriesOfObjectNode(object2).filter(
+                  ([key, _value]) => !(key in object1),
+                ),
+              ]),
+            )
           }
         })
       }

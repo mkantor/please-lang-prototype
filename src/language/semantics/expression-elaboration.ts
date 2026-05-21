@@ -11,6 +11,8 @@ import { isKeyword, type Keyword } from './keyword.js'
 import {
   makeObjectNode,
   objectNodeFromMolecule,
+  orderedKeys,
+  withProperty,
   type ObjectNode,
 } from './object-node.js'
 import {
@@ -85,6 +87,10 @@ const elaborateWithinMolecule = (
     const possibleExpressionAsObjectNode: Writable<ObjectNode> = makeObjectNode(
       {},
     )
+
+    // Used to initialize the resulting `ObjectNode`'s `orderedKeys` sidecar.
+    const orderedKeysAccumulator: Atom[] = []
+
     let updatedProgram = context.program
     const keysNeedingReelaboration = new Set<Atom>()
     let moleculeIsKeywordExpression = false
@@ -97,6 +103,9 @@ const elaborateWithinMolecule = (
       } else {
         const updatedKey = keyUpdateResult.value
         if (typeof value === 'string') {
+          if (!(updatedKey in possibleExpressionAsObjectNode)) {
+            orderedKeysAccumulator.push(updatedKey)
+          }
           possibleExpressionAsObjectNode[updatedKey] = value
           if (key === '0' && isKeyword(value)) {
             moleculeIsKeywordExpression = true
@@ -124,6 +133,9 @@ const elaborateWithinMolecule = (
           if (either.isRight(programUpdateResult)) {
             updatedProgram = programUpdateResult.value
           }
+          if (!(updatedKey in possibleExpressionAsObjectNode)) {
+            orderedKeysAccumulator.push(updatedKey)
+          }
           possibleExpressionAsObjectNode[updatedKey] = elaborationResult.value
           if (
             typeof elaborationResult.value !== 'string' &&
@@ -134,6 +146,7 @@ const elaborateWithinMolecule = (
         }
       }
     }
+    possibleExpressionAsObjectNode[orderedKeys] = orderedKeysAccumulator
 
     const {
       0: possibleKeywordAsNode,
@@ -250,14 +263,11 @@ const handleObjectNodeWhichMayBeAExpression = (
   node: ObjectNode & { readonly 0: Atom },
   context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> => {
-  const { 0: possibleKeyword, ...possibleArguments } = node
+  const possibleKeyword = node[0]
   return (
     isKeyword(possibleKeyword) ?
       context.keywordHandlers[possibleKeyword](
-        makeObjectNode({
-          ...possibleArguments,
-          0: possibleKeyword,
-        }),
+        withProperty(node, '0', possibleKeyword),
         context,
       )
     : /^@[^@]/.test(possibleKeyword) ?
@@ -265,10 +275,9 @@ const handleObjectNodeWhichMayBeAExpression = (
         kind: 'unknownKeyword',
         message: `unknown keyword: \`${possibleKeyword}\``,
       })
-    : either.makeRight({
-        ...node,
-        0: unescapeKeywordSigil(possibleKeyword),
-      })
+    : either.makeRight(
+        withProperty(node, '0', unescapeKeywordSigil(possibleKeyword)),
+      )
   )
 }
 

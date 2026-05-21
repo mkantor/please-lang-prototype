@@ -78,6 +78,11 @@ export {
   isObjectNode,
   lookupPropertyOfObjectNode,
   makeObjectNode,
+  objectNodeFromMolecule,
+  objectNodeFromOrderedEntries,
+  orderedEntriesOfObjectNode,
+  orderedKeys,
+  withProperty,
   type ObjectNode,
 } from './semantics/object-node.js'
 export { prelude } from './semantics/prelude.js'
