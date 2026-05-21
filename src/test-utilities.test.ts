@@ -7,7 +7,7 @@ import type {
   ParseError,
   RuntimeError,
 } from './language/errors.js'
-import type { Atom, Molecule } from './language/parsing.js'
+import type { Atom, Molecule, SyntaxTree } from './language/parsing.js'
 import { parse } from './language/parsing/parser.js'
 import { evaluate } from './language/runtime.js'
 import {
@@ -16,6 +16,8 @@ import {
   unparse,
   type Notation,
 } from './language/unparsing.js'
+import * as orderedRecord from './ordered-record.js'
+import type { JsonValue } from './utility-types.js'
 
 // Disable colors. This yields more readable test failure messages, at the cost
 // of not being able to test colors.
@@ -60,6 +62,13 @@ export const testCases =
           },
         )
       }),
+    )
+
+export const toSyntaxTree = (input: JsonValue): SyntaxTree =>
+  typeof input === 'string' ? input
+  : input === null || typeof input !== 'object' ? String(input)
+  : orderedRecord.make(
+      Object.entries(input).map(([key, value]) => [key, toSyntaxTree(value)]),
     )
 
 export const parseAndCompileAndRun = (input: string): ProgramResult => {

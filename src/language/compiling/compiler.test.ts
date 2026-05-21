@@ -2,14 +2,10 @@ import either, { type Either } from '@matt.kantor/either'
 import assert from 'node:assert'
 import * as orderedRecord from '../../ordered-record.js'
 import { withPhantomData } from '../../phantom-data.js'
-import { testCases } from '../../test-utilities.test.js'
+import { testCases, toSyntaxTree } from '../../test-utilities.test.js'
 import type { JsonValue } from '../../utility-types.js'
 import type { ElaborationError } from '../errors.js'
-import {
-  canonicalize,
-  type JsonValueForbiddingSymbolicKeys,
-  type Molecule,
-} from '../parsing.js'
+import type { Molecule } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
 import type { Output } from '../semantics.js'
 import { compile } from './compiler.js'
@@ -20,13 +16,13 @@ const success = (
   either.makeRight(
     withPhantomData<never>()(
       orderedRecord.isOrderedRecord(expectedOutput) ? expectedOutput : (
-        canonicalize(expectedOutput)
+        toSyntaxTree(expectedOutput)
       ),
     ),
   )
 
-const canonicalizeAndCompile = (input: JsonValueForbiddingSymbolicKeys) =>
-  compile(canonicalize(input))
+const canonicalizeAndCompile = (input: JsonValue) =>
+  compile(toSyntaxTree(input))
 
 testCases(
   canonicalizeAndCompile,

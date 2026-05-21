@@ -2,7 +2,7 @@ import either from '@matt.kantor/either'
 import assert from 'node:assert'
 import * as orderedRecord from '../../ordered-record.js'
 import { testCases } from '../../test-utilities.test.js'
-import { canonicalize, type Atom, type SyntaxTree } from '../parsing.js'
+import { type Atom, type SyntaxTree } from '../parsing.js'
 import { parse } from '../parsing/parser.js'
 
 type Entries = readonly (readonly [string, Atom | Entries])[]
@@ -393,48 +393,3 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
   ['"||valid"', either.makeRight(syntaxTree('||valid'))],
   ['"valid||"', either.makeRight(syntaxTree('valid||'))],
 ])
-
-testCases(canonicalize, input => `canonicalizing \`${JSON.stringify(input)}\``)(
-  'canonicalization',
-  [
-    [{}, syntaxTree([])],
-    [[], syntaxTree([])],
-    ['a', syntaxTree('a')],
-    [1, syntaxTree('1')],
-    [Number.EPSILON, syntaxTree('2.220446049250313e-16')],
-    [null, syntaxTree('null')],
-    [true, syntaxTree('true')],
-    [false, syntaxTree('false')],
-    [['a'], syntaxTree([['0', 'a']])],
-    [{ 0: 'a' }, syntaxTree([['0', 'a']])],
-    [{ 1: 'a' }, syntaxTree([['1', 'a']])],
-    [
-      ['a', { b: [], c: { d: ['e', {}, 42] } }, 'f', { g: null }, true],
-      syntaxTree([
-        ['0', 'a'],
-        [
-          '1',
-          [
-            ['b', []],
-            [
-              'c',
-              [
-                [
-                  'd',
-                  [
-                    ['0', 'e'],
-                    ['1', []],
-                    ['2', '42'],
-                  ],
-                ],
-              ],
-            ],
-          ],
-        ],
-        ['2', 'f'],
-        ['3', [['g', 'null']]],
-        ['4', 'true'],
-      ]),
-    ],
-  ],
-)
