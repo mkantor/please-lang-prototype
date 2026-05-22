@@ -554,11 +554,14 @@ testCases(
   [
     '{ f: :identity >> :identity, :f(@runtime { _ => 1 }) ~ 1 }',
     result => {
-      // TODO: Make this type-check again. This happened to work before because
-      // of how the wonky elaboration order kept the `@apply` deferred. Revisit
-      // once migration to source-order elaboration is complete.
-      assert(either.isLeft(result))
-      assert(result.value.kind === 'typeMismatch')
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(:identity >> :identity)(@runtime { _ => 1 }) ~ 1`,
+    result => {
+      assert(either.isRight(result))
     },
   ],
 

@@ -22,7 +22,7 @@ export const object = {
       parameter: types.atom,
       return: makeFunctionType('', {
         parameter: types.object,
-        return: types.something,
+        return: types.option(types.something),
       }),
     },
     key => {
