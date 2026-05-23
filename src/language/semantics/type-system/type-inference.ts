@@ -6,6 +6,7 @@ import {
   applyKeyPathToSemanticGraph,
   containsAnyUnelaboratedNodes,
   getParameterName,
+  ignoredKey,
   isAssignable,
   isExpression,
   isFunctionNode,
@@ -389,12 +390,16 @@ const getFunctionParameterType = (
 ): Either<Bug, Type> =>
   option.match(getParameterTypeAnnotation(expression), {
     some: annotation =>
-      either.map(literalTypeFromSemanticGraph(annotation), annotationType =>
-        genericizeFunctionParameterAnnotation(
-          getParameterName(expression),
-          annotationType,
-        ),
-      ),
+      either.map(literalTypeFromSemanticGraph(annotation), annotationType => {
+        const parameterName = getParameterName(expression)
+        // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
+        // the parser emits for `~>` syntax sugar). Genericization is skipped
+        // in this case so `a ~> b` and `(_: a) => b` can be used to describe
+        // concrete function types rather than generic ones.
+        return parameterName === ignoredKey ? annotationType : (
+            genericizeFunctionParameterAnnotation(parameterName, annotationType)
+          )
+      }),
     none: _ => {
       const contextualType = option.flatMap(
         enclosingExpressionFromPropertyOfExpressionArgument(contextOfFunction),

@@ -709,10 +709,9 @@ export const literalTypeFromSemanticGraph = (
       signature: node.signature,
     })
   } else {
-    // TODO: It would be nice to use `readUnionExpression` &
-    // `readSignatureExpression` here, but directly importing values from the
-    // *-expression.ts modules causes a dependency cycle. This needs
-    // investigation.
+    // TODO: It would be nice to use `readUnionExpression` here, but directly
+    // importing values from the *-expression.ts modules causes a dependency
+    // cycle. This needs investigation.
     if (isKeywordExpressionWithArgument('@union', node)) {
       return either.map(
         either.sequence(
@@ -728,33 +727,6 @@ export const literalTypeFromSemanticGraph = (
             ),
           ),
       )
-    } else if (isKeywordExpressionWithArgument('@signature', node)) {
-      const signature = node[1]
-      if (
-        typeof signature === 'object' &&
-        'parameter' in signature &&
-        'return' in signature
-      ) {
-        return either.mapLeft(
-          either.map(
-            either.sequence([
-              literalTypeFromSemanticGraph(signature['parameter']),
-              literalTypeFromSemanticGraph(signature['return']),
-            ]),
-            ([parameterType, returnType]) =>
-              makeFunctionType('', {
-                parameter: parameterType,
-                return: returnType,
-              }),
-          ),
-          error => ({ kind: 'bug', message: error.message }),
-        )
-      } else {
-        return either.makeLeft({
-          kind: 'bug',
-          message: 'signature did not have the expected structure',
-        })
-      }
     } else {
       // `node` is an object type.
       return either.map(

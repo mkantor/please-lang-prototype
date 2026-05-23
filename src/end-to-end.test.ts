@@ -786,10 +786,10 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       '1': {
         '0': 'true',
         '1': {
-          '0': '@signature',
+          '0': '@function',
           '1': {
-            parameter: 'false',
-            return: { '0': '@union', '1': { '0': 'true', '1': 'false' } },
+            parameter: { _: 'false' },
+            body: { '0': '@union', '1': { '0': 'true', '1': 'false' } },
           },
         },
       },

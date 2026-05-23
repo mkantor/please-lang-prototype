@@ -40,6 +40,7 @@ export {
   type IndexExpression,
 } from './semantics/expressions/index-expression.js'
 export {
+  ignoredKey,
   keyPathToLookupExpression,
   lookup,
   makeLookupExpression,
