@@ -136,6 +136,10 @@ Lookups can "look ahead" to properties defined later in the program:
 }
 ```
 
+`_` is a special name used for ignored properties/parameters and can't be
+directly looked up (`:_` is an error). It's legal to drill into properties named
+`_` via indexing, though (`:a._` is fine).
+
 #### Functions
 
 Functions take exactly one parameter and their body is exactly one expression:

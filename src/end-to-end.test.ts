@@ -840,4 +840,23 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     }.two`,
     success('2'),
   ],
+  // `_` is an ignored property/parameter:
+  [
+    `(_ => :_)(a)`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'invalidExpression')
+    },
+  ],
+  [
+    `{ _: a, b: :_ }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'invalidExpression')
+    },
+  ],
+  // `_` can still be used as part of an `@index` query:
+  [`{ _: a }._`, success('a')],
 ])
