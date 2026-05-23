@@ -1200,3 +1200,37 @@ typeAssignabilitySuite('generic function types (not assignable)', [
     false,
   ],
 ])
+
+typeAssignabilitySuite('union to type parameter (assignable)', [
+  // `a | nothing` is assignable to `a`
+  [[makeUnionType('', [A]), A], true],
+  // `a | a` is assignable to `a`
+  [[makeUnionType('', [A, A]), A], true],
+  // `a | nothing` is assignable to `a | a`
+  [[makeUnionType('', [A]), makeUnionType('', [A, A])], true],
+  // `a | a` is assignable to `a | a`
+  [[makeUnionType('', [A, A]), makeUnionType('', [A, A])], true],
+  // `a | nothing` is assignable to `a | b`
+  [[makeUnionType('', [A]), makeUnionType('', [A, B])], true],
+  // `(a <: atom) | nothing` is assignable to `a <: atom`
+  [[makeUnionType('', [extendsAnyAtom]), extendsAnyAtom], true],
+])
+
+typeAssignabilitySuite('union to type parameter (not assignable)', [
+  // `"1 | nothing"` is not assignable to `a`
+  [[makeUnionType('', ['1']), A], false],
+  // `"1 | nothing"` is not assignable to `a <: atom`
+  [[makeUnionType('', ['1']), extendsAnyAtom], false],
+  // `"a | nothing"` is not assignable to `a <: "a"`
+  [[makeUnionType('', ['a']), extendsSpecificAtom], false],
+  // `atom | nothing` is not assignable to `a`
+  [[makeUnionType('', [atom]), A], false],
+  // `object | nothing` is not assignable to `a`
+  [[makeUnionType('', [object]), A], false],
+  // `b | nothing` is not assignable to `a`
+  [[makeUnionType('', [B]), A], false],
+  // `a | "hello"` is not assignable to `a`
+  [[makeUnionType('', [A, 'hello']), A], false],
+  // `a | b` is not assignable to `a`
+  [[makeUnionType('', [A, B]), A], false],
+])

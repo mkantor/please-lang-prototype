@@ -268,7 +268,7 @@ const isUnionAssignableToNonUnion = ({
   } else {
     // Return true if every member of the source is assignable to the target.
     for (const sourceMember of source.members) {
-      // Atoms cannot be subtypes of objects.
+      // Atoms cannot be subtypes of objects, functions, or type parameters.
       if (typeof sourceMember === 'string') {
         return false
       }
