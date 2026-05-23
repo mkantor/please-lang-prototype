@@ -142,10 +142,9 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
 }
 
 /**
- * Traverse a function parameter type annotation, replacing each leaf (opaque
- * type, union type, or existing type parameter) with a fresh `TypeParameter`
- * constrained to the leaf. This is used to make functions implicitly generic,
- * even when annotated. For example:
+ * Traverse a function parameter type annotation, replacing each opaque or union
+ * leaf with a fresh `TypeParameter` constrained to the leaf. This is used to
+ * make functions implicitly generic, even when annotated. For example:
  *
  * ```plz
  * ((x: { a: :integer.type }) => :x.a)({ a: 42 }) ~ 42
@@ -201,10 +200,7 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
       makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
         assignableTo: leafType,
       }),
-    parameter: leafType =>
-      makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
-        assignableTo: leafType,
-      }),
+    parameter: leafType => leafType,
     union: leafType =>
       makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
         assignableTo: leafType,
