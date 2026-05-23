@@ -351,20 +351,22 @@ const inferTypeImplementation = (
 
   if (isObjectNode(node) && containsAnyUnelaboratedNodes(node)) {
     // Infer unelaborated descendants' types.
-    const children: Record<string, Type> = {}
-    for (const [key, value] of Object.entries(node)) {
-      const childTypeResult = inferTypeImplementation(
-        value,
-        parameterTypes,
-        lookingUpKeys,
-        descendantContext([key]),
-      )
-      if (either.isLeft(childTypeResult)) {
-        return childTypeResult
-      }
-      children[key] = childTypeResult.value
-    }
-    return either.makeRight(makeObjectType('', children))
+    return either.map(
+      either.sequence(
+        Object.entries(node).map(([key, value]) =>
+          either.map(
+            inferTypeImplementation(
+              value,
+              parameterTypes,
+              lookingUpKeys,
+              descendantContext([key]),
+            ),
+            childType => [key, childType] as const,
+          ),
+        ),
+      ),
+      entries => makeObjectType('', Object.fromEntries(entries)),
+    )
   } else {
     return literalTypeFromSemanticGraph(node)
   }

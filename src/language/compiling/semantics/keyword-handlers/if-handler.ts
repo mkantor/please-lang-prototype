@@ -115,7 +115,7 @@ export const ifKeywordHandler: KeywordHandler = (
                     either.makeRight(branch)
                   : isObjectNode(branch) ?
                     either.map(
-                      sequenceEithers(
+                      either.sequence(
                         orderedEntriesOfObjectNode(branch).map(([key, value]) =>
                           either.map(
                             elaborateNestedIfLookups(value),
@@ -143,7 +143,7 @@ export const ifKeywordHandler: KeywordHandler = (
                   )
 
                 return either.map(
-                  sequenceEithers([
+                  either.sequence([
                     elaborateBranch('then'),
                     elaborateBranch('else'),
                   ]),
@@ -192,46 +192,3 @@ const analyzeButPreserveExpression =
           either.makeLeft(error)
         : either.makeRight(expression),
     })
-
-// TODO: Consider adding this to @matt.kantor/either (and a similar function to
-// @matt.kantor/option):
-const sequenceEithers = <
-  const Eithers extends readonly Either<unknown, unknown>[],
->(
-  eithers: Eithers,
-): SequenceOutput<Eithers> => {
-  type LeftValue = LeftValueOf<Eithers[number]>
-  type RightValue = RightValueOf<Eithers[number]>
-
-  const output: RightValueOf<Eithers[number]>[] = []
-  for (const singleEither of eithers) {
-    // TypeScript unfortunately widens `either` to its constraint, but we know
-    // it conforms to this type.
-    const narrowedEither = singleEither as Either<LeftValue, RightValue>
-    if (either.isLeft(narrowedEither)) {
-      return narrowedEither
-    } else {
-      output.push(narrowedEither.value)
-    }
-  }
-
-  // TypeScript doesn't keep track of how many eithers we've visited, but we
-  // know it's the same amount that were given as input.
-  const knownNumberOfOutputs = output as RightValueOf<SequenceOutput<Eithers>>
-  return either.makeRight(knownNumberOfOutputs)
-}
-
-type SequenceOutput<Eithers extends readonly Either<unknown, unknown>[]> =
-  Either<
-    LeftValueOf<Eithers[number]>,
-    { -readonly [Index in keyof Eithers]: RightValueOf<Eithers[Index]> }
-  > &
-    unknown // Hide `SequenceOutput` from type info.
-
-type RightValueOf<SpecificEither extends Either<unknown, unknown>> =
-  SpecificEither extends { kind: 'right'; value: infer RightValue } ? RightValue
-  : never
-
-type LeftValueOf<SpecificEither extends Either<unknown, unknown>> =
-  SpecificEither extends { kind: 'left'; value: infer LeftValue } ? LeftValue
-  : never
