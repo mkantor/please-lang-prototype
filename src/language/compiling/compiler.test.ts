@@ -845,4 +845,20 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `(_ => (f: :atom.type) => :f) ~ (:something.type ~> (:atom.type ~> :atom.type))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(@runtime { _ =>
+      { constrain_function: (f: { a: :atom.type } ~> :atom.type) => :f({ a: hello }) }
+    }).constrain_function(x => :x.a) ~ :atom.type`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

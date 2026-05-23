@@ -8,11 +8,8 @@ import {
   makeObjectNode,
   type ObjectNode,
 } from '../object-node.js'
-import { serialize, type SemanticGraph } from '../semantic-graph.js'
-import {
-  asSemanticGraph,
-  readArgumentsFromExpression,
-} from './expression-utilities.js'
+import { type SemanticGraph } from '../semantic-graph.js'
+import { readArgumentsFromExpression } from './expression-utilities.js'
 
 export type FunctionExpression = ObjectNode & {
   readonly 0: '@function'
@@ -39,9 +36,7 @@ export const readFunctionExpression = (
             kind: 'invalidExpression',
             message: 'typed parameter object must contain exactly one property',
           })
-        : either.map(serialize(body), body =>
-            makeFunctionExpression(parameter, asSemanticGraph(body)),
-          ),
+        : either.makeRight(makeFunctionExpression(parameter, body)),
     )
   : either.makeLeft({
       kind: 'invalidExpression',
