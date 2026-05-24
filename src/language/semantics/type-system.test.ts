@@ -1459,4 +1459,11 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
   ],
 
   [['empty', makeObjectType('', {})], '{}'],
+
+  [
+    ['identity', makeFunctionType('', { parameter: A, return: A })],
+    `${showType(A)} ~> ${showType(A)}`,
+  ],
+
+  [['wrap', makeObjectType('', { value: A })], `{ value: ${showType(A)} }`],
 ])

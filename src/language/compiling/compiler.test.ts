@@ -912,4 +912,24 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      apply_to_1: (identity: (a => :a)) => :identity(1)
+      :apply_to_1(:identity) ~ 1
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_1:
+        (integer_identity: (a: :integer.type) => :a) => :integer_identity(1)
+    }.apply_to_1(a => :a) ~ 1`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
