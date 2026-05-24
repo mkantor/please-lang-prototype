@@ -31,6 +31,10 @@ export {
   type FunctionExpression,
 } from './semantics/expressions/function-expression.js'
 export {
+  readHoleExpression,
+  type HoleExpression,
+} from './semantics/expressions/hole-expression.js'
+export {
   makeIfExpression,
   readIfExpression,
   type IfExpression,

@@ -588,5 +588,81 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
           '{\n  "0": "@apply",\n  "1": {\n    "function": {\n      "0": "@apply",\n      "1": {\n        "function": {\n          "0": "@apply",\n          "1": {\n            "function": {\n              "0": "@lookup",\n              "1": {\n                "key": ">>"\n              }\n            },\n            "argument": {\n              "0": "@function",\n              "1": {\n                "parameter": "a",\n                "body": {\n                  "0": "@apply",\n                  "1": {\n                    "function": {\n                      "0": "@apply",\n                      "1": {\n                        "function": {\n                          "0": "@lookup",\n                          "1": {\n                            "key": "-"\n                          }\n                        },\n                        "argument": "1"\n                      }\n                    },\n                    "argument": {\n                      "0": "@lookup",\n                      "1": {\n                        "key": "a"\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        },\n        "argument": {\n          "0": "@function",\n          "1": {\n            "parameter": "a",\n            "body": {\n              "0": "@apply",\n              "1": {\n                "function": {\n                  "0": "@apply",\n                  "1": {\n                    "function": {\n                      "0": "@lookup",\n                      "1": {\n                        "key": "+"\n                      }\n                    },\n                    "argument": "1"\n                  }\n                },\n                "argument": {\n                  "0": "@lookup",\n                  "1": {\n                    "key": "a"\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    "argument": "1"\n  }\n}\n',
       },
     ],
+
+    [
+      {
+        f: {
+          0: '@function',
+          1: {
+            parameter: {
+              x: {
+                0: '@hole',
+                1: {
+                  name: 'b',
+                  constraint: {
+                    assignableTo: {
+                      0: '@index',
+                      1: {
+                        object: { 0: '@lookup', 1: { key: 'something' } },
+                        query: { 0: 'type' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            body: { 0: '@lookup', 1: { 0: 'x' } },
+          },
+        },
+      },
+      {
+        inlinePlz: '{ f: (x: ?b) => :x }',
+        sugarFreeInlinePlz:
+          '{ f: { 0: "@function", 1: { parameter: { x: { 0: "@hole", 1: { name: b, constraint: { assignableTo: { 0: "@index", 1: { object: { 0: "@lookup", 1: { key: something } }, query: { 0: type } } } } } } }, body: { 0: "@lookup", 1: { 0: x } } } } }',
+        prettyPlz: '{\n  f: (x: ?b) => :x\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  f: {\n    0: "@function"\n    1: {\n      parameter: {\n        x: {\n          0: "@hole"\n          1: {\n            name: b\n            constraint: {\n              assignableTo: {\n                0: "@index"\n                1: {\n                  object: {\n                    0: "@lookup"\n                    1: {\n                      key: something\n                    }\n                  }\n                  query: {\n                    0: type\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n      body: {\n        0: "@lookup"\n        1: {\n          0: x\n        }\n      }\n    }\n  }\n}\n',
+        prettyJson:
+          '{\n  "f": {\n    "0": "@function",\n    "1": {\n      "parameter": {\n        "x": {\n          "0": "@hole",\n          "1": {\n            "name": "b",\n            "constraint": {\n              "assignableTo": {\n                "0": "@index",\n                "1": {\n                  "object": {\n                    "0": "@lookup",\n                    "1": {\n                      "key": "something"\n                    }\n                  },\n                  "query": {\n                    "0": "type"\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      "body": {\n        "0": "@lookup",\n        "1": {\n          "0": "x"\n        }\n      }\n    }\n  }\n}\n',
+      },
+    ],
+
+    [
+      {
+        f: {
+          0: '@function',
+          1: {
+            parameter: {
+              x: {
+                0: '@hole',
+                1: {
+                  name: 'b',
+                  constraint: {
+                    assignableTo: {
+                      0: '@index',
+                      1: {
+                        object: { 0: '@lookup', 1: { key: 'atom' } },
+                        query: { 0: 'type' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            body: { 0: '@lookup', 1: { 0: 'x' } },
+          },
+        },
+      },
+      {
+        inlinePlz: '{ f: (x: (?b: :atom.type)) => :x }',
+        sugarFreeInlinePlz:
+          '{ f: { 0: "@function", 1: { parameter: { x: { 0: "@hole", 1: { name: b, constraint: { assignableTo: { 0: "@index", 1: { object: { 0: "@lookup", 1: { key: atom } }, query: { 0: type } } } } } } }, body: { 0: "@lookup", 1: { 0: x } } } } }',
+        prettyPlz: '{\n  f: (x: (?b: :atom.type)) => :x\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  f: {\n    0: "@function"\n    1: {\n      parameter: {\n        x: {\n          0: "@hole"\n          1: {\n            name: b\n            constraint: {\n              assignableTo: {\n                0: "@index"\n                1: {\n                  object: {\n                    0: "@lookup"\n                    1: {\n                      key: atom\n                    }\n                  }\n                  query: {\n                    0: type\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n      body: {\n        0: "@lookup"\n        1: {\n          0: x\n        }\n      }\n    }\n  }\n}\n',
+        prettyJson:
+          '{\n  "f": {\n    "0": "@function",\n    "1": {\n      "parameter": {\n        "x": {\n          "0": "@hole",\n          "1": {\n            "name": "b",\n            "constraint": {\n              "assignableTo": {\n                "0": "@index",\n                "1": {\n                  "object": {\n                    "0": "@lookup",\n                    "1": {\n                      "key": "atom"\n                    }\n                  },\n                  "query": {\n                    "0": "type"\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      "body": {\n        "0": "@lookup",\n        "1": {\n          "0": "x"\n        }\n      }\n    }\n  }\n}\n',
+      },
+    ],
   ],
 )

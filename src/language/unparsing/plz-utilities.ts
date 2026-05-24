@@ -10,17 +10,21 @@ import {
   asSemanticGraph,
   getParameterName,
   getParameterTypeAnnotation,
+  ignoredKey,
   isExpression,
   isSemanticGraph,
   readApplyExpression,
   readFunctionExpression,
+  readHoleExpression,
   readIndexExpression,
   readLookupExpression,
   readUnionExpression,
   serialize,
+  types,
   type ApplyExpression,
   type Expression,
   type FunctionExpression,
+  type HoleExpression,
   type IndexExpression,
   type KeyPath,
   type LookupExpression,
@@ -68,6 +72,8 @@ export const moleculeUnparser =
           return sugar(value, readCheckExpression, unparseSugaredCheck)
         case '@function':
           return sugar(value, readFunctionExpression, unparseSugaredFunction)
+        case '@hole':
+          return sugar(value, readHoleExpression, unparseSugaredHole)
         case '@index':
           return sugar(value, readIndexExpression, unparseSugaredIndex)
         case '@lookup':
@@ -429,6 +435,57 @@ const unparseSugaredLookup = (
       ),
     ),
   )
+
+const isTopType = (value: SemanticGraph): boolean =>
+  value === types.somethingTypeSymbol ||
+  either.match(
+    either.flatMap(readIndexExpression(value), ({ 1: { object, query } }) =>
+      query[0] === 'type' && Object.keys(query).length === 1 ?
+        readLookupExpression(object)
+      : either.makeLeft(undefined),
+    ),
+    {
+      right: lookupExpression => lookupExpression[1].key === 'something',
+      left: _ => false,
+    },
+  )
+
+const unparseSugaredHole = (
+  expression: HoleExpression,
+  { unparseAtomOrMolecule }: Context,
+) => {
+  const {
+    openGroupingParenthesis,
+    closeGroupingParenthesis,
+    typeAnnotationColon,
+  } = punctuation(styleText)
+  const { name, constraint } = expression[1]
+  const holeNameWithSigil = styleText(
+    keyColor,
+    name === ignoredKey ? '?' : (
+      '?'.concat(quoteKeyPathComponentIfNecessary(name))
+    ),
+  )
+  if (isTopType(constraint.assignableTo)) {
+    // Omit the constraint if it's the top type.
+    return either.makeRight(holeNameWithSigil)
+  } else {
+    return either.map(
+      either.flatMap(
+        serializeIfNeeded(constraint.assignableTo),
+        unparseAtomOrMolecule('default'),
+      ),
+      constraintAsString =>
+        openGroupingParenthesis.concat(
+          holeNameWithSigil,
+          typeAnnotationColon,
+          ' ',
+          constraintAsString,
+          closeGroupingParenthesis,
+        ),
+    )
+  }
+}
 
 const unparseSugaredCheck = (
   expression: CheckExpression,
