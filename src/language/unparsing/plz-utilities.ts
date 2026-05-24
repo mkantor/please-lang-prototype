@@ -151,10 +151,7 @@ export const unparseAtom = (atom: string): Right<string> =>
     : quoteAtomIfNecessary(atom),
   )
 
-const requiresQuotation = (atom: string): boolean =>
-  either.isLeft(parsing.parse(unquotedAtomParser, atom))
-
-const quoteAtomIfNecessary = (value: string): string => {
+export const quoteAtomIfNecessary = (value: string): string => {
   const { quote } = punctuation(styleText)
   if (requiresQuotation(value)) {
     return quote.concat(escapeStringContents(value), quote)
@@ -162,6 +159,9 @@ const quoteAtomIfNecessary = (value: string): string => {
     return value
   }
 }
+
+const requiresQuotation = (atom: string): boolean =>
+  either.isLeft(parsing.parse(unquotedAtomParser, atom))
 
 const quoteKeyPathComponentIfNecessary = (value: string): string => {
   const { quote } = punctuation(styleText)

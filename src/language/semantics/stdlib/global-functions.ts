@@ -9,11 +9,11 @@ import {
   type ObjectNode,
 } from '../object-node.js'
 import {
+  showType,
   stringifySemanticGraphForEndUser,
   type SemanticGraph,
 } from '../semantic-graph.js'
 import { isAssignable, types } from '../type-system.js'
-import { showType } from '../type-system/show-type.js'
 import {
   makeFunctionType,
   makeObjectType,
