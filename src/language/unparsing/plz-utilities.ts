@@ -32,10 +32,6 @@ import {
   readCheckExpression,
   type CheckExpression,
 } from '../semantics/expressions/check-expression.js'
-import {
-  readSignatureExpression,
-  type SignatureExpression,
-} from '../semantics/expressions/signature-expression.js'
 import { applyColor, keyColor, punctuation } from './unparsing-utilities.js'
 
 export type SemanticContext = 'apply' | 'default'
@@ -76,8 +72,6 @@ export const moleculeUnparser =
           return sugar(value, readIndexExpression, unparseSugaredIndex)
         case '@lookup':
           return sugar(value, readLookupExpression, unparseSugaredLookup)
-        case '@signature':
-          return sugar(value, readSignatureExpression, unparseSugaredSignature)
         case '@union':
           return sugar(value, readUnionExpression, unparseSugaredUnion)
         default:
@@ -476,30 +470,6 @@ const unparseSugaredCheck = (
   )
 }
 
-const unparseSugaredSignature = (
-  expression: SignatureExpression,
-  { unparseAtomOrMolecule }: Context,
-) =>
-  either.flatMap(
-    either.flatMap(
-      serializeIfNeeded(expression[1].parameter),
-      unparseAtomOrMolecule('default'),
-    ),
-    parameterAsString =>
-      either.map(
-        either.flatMap(
-          serializeIfNeeded(expression[1].return),
-          unparseAtomOrMolecule('default'),
-        ),
-        returnAsString =>
-          [
-            parameterAsString,
-            punctuation(styleText).signatureArrow,
-            returnAsString,
-          ].join(' '),
-      ),
-  )
-
 const unparseSugaredUnion = (
   expression: UnionExpression,
   { unparseAtomOrMolecule, semanticContext }: Context,
@@ -619,8 +589,7 @@ const isTightlyBoundNonCompactExpression = (
   expression: SemanticGraph | Molecule,
 ) =>
   either.isRight(readCheckExpression(asSemanticGraph(expression))) ||
-  either.isRight(readFunctionExpression(asSemanticGraph(expression))) ||
-  either.isRight(readSignatureExpression(asSemanticGraph(expression)))
+  either.isRight(readFunctionExpression(asSemanticGraph(expression)))
 
 const isNonCompactExpression = (expression: SemanticGraph | Molecule) =>
   isTightlyBoundNonCompactExpression(expression) ||

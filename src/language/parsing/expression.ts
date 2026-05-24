@@ -11,7 +11,7 @@ import {
 } from '@matt.kantor/parsing'
 import * as orderedRecord from '../../ordered-record.js'
 import { type OrderedRecord } from '../../ordered-record.js'
-import { keyPathToMolecule, type KeyPath } from '../semantics.js'
+import { ignoredKey, keyPathToMolecule, type KeyPath } from '../semantics.js'
 import {
   atom,
   atomWithAdditionalQuotationRequirements,
@@ -106,24 +106,24 @@ const signatureTokensToExpression = (
   }
 
   const initialSignature = molecule([
-    ['0', '@signature'],
+    ['0', '@function'],
     [
       '1',
       molecule([
-        ['parameter', lastParameterType],
-        ['return', lastReturnType],
+        ['parameter', molecule([[ignoredKey, lastParameterType]])],
+        ['body', lastReturnType],
       ]),
     ],
   ])
   return additionalParameterTypes.reduce(
     (expression, additionalParameter) =>
       molecule([
-        ['0', '@signature'],
+        ['0', '@function'],
         [
           '1',
           molecule([
-            ['parameter', additionalParameter],
-            ['return', expression],
+            ['parameter', molecule([[ignoredKey, additionalParameter]])],
+            ['body', expression],
           ]),
         ],
       ]),

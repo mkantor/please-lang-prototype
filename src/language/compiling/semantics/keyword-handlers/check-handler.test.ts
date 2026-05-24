@@ -283,16 +283,18 @@ elaborationSuite('@check', [
       0: '@check',
       1: {
         type: {
-          0: '@signature',
+          0: '@function',
           1: {
             parameter: {
-              0: '@index',
-              1: {
-                0: { 0: '@lookup', 1: { 0: 'boolean' } },
-                1: { 0: 'type' },
+              _: {
+                0: '@index',
+                1: {
+                  0: { 0: '@lookup', 1: { 0: 'boolean' } },
+                  1: { 0: 'type' },
+                },
               },
             },
-            return: {
+            body: {
               0: '@index',
               1: {
                 0: { 0: '@lookup', 1: { 0: 'boolean' } },

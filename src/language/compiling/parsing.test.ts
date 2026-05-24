@@ -209,12 +209,12 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
     'a ~> b',
     either.makeRight(
       syntaxTree([
-        ['0', '@signature'],
+        ['0', '@function'],
         [
           '1',
           [
-            ['parameter', 'a'],
-            ['return', 'b'],
+            ['parameter', [['_', 'a']]],
+            ['body', 'b'],
           ],
         ],
       ]),
@@ -224,20 +224,20 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
     'a ~> b ~> c',
     either.makeRight(
       syntaxTree([
-        ['0', '@signature'],
+        ['0', '@function'],
         [
           '1',
           [
-            ['parameter', 'a'],
+            ['parameter', [['_', 'a']]],
             [
-              'return',
+              'body',
               [
-                ['0', '@signature'],
+                ['0', '@function'],
                 [
                   '1',
                   [
-                    ['parameter', 'b'],
-                    ['return', 'c'],
+                    ['parameter', [['_', 'b']]],
+                    ['body', 'c'],
                   ],
                 ],
               ],

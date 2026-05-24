@@ -861,4 +861,55 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    '(_ => 42) ~ ((_: :something.type) => :integer.type)',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '(_ => 42) ~ ((_: :something.type) => :boolean.type)',
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    '{ a: 42, f: _ => :a, :f ~ ((_: :something.type) => :integer.type) }',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '((a: :boolean.type) => 42) ~ ((a: :boolean.type) => :integer.type)',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '((a: :boolean.type) => :a) ~ ((a: :boolean.type) => :boolean.type)',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    '((a: :boolean.type) => :boolean.not(:a)) ~ ((a: :boolean.type) => :boolean.type)',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    ':boolean.not ~ ((a: :boolean.type) => :boolean.type)',
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

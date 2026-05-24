@@ -37,6 +37,12 @@ export type LookupExpression = ObjectNode & {
   }
 }
 
+/**
+ * This name is used for ignored parameters/properties and can't be directly
+ * looked-up.
+ */
+export const ignoredKey = '_'
+
 export const readLookupExpression = (
   node: SemanticGraph,
 ): Either<ElaborationError, LookupExpression> =>
@@ -87,7 +93,12 @@ export const lookup = ({
   readonly context: ExpressionContext
   readonly key: Atom
 }): Either<ElaborationError, Option<SemanticGraph>> => {
-  if (context.location.length === 0) {
+  if (key === ignoredKey) {
+    return either.makeLeft({
+      kind: 'invalidExpression',
+      message: `properties named \`${stringifyKeyForEndUser(key)}\` cannot be looked up`,
+    })
+  } else if (context.location.length === 0) {
     // Check the prelude.
     const valueFromPrelude = prelude[key]
     return valueFromPrelude === undefined ?

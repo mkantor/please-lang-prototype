@@ -100,7 +100,6 @@ export const ifKeywordHandler: KeywordHandler = (
                     '@if': doNotElaborate,
                     '@panic': doNotElaborate,
                     '@runtime': doNotElaborate,
-                    '@signature': doNotElaborate,
                     '@todo': doNotElaborate,
                     '@union': doNotElaborate,
                   },

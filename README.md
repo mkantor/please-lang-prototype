@@ -136,6 +136,10 @@ Lookups can "look ahead" to properties defined later in the program:
 }
 ```
 
+`_` is a special name used for ignored properties/parameters and can't be
+directly looked up (`:_` is an error). It's legal to drill into properties named
+`_` via indexing, though (`:a._` is fine).
+
 #### Functions
 
 Functions take exactly one parameter and their body is exactly one expression:
@@ -194,7 +198,7 @@ desugars to `{ 0: "@lookup", 1: { key: foo } }`. All such expressions have a
 property named `0` referring to a value that is an `@`-prefixed atom (the
 keyword). Most keyword expressions also require a property named `1` to pass an
 argument to the expression. Keywords include `@apply`, `@check`, `@function`,
-`@if`, `@index`, `@lookup`, `@union`, `@signature`, `@panic`, and `@runtime`.
+`@if`, `@index`, `@lookup`, `@panic`, `@runtime`, and `@union`.
 
 In addition to the specific syntax sugars shown above, any keyword expression
 can be written using a generalized sugar:
