@@ -97,6 +97,7 @@ export const ifKeywordHandler: KeywordHandler = (
                       context.keywordHandlers['@apply'],
                     ),
                     '@function': doNotElaborate,
+                    '@hole': doNotElaborate,
                     '@if': doNotElaborate,
                     '@panic': doNotElaborate,
                     '@runtime': doNotElaborate,

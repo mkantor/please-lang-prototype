@@ -3,6 +3,10 @@ import type { Writable } from '../../../utility-types.js'
 import type { Bug } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
+import {
+  getHoleTypeParameter,
+  readHoleExpression,
+} from '../expressions/hole-expression.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import { typesBySymbol } from './prelude-types.js'
@@ -722,6 +726,15 @@ export const literalTypeFromSemanticGraph = (
               : [memberType],
             ),
           ),
+      )
+    } else if (isKeywordExpressionWithArgument('@hole', node)) {
+      return either.mapLeft(
+        either.map(readHoleExpression(node), getHoleTypeParameter),
+        error => ({
+          kind: 'bug',
+          message: '`@hole` expression was invalid',
+          cause: error,
+        }),
       )
     } else {
       // `node` is an object type.

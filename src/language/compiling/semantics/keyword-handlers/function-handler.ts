@@ -4,6 +4,8 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   elaborateWithContext,
   getParameterName,
+  getParameterTypeAnnotation,
+  ignoredKey,
   inferType,
   makeFunctionNode,
   makeObjectNode,
@@ -17,6 +19,7 @@ import {
   type KeywordHandler,
   type SemanticGraph,
 } from '../../../semantics.js'
+import { collectHolesByName } from '../../../semantics/expressions/hole-expression.js'
 
 export const functionKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -72,6 +75,27 @@ const apply = (
       'return with a different key to avoid collision with a stupidly-named parameter'
     : 'return'
 
+  const holeBindings: Record<string, SemanticGraph> = option.match(
+    getParameterTypeAnnotation(expression),
+    {
+      none: _ => ({}),
+      some: annotation => {
+        const holeBindings: Record<string, SemanticGraph> = {}
+        for (const [name, hole] of collectHolesByName(annotation)) {
+          if (
+            name !== parameterName &&
+            name !== ownKey &&
+            name !== returnKey &&
+            name !== ignoredKey
+          ) {
+            holeBindings[name] = hole
+          }
+        }
+        return holeBindings
+      },
+    },
+  )
+
   const result = either.flatMap(serialize(body), serializedBody =>
     either.flatMap(
       updateValueAtKeyPathInSemanticGraph(
@@ -88,6 +112,9 @@ const apply = (
             ),
             // Put the argument in scope.
             [parameterName]: argument,
+            // Put any `@hole`s from the parameter annotation in scope so type
+            // parameters can be referenced.
+            ...holeBindings,
             // Use the serialized form so the body in the program matches what
             // gets re-elaborated.
             [returnKey]: serializedBody,

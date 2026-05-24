@@ -26,8 +26,10 @@ import {
 } from './expression-utilities.js'
 import {
   getParameterName,
+  getParameterTypeAnnotation,
   readFunctionExpression,
 } from './function-expression.js'
+import { collectHolesByName } from './hole-expression.js'
 import { makeIndexExpression } from './index-expression.js'
 
 export type LookupExpression = ObjectNode & {
@@ -152,11 +154,18 @@ export const lookup = ({
         some: parentExpression => {
           const parentFunctionResult = readFunctionExpression(parentExpression)
           // If enclosed in a `@function` expression, allow looking up the
-          // parameter.
-          if (
+          // parameter plus `@hole`s introduced by parameter annotations.
+          const isParameterMatch =
             either.isRight(parentFunctionResult) &&
-            getParameterName(parentFunctionResult.value) === key
-          ) {
+            (getParameterName(parentFunctionResult.value) === key ||
+              option.match(
+                getParameterTypeAnnotation(parentFunctionResult.value),
+                {
+                  none: () => false,
+                  some: annotation => collectHolesByName(annotation).has(key),
+                },
+              ))
+          if (isParameterMatch) {
             // Keep an unelaborated `@lookup` around for resolution when the
             // `@function` is called.
             return {
