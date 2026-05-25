@@ -1,6 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
-import type { Bug, ElaborationError } from '../../errors.js'
+import type { ElaborationError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
@@ -387,10 +387,10 @@ const inferTypeImplementation = (
 const getFunctionParameterType = (
   expression: FunctionExpression,
   contextOfFunction: ExpressionContext,
-): Either<Bug, Type> =>
+): Either<ElaborationError, Type> =>
   option.match(getParameterTypeAnnotation(expression), {
     some: annotation =>
-      either.map(literalTypeFromSemanticGraph(annotation), annotationType => {
+      either.map(inferType(annotation, contextOfFunction), annotationType => {
         const parameterName = getParameterName(expression)
         // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
         // the parser emits for `~>` syntax sugar). Genericization is skipped

@@ -932,4 +932,34 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `((a: @runtime { _ => 1 } + 1) => _)(2)`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      dynamically_constrained_identity: a => (f: :a ~> :a) => :f(:a)
+      :dynamically_constrained_identity(a)(_a => a) ~ a
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      dynamically_constrained_identity: a => (f: :a ~> :a) => :f(:a)
+      :dynamically_constrained_identity(a)(_a => oops)
+      //                                         ^ not \`a\`
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])
