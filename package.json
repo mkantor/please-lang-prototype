@@ -13,14 +13,19 @@
     "build": "tsc --build tsconfig.app.json --force",
     "build:tests": "tsc --project tsconfig.app.json --outDir dist-test --declarationDir dist && tsc --build tsconfig.test.json",
     "clean": "rm -rf dist* *.tsbuildinfo",
-    "format": "prettier --write .",
+    "lint": "eslint .; prettier --check .",
+    "lint:fix": "eslint . --fix; prettier --write .",
     "test": "npm run build:tests && node --test --no-experimental-strip-types",
     "test-update-snapshots": "npm run build:tests && node --test --no-experimental-strip-types --test-update-snapshots"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.9.1",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0"
   },
   "dependencies": {
     "@matt.kantor/either": "^1.4.0",
