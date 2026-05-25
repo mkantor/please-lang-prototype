@@ -28,6 +28,24 @@ const additionalCommandLineArguments: Readonly<
     '--input="not a number"',
     '--input=-1',
   ],
+  'greatest-common-divisor.plz': [
+    '--a=12 --b=18',
+    '--a=1071 --b=462',
+    '--a=0 --b=5',
+    '--a=5 --b=0',
+    '--a=7 --b=13',
+    '--a="not a number" --b=5',
+    '--a=5',
+  ],
+  'is-prime.plz': [
+    '--input=0',
+    '--input=1',
+    '--input=2',
+    '--input=17',
+    '--input=100',
+    '--input="not a number"',
+    '--input=-1',
+  ],
   // It'd be nice to test CLI arguments for `lookup-environment-variable.plz`
   // too, but I'd need to set a stable/known environment variable to keep the
   // tests portable across different systems.

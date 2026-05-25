@@ -197,6 +197,201 @@ exports[`examples > fizzbuzz.plz > stdout 1`] = `
 
 `;
 
+exports[`examples > greatest-common-divisor.plz > --a=0 --b=5 > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=0 --b=5 > stdout 1`] = `
+5
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=1071 --b=462 > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=1071 --b=462 > stdout 1`] = `
+21
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=12 --b=18 > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=12 --b=18 > stdout 1`] = `
+6
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=5 --b=0 > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=5 --b=0 > stdout 1`] = `
+5
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=5 > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=5 > stdout 1`] = `
+"missing or invalid --b argument (must be a natural number)"
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=7 --b=13 > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=7 --b=13 > stdout 1`] = `
+1
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=\"not a number\" --b=5 > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > --a=\"not a number\" --b=5 > stdout 1`] = `
+"missing or invalid --a argument (must be a natural number)"
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > roundtripped syntax tree 1`] = `
+{
+  gcd: (a: :natural_number.type) => (b: :natural_number.type) => @if {
+    (:b integer.equals 0)
+    then: :a
+    else: :a % :b gcd :b
+  }
+  input: @runtime {
+    context => {
+      a: :context.arguments.lookup(a) option.flat_map :natural_number.from
+      b: :context.arguments.lookup(b) option.flat_map :natural_number.from
+    }
+  }
+  output: :input.a match {
+    none: _ => "missing or invalid --a argument (must be a natural number)"
+    some: (a: :natural_number.type) => :input.b match {
+      none: _ => "missing or invalid --b argument (must be a natural number)"
+      some: (b: :natural_number.type) => :b gcd :a
+    }
+  }
+}.output
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > stderr 1`] = `
+
+`;
+
+exports[`examples > greatest-common-divisor.plz > stdout 1`] = `
+"missing or invalid --a argument (must be a natural number)"
+
+`;
+
+exports[`examples > is-prime.plz > --input=-1 > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > --input=-1 > stdout 1`] = `
+"missing or invalid --input argument (must be a natural number)"
+
+`;
+
+exports[`examples > is-prime.plz > --input=0 > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > --input=0 > stdout 1`] = `
+false
+
+`;
+
+exports[`examples > is-prime.plz > --input=1 > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > --input=1 > stdout 1`] = `
+false
+
+`;
+
+exports[`examples > is-prime.plz > --input=100 > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > --input=100 > stdout 1`] = `
+false
+
+`;
+
+exports[`examples > is-prime.plz > --input=17 > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > --input=17 > stdout 1`] = `
+true
+
+`;
+
+exports[`examples > is-prime.plz > --input=2 > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > --input=2 > stdout 1`] = `
+true
+
+`;
+
+exports[`examples > is-prime.plz > --input=\"not a number\" > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > --input=\"not a number\" > stdout 1`] = `
+"missing or invalid --input argument (must be a natural number)"
+
+`;
+
+exports[`examples > is-prime.plz > roundtripped syntax tree 1`] = `
+{
+  try_divisor: (n: :natural_number.type) => (divisor: :natural_number.type) => @if {
+    (:divisor * :divisor > :n)
+    then: true
+    else: @if {
+      (:n % :divisor integer.equals 0)
+      then: false
+      else: :divisor + 1 assume :natural_number.type try_divisor :n
+    }
+  }
+  is_prime: (n: :natural_number.type) => @if {
+    (:n < 2)
+    then: false
+    else: 2 try_divisor :n
+  }
+  input: @runtime {
+    context => :context.arguments.lookup(input)
+  }
+  output: :input option.flat_map :natural_number.from match {
+    none: _ => "missing or invalid --input argument (must be a natural number)"
+    some: :is_prime
+  }
+}.output
+
+`;
+
+exports[`examples > is-prime.plz > stderr 1`] = `
+
+`;
+
+exports[`examples > is-prime.plz > stdout 1`] = `
+"missing or invalid --input argument (must be a natural number)"
+
+`;
+
 exports[`examples > kitchen-sink.plz > roundtripped syntax tree 1`] = `
 {
   foo: bar

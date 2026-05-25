@@ -1,0 +1,26 @@
+/**
+ * Computes the greatest common divisor of two natural numbers using the
+ * Euclidean algorithm.
+ *
+ * Usage: cat ./examples/greatest-common-divisor.plz | ./please --a=12 --b=18
+ */
+{
+  gcd: (a: :natural_number.type) => (b: :natural_number.type) => @if {
+    :b integer.equals 0
+    then: :a
+    else: :gcd(:b)(:a % :b)
+  }
+
+  input: @runtime { context => {
+    a: :context.arguments.lookup(a) option.flat_map :natural_number.from
+    b: :context.arguments.lookup(b) option.flat_map :natural_number.from
+  } }
+
+  output: :input.a match {
+    none: _ => "missing or invalid --a argument (must be a natural number)"
+    some: ((a: :natural_number.type) => :input.b match {
+      none: _ => "missing or invalid --b argument (must be a natural number)"
+      some: ((b: :natural_number.type) => :gcd(:a)(:b))
+    })
+  }
+}.output

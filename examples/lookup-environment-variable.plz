@@ -1,6 +1,7 @@
 /**
-  * Given CLI arguments like `--variable=FOO`, looks up the environment
-  * variable named `FOO`.
+  * Looks up the value of the given environment variable.
+  *
+  * Usage: cat ./examples/lookup-environment-variable.plz | ./please --variable=PATH
   */
 @runtime { context =>
   :context.arguments.lookup(variable) match {
