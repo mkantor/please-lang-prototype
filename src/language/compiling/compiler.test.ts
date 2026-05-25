@@ -962,4 +962,37 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `{
+      identity: a => :a
+      id_of_42: :identity(42)
+      :id_of_42 ~ 42
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      combine: a => b => { :a, :b }
+      partial: :combine(1)
+      :partial(true) ~ { 1, true }
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      identity: a => :a
+      id_alias: :identity
+      :id_alias(42) ~ 42
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
