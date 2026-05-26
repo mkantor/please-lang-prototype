@@ -1032,4 +1032,17 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      pipe: (f:
+        @hole { name: a, constraint: { assignableTo: :something.type } } ~>
+          @hole { name: b, constraint: { assignableTo: :something.type } }
+      ) => (a: :a) => :f(:a)
+      ab: :pipe(:atom.append(b))(a)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

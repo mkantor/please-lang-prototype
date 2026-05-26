@@ -1,10 +1,12 @@
 import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
+import type { Atom } from '../../../parsing.js'
 import {
   elaborateWithContext,
   getParameterName,
   getParameterTypeAnnotation,
+  getTypesForTypeParameters,
   ignoredKey,
   inferType,
   makeFunctionNode,
@@ -18,8 +20,13 @@ import {
   type FunctionNode,
   type KeywordHandler,
   type SemanticGraph,
+  type Type,
 } from '../../../semantics.js'
-import { collectHolesByName } from '../../../semantics/expressions/hole-expression.js'
+import {
+  collectHolesByName,
+  makeHoleExpression,
+} from '../../../semantics/expressions/hole-expression.js'
+import { makeTypeParameter } from '../../../semantics/type-system/type-formats.js'
 
 export const functionKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -80,6 +87,28 @@ const apply = (
     {
       none: _ => ({}),
       some: annotation => {
+        // Specialize each hole's type parameter using the inferred type of the
+        // argument, so references like `:a` in the body see the concrete type
+        // rather than the original unconstrained type parameter.
+        const specializationsByTypeParameterName = either.match(
+          inferType(argument, context),
+          {
+            left: _ => new Map<Atom, Type>(),
+            right: argumentType =>
+              new Map(
+                [
+                  ...getTypesForTypeParameters({
+                    parameterType: signature.parameter,
+                    argumentType,
+                  }),
+                ].map(([typeParameter, specialization]) => [
+                  typeParameter.name,
+                  specialization,
+                ]),
+              ),
+          },
+        )
+
         const holeBindings: Record<string, SemanticGraph> = {}
         for (const [name, hole] of collectHolesByName(annotation)) {
           if (
@@ -88,7 +117,15 @@ const apply = (
             name !== returnKey &&
             name !== ignoredKey
           ) {
-            holeBindings[name] = hole
+            const specializedType = specializationsByTypeParameterName.get(name)
+            holeBindings[name] =
+              specializedType === undefined ? hole : (
+                makeHoleExpression(
+                  name,
+                  hole[1].constraint,
+                  makeTypeParameter(name, { assignableTo: specializedType }),
+                )
+              )
           }
         }
         return holeBindings
