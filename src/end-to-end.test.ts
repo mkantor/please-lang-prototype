@@ -823,10 +823,17 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   [
     `{
-      // TODO: Once syntax exists for type parameters, make this generic:
-      |>: (f: :atom.type ~> :atom.type) => (a: :atom.type) => :f(:a)
+      |>: (f: ?a ~> ?b) => (a: :a) => :f(:a)
       ab: a |> :atom.append(b)
       abc: :ab |> :atom.append(c)
+    }.abc`,
+    success('abc'),
+  ],
+  [
+    `{
+      <|: a => (f: :a ~> ?b) => :f(:a)
+      ab: :atom.append(b) <| a
+      abc: :atom.append(c) <| :ab
     }.abc`,
     success('abc'),
   ],

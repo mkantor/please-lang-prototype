@@ -27,6 +27,7 @@ import {
   functionArrow,
   newline,
   openingBrace,
+  questionMark,
   signatureArrow,
   tilde,
   unionBar,
@@ -632,11 +633,74 @@ const precededByOpeningBrace = map(
     ),
 )
 
+/** `:something.type` in desugared form. */
+const topTypeAsMolecule = molecule([
+  ['0', '@index'],
+  [
+    '1',
+    molecule([
+      [
+        'object',
+        molecule([
+          ['0', '@lookup'],
+          ['1', molecule([['key', 'something']])],
+        ]),
+      ],
+      ['query', molecule([['0', 'type']])],
+    ]),
+  ],
+])
+
+const makeHoleMolecule = (name: Atom, constraint: Molecule): Molecule =>
+  molecule([
+    ['0', '@hole'],
+    [
+      '1',
+      molecule([
+        ['name', name],
+        ['constraint', constraint],
+      ]),
+    ],
+  ])
+
+// `?name`
+// `?`
+const hole = map(
+  sequence([questionMark, optional(atomRequiringDotQuotation)]),
+  ([_questionMark, name]) =>
+    makeHoleMolecule(
+      name ?? ignoredKey,
+      molecule([['assignableTo', topTypeAsMolecule]]),
+    ),
+)
+
+// `(?name: type)`
+// `(?: type)`
+const parenthesizedHole = surroundedByParentheses(
+  map(
+    sequence([
+      questionMark,
+      optional(atomRequiringDotQuotation),
+      optionalTrivia,
+      colon,
+      optionalTrivia,
+      lazy(() => expression),
+    ]),
+    ([_questionMark, name, _trivia1, _colon, _trivia2, constraint]) =>
+      makeHoleMolecule(
+        name ?? ignoredKey,
+        molecule([['assignableTo', constraint]]),
+      ),
+  ),
+)
+
 const expressionWhichMayHaveTrailingExpressions = oneOf([
+  parenthesizedHole,
   precededByOpeningParenthesis,
   precededByOpeningBrace,
   precededByAtSign,
   precededByColonThenAtom,
+  hole,
   precededByAtomThenFunctionArrow,
   atom,
 ])
