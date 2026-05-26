@@ -995,4 +995,54 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      f: (x: @hole { name: t, constraint: { assignableTo: :something.type } })
+        => :x
+      :f(42) ~ 42
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply: a => (f: :a ~> @hole {
+        name: b
+        constraint: { assignableTo: :something.type }
+      }) => :f(:a)
+      ab: :apply(a)(:atom.append(b))
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply2: a =>
+        (f: :a ~> @hole { name: b, constraint: { assignableTo: :something.type } })
+          => (g: :b ~> @hole { name: c, constraint: { assignableTo: :something.type } })
+            => :g(:f(:a))
+      :apply2(42)(_n => true)(_b => x) ~ x
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      pipe: (f:
+        @hole { name: a, constraint: { assignableTo: :something.type } } ~>
+          @hole { name: b, constraint: { assignableTo: :something.type } }
+      ) => (a: :a) => :f(:a)
+      ab: :pipe(:atom.append(b))(a)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

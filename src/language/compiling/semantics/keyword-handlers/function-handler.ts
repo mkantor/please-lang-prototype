@@ -1,9 +1,13 @@
 import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
+import type { Atom } from '../../../parsing.js'
 import {
   elaborateWithContext,
   getParameterName,
+  getParameterTypeAnnotation,
+  getTypesForTypeParameters,
+  ignoredKey,
   inferType,
   makeFunctionNode,
   makeObjectNode,
@@ -16,7 +20,13 @@ import {
   type FunctionNode,
   type KeywordHandler,
   type SemanticGraph,
+  type Type,
 } from '../../../semantics.js'
+import {
+  collectHolesByName,
+  makeHoleExpression,
+} from '../../../semantics/expressions/hole-expression.js'
+import { makeTypeParameter } from '../../../semantics/type-system/type-formats.js'
 
 export const functionKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -72,6 +82,57 @@ const apply = (
       'return with a different key to avoid collision with a stupidly-named parameter'
     : 'return'
 
+  const holeBindings: Record<string, SemanticGraph> = option.match(
+    getParameterTypeAnnotation(expression),
+    {
+      none: _ => ({}),
+      some: annotation => {
+        // Specialize each hole's type parameter using the inferred type of the
+        // argument, so references like `:a` in the body see the concrete type
+        // rather than the original unconstrained type parameter.
+        const specializationsByTypeParameterName = either.match(
+          inferType(argument, context),
+          {
+            left: _ => new Map<Atom, Type>(),
+            right: argumentType =>
+              new Map(
+                [
+                  ...getTypesForTypeParameters({
+                    parameterType: signature.parameter,
+                    argumentType,
+                  }),
+                ].map(([typeParameter, specialization]) => [
+                  typeParameter.name,
+                  specialization,
+                ]),
+              ),
+          },
+        )
+
+        const holeBindings: Record<string, SemanticGraph> = {}
+        for (const [name, hole] of collectHolesByName(annotation)) {
+          if (
+            name !== parameterName &&
+            name !== ownKey &&
+            name !== returnKey &&
+            name !== ignoredKey
+          ) {
+            const specializedType = specializationsByTypeParameterName.get(name)
+            holeBindings[name] =
+              specializedType === undefined ? hole : (
+                makeHoleExpression(
+                  name,
+                  hole[1].constraint,
+                  makeTypeParameter(name, { assignableTo: specializedType }),
+                )
+              )
+          }
+        }
+        return holeBindings
+      },
+    },
+  )
+
   const result = either.flatMap(serialize(body), serializedBody =>
     either.flatMap(
       updateValueAtKeyPathInSemanticGraph(
@@ -88,6 +149,9 @@ const apply = (
             ),
             // Put the argument in scope.
             [parameterName]: argument,
+            // Put any `@hole`s from the parameter annotation in scope so type
+            // parameters can be referenced.
+            ...holeBindings,
             // Use the serialized form so the body in the program matches what
             // gets re-elaborated.
             [returnKey]: serializedBody,
