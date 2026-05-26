@@ -1009,10 +1009,7 @@ testCases(
 
   [
     `{
-      apply: a => (f: :a ~> @hole {
-        name: b
-        constraint: { assignableTo: :something.type }
-      }) => :f(:a)
+      apply: a => (f: :a ~> ?b) => :f(:a)
       ab: :apply(a)(:atom.append(b))
     }`,
     result => {
@@ -1022,10 +1019,7 @@ testCases(
 
   [
     `{
-      apply2: a =>
-        (f: :a ~> @hole { name: b, constraint: { assignableTo: :something.type } })
-          => (g: :b ~> @hole { name: c, constraint: { assignableTo: :something.type } })
-            => :g(:f(:a))
+      apply2: a => (f: :a ~> ?b) => (g: :b ~> ?c) => :g(:f(:a))
       :apply2(42)(_n => true)(_b => x) ~ x
     }`,
     result => {
@@ -1035,11 +1029,34 @@ testCases(
 
   [
     `{
-      pipe: (f:
-        @hole { name: a, constraint: { assignableTo: :something.type } } ~>
-          @hole { name: b, constraint: { assignableTo: :something.type } }
-      ) => (a: :a) => :f(:a)
+      pipe: (f: ?a ~> ?b) => (a: :a) => :f(:a)
       ab: :pipe(:atom.append(b))(a)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      f: (x: (?b: :atom.type)) => :x
+      :f(hello) ~ hello
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `((x: ?) => :x)(42) ~ 42`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      outer: a => (f: :a ~> ?b) => (g: :b ~> ?b) => :g
     }`,
     result => {
       assert(either.isRight(result))

@@ -382,6 +382,84 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
     ),
   ],
 
+  [
+    '?a',
+    either.makeRight(
+      syntaxTree([
+        ['0', '@hole'],
+        [
+          '1',
+          [
+            ['name', 'a'],
+            [
+              'constraint',
+              [
+                [
+                  'assignableTo',
+                  [
+                    ['0', '@index'],
+                    [
+                      '1',
+                      [
+                        [
+                          'object',
+                          [
+                            ['0', '@lookup'],
+                            ['1', [['key', 'something']]],
+                          ],
+                        ],
+                        ['query', [['0', 'type']]],
+                      ],
+                    ],
+                  ],
+                ],
+              ],
+            ],
+          ],
+        ],
+      ]),
+    ),
+  ],
+
+  [
+    '(?a: :atom.type)',
+    either.makeRight(
+      syntaxTree([
+        ['0', '@hole'],
+        [
+          '1',
+          [
+            ['name', 'a'],
+            [
+              'constraint',
+              [
+                [
+                  'assignableTo',
+                  [
+                    ['0', '@index'],
+                    [
+                      '1',
+                      [
+                        [
+                          'object',
+                          [
+                            ['0', '@lookup'],
+                            ['1', [['key', 'atom']]],
+                          ],
+                        ],
+                        ['query', [['0', 'type']]],
+                      ],
+                    ],
+                  ],
+                ],
+              ],
+            ],
+          ],
+        ],
+      ]),
+    ),
+  ],
+
   // `|`s in atoms must generally be quoted, with a few exceptions.
   ['|', result => assert(either.isLeft(result))],
   ['"|"', either.makeRight(syntaxTree('|'))],
