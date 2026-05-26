@@ -15,7 +15,10 @@ import {
   isTypeParameter,
   makeTypeParameter,
 } from '../type-system/type-formats.js'
-import { readArgumentsFromExpression } from './expression-utilities.js'
+import {
+  ignoredKey,
+  readArgumentsFromExpression,
+} from './expression-utilities.js'
 
 export type HoleExpression = ObjectNode & {
   readonly 0: '@hole'
@@ -125,6 +128,9 @@ export const getHoleTypeParameter = (node: HoleExpression): TypeParameter =>
 
 /**
  * Walk an annotation, returning a `Map` from hole names to their expressions.
+ *
+ * Duplicates (after the first occurrence per name) are silently dropped. Use
+ * `findDuplicateHoleNames` to detect them.
  */
 export const collectHolesByName = (
   annotation: SemanticGraph,
@@ -157,4 +163,49 @@ export const collectHolesByName = (
     }
   }
   return collect(new Map(), annotation)
+}
+
+/**
+ * Walk an annotation, returning the set of hole names that appear more than
+ * once. Anonymous holes are skipped.
+ */
+export const findDuplicateHoleNames = (
+  annotation: SemanticGraph,
+): ReadonlySet<Atom> => {
+  // TODO: Consider less-imperative/more-functional approaches for this.
+  const seen = new Set<Atom>()
+  const duplicates = new Set<Atom>()
+  const visit = (node: SemanticGraph): void => {
+    const holeExpressionResult = readHoleExpression(node)
+    if (
+      either.isRight(holeExpressionResult) &&
+      typeParameterKey in holeExpressionResult.value
+    ) {
+      const node = holeExpressionResult.value
+      const name = node[1]['name']
+      // Side effect: add `name` to `seen` or `duplicates`.
+      if (
+        seen.has(name) &&
+        // Allow multiple anonymous holes in an annotation.
+        name !== ignoredKey
+      ) {
+        duplicates.add(name)
+      } else {
+        seen.add(name)
+      }
+    } else {
+      if (isFunctionNode(node)) {
+        const serialized = node.serialize()
+        if (either.isRight(serialized)) {
+          visit(serialized.value)
+        }
+      } else if (isObjectNode(node)) {
+        for (const value of Object.values(node)) {
+          visit(value)
+        }
+      }
+    }
+  }
+  visit(annotation)
+  return duplicates
 }

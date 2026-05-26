@@ -24,6 +24,7 @@ import {
 } from '../../../semantics.js'
 import {
   collectHolesByName,
+  findDuplicateHoleNames,
   makeHoleExpression,
 } from '../../../semantics/expressions/hole-expression.js'
 import { makeTypeParameter } from '../../../semantics/type-system/type-formats.js'
@@ -33,31 +34,52 @@ export const functionKeywordHandler: KeywordHandler = (
   context: ExpressionContext,
 ): Either<ElaborationError, FunctionNode> =>
   either.flatMap(readFunctionExpression(expression), functionExpression =>
-    either.flatMap(inferType(expression, context), inferredType => {
-      if (inferredType.kind !== 'function') {
-        return either.makeLeft({
-          kind: 'bug',
-          message:
-            'inferred type of function expression was not a function type',
-        })
-      } else {
-        return either.makeRight(
-          makeFunctionNode(
-            inferredType.signature,
-            () => either.makeRight(functionExpression),
-            option.makeSome(getParameterName(functionExpression)),
-            argument =>
-              apply(
-                functionExpression,
-                inferredType.signature,
-                argument,
-                context,
-              ),
-          ),
-        )
-      }
-    }),
+    either.flatMap(checkForDuplicateHoles(functionExpression), _ =>
+      either.flatMap(inferType(expression, context), inferredType => {
+        if (inferredType.kind !== 'function') {
+          return either.makeLeft({
+            kind: 'bug',
+            message:
+              'inferred type of function expression was not a function type',
+          })
+        } else {
+          return either.makeRight(
+            makeFunctionNode(
+              inferredType.signature,
+              () => either.makeRight(functionExpression),
+              option.makeSome(getParameterName(functionExpression)),
+              argument =>
+                apply(
+                  functionExpression,
+                  inferredType.signature,
+                  argument,
+                  context,
+                ),
+            ),
+          )
+        }
+      }),
+    ),
   )
+
+const checkForDuplicateHoles = (
+  expression: FunctionExpression,
+): Either<ElaborationError, undefined> =>
+  option.match(getParameterTypeAnnotation(expression), {
+    none: () => either.makeRight(undefined),
+    some: annotation => {
+      const duplicates = findDuplicateHoleNames(annotation)
+      if (duplicates.size === 0) {
+        return either.makeRight(undefined)
+      } else {
+        const [first] = duplicates
+        return either.makeLeft({
+          kind: 'invalidExpression',
+          message: `hole \`?${first ?? ''}\` is declared more than once in the same scope`,
+        })
+      }
+    },
+  })
 
 const apply = (
   expression: FunctionExpression,

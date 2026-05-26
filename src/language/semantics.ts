@@ -20,6 +20,7 @@ export {
 } from './semantics/expressions/check-expression.js'
 export {
   asSemanticGraph,
+  ignoredKey,
   stringifyKeyForEndUser,
 } from './semantics/expressions/expression-utilities.js'
 export {
@@ -40,7 +41,6 @@ export {
   type IndexExpression,
 } from './semantics/expressions/index-expression.js'
 export {
-  ignoredKey,
   keyPathToLookupExpression,
   lookup,
   makeLookupExpression,

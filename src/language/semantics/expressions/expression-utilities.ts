@@ -19,6 +19,12 @@ import {
   type SemanticGraph,
 } from '../semantic-graph.js'
 
+/**
+ * This name is used for ignored parameters/properties and can't be directly
+ * looked-up.
+ */
+export const ignoredKey = '_'
+
 export const asSemanticGraph = (
   value: SemanticGraph | Molecule,
 ): SemanticGraph =>

@@ -21,6 +21,7 @@ import {
   type SemanticGraph,
 } from '../semantic-graph.js'
 import {
+  ignoredKey,
   readArgumentsFromExpression,
   stringifyKeyForEndUser,
 } from './expression-utilities.js'
@@ -38,12 +39,6 @@ export type LookupExpression = ObjectNode & {
     readonly key: Atom
   }
 }
-
-/**
- * This name is used for ignored parameters/properties and can't be directly
- * looked-up.
- */
-export const ignoredKey = '_'
 
 export const readLookupExpression = (
   node: SemanticGraph,
