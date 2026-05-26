@@ -1062,4 +1062,12 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `(config: { x: ?a, y: ?a }) => :config`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'invalidExpression')
+    },
+  ],
 ])
