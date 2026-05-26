@@ -1,5 +1,5 @@
 import either, { type Either, type Right } from '@matt.kantor/either'
-import option from '@matt.kantor/option'
+import option, { type Option } from '@matt.kantor/option'
 import parsing from '@matt.kantor/parsing'
 import { styleText } from 'node:util'
 import * as orderedRecord from '../../ordered-record.js'
@@ -310,25 +310,75 @@ const unparseSugaredApply = (
   })
 }
 
+// `type ~> body` is sugar for `(_: type) => body`, so it applies when the
+// parameter is the ignored name `_` and it has an explicit type annotation
+// which isn't the top type (in which case `_ => body` is preferred).
+const signatureSugarTypeAnnotation = (
+  expression: FunctionExpression,
+): Option<SemanticGraph> =>
+  getParameterName(expression) !== ignoredKey ?
+    option.none
+  : option.flatMap(getParameterTypeAnnotation(expression), typeAnnotation =>
+      isTopType(typeAnnotation) ? option.none : option.makeSome(typeAnnotation),
+    )
+
 const unparseSugaredFunction = (
   expression: FunctionExpression,
   context: Context,
-) =>
-  either.flatMap(
-    unparseSugaredFunctionParameter(expression, context),
-    parameterAsString =>
-      either.flatMap(serializeIfNeeded(expression[1].body), serializedBody =>
-        either.map(
-          context.unparseAtomOrMolecule('default')(serializedBody),
-          bodyAsString =>
-            [
-              parameterAsString,
-              punctuation(styleText).functionArrow,
-              bodyAsString,
-            ].join(' '),
+): Either<UnserializableValueError, string> => {
+  const {
+    openGroupingParenthesis,
+    closeGroupingParenthesis,
+    functionArrow,
+    signatureArrow,
+  } = punctuation(styleText)
+  return option.match(signatureSugarTypeAnnotation(expression), {
+    some: typeAnnotation =>
+      // Unparse using `~>` notation.
+      either.flatMap(
+        either.flatMap(
+          serializeIfNeeded(typeAnnotation),
+          context.unparseAtomOrMolecule('default'),
         ),
+        typeAnnotationAsString => {
+          const possiblyParenthesizedTypeAnnotation =
+            isNonCompactExpression(typeAnnotation) ?
+              openGroupingParenthesis.concat(
+                typeAnnotationAsString,
+                closeGroupingParenthesis,
+              )
+            : typeAnnotationAsString
+          return either.map(
+            either.flatMap(
+              serializeIfNeeded(expression[1].body),
+              context.unparseAtomOrMolecule('default'),
+            ),
+            bodyAsString =>
+              [
+                possiblyParenthesizedTypeAnnotation,
+                signatureArrow,
+                bodyAsString,
+              ].join(' '),
+          )
+        },
       ),
-  )
+    none: _ =>
+      // Unparse using `=>` notation.
+      either.flatMap(
+        unparseSugaredFunctionParameter(expression, context),
+        parameterAsString =>
+          either.flatMap(
+            serializeIfNeeded(expression[1].body),
+            serializedBody =>
+              either.map(
+                context.unparseAtomOrMolecule('default')(serializedBody),
+                bodyAsString =>
+                  [parameterAsString, functionArrow, bodyAsString].join(' '),
+              ),
+          ),
+      ),
+  })
+}
 
 const unparseSugaredFunctionParameter = (
   expression: FunctionExpression,
