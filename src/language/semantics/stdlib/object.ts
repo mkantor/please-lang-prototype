@@ -1,7 +1,6 @@
 import either from '@matt.kantor/either'
 import {
   isObjectNode,
-  makeObjectNode,
   objectNodeFromOrderedEntries,
   orderedEntriesOfObjectNode,
 } from '../object-node.js'
@@ -13,7 +12,7 @@ import {
 } from './stdlib-utilities.js'
 
 export const object = {
-  type: makeObjectNode({}),
+  type: objectNodeFromOrderedEntries([]),
 
   lookup: preludeFunctionArity2(
     ['object', 'lookup'],
@@ -41,9 +40,15 @@ export const object = {
           } else {
             const propertyValue = argument[key]
             return either.makeRight(
-              propertyValue === undefined ?
-                makeObjectNode({ tag: 'none', value: makeObjectNode({}) })
-              : makeObjectNode({ tag: 'some', value: propertyValue }),
+              propertyValue !== undefined ?
+                objectNodeFromOrderedEntries([
+                  ['tag', 'some'],
+                  ['value', propertyValue],
+                ])
+              : objectNodeFromOrderedEntries([
+                  ['tag', 'none'],
+                  ['value', objectNodeFromOrderedEntries([])],
+                ]),
             )
           }
         })
@@ -60,8 +65,14 @@ export const object = {
     argument =>
       either.makeRight(
         isObjectNode(argument) ?
-          makeObjectNode({ tag: 'some', value: argument })
-        : makeObjectNode({ tag: 'none', value: makeObjectNode({}) }),
+          objectNodeFromOrderedEntries([
+            ['tag', 'some'],
+            ['value', argument],
+          ])
+        : objectNodeFromOrderedEntries([
+            ['tag', 'none'],
+            ['value', objectNodeFromOrderedEntries([])],
+          ]),
       ),
   ),
 
@@ -83,7 +94,7 @@ export const object = {
         })
       } else {
         return either.makeRight(value =>
-          either.makeRight(makeObjectNode({ [key]: value })),
+          either.makeRight(objectNodeFromOrderedEntries([[key, value]])),
         )
       }
     },

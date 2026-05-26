@@ -3,7 +3,7 @@ import { makeUnionExpression } from '../expressions/union-expression.js'
 import { isFunctionNode } from '../function-node.js'
 import {
   isObjectNode,
-  makeObjectNode,
+  objectNodeFromOrderedEntries,
   type ObjectNode,
 } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
@@ -27,26 +27,41 @@ export const option = {
     value =>
       either.makeRight(
         makeUnionExpression(
-          makeObjectNode({
-            0: makeObjectNode({
-              tag: 'some',
-              value,
-            }),
-            1: makeObjectNode({
-              tag: 'none',
-              value: makeObjectNode({}),
-            }),
-          }),
+          objectNodeFromOrderedEntries([
+            [
+              '0',
+              objectNodeFromOrderedEntries([
+                ['tag', 'some'],
+                ['value', value],
+              ]),
+            ],
+            [
+              '1',
+              objectNodeFromOrderedEntries([
+                ['tag', 'none'],
+                ['value', objectNodeFromOrderedEntries([])],
+              ]),
+            ],
+          ]),
         ),
       ),
   ),
 
-  none: makeObjectNode({ tag: 'none', value: makeObjectNode({}) }),
+  none: objectNodeFromOrderedEntries([
+    ['tag', 'none'],
+    ['value', objectNodeFromOrderedEntries([])],
+  ]),
 
   make_some: preludeFunctionArity1(
     ['option', 'make_some'],
     { parameter: A, return: types.option(A) },
-    value => either.makeRight(makeObjectNode({ tag: 'some', value })),
+    value =>
+      either.makeRight(
+        objectNodeFromOrderedEntries([
+          ['tag', 'some'],
+          ['value', value],
+        ]),
+      ),
   ),
 
   // (a ~> b) ~> option(a) ~> option(b)
@@ -76,7 +91,10 @@ export const option = {
             return either.makeRight(optionValue)
           } else {
             return either.map(transform(optionValue.value), transformedValue =>
-              makeObjectNode({ tag: 'some', value: transformedValue }),
+              objectNodeFromOrderedEntries([
+                ['tag', 'some'],
+                ['value', transformedValue],
+              ]),
             )
           }
         })

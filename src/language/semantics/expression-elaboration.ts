@@ -9,8 +9,8 @@ import { isExpression, type Expression } from './expression.js'
 import type { KeyPath } from './key-path.js'
 import { isKeyword, type Keyword } from './keyword.js'
 import {
-  makeObjectNode,
   objectNodeFromMolecule,
+  objectNodeFromOrderedEntries,
   orderedKeys,
   withProperty,
   type ObjectNode,
@@ -84,9 +84,8 @@ const elaborateWithinMolecule = (
     )
     return either.map(expandedResult, asSemanticGraph)
   } else {
-    const possibleExpressionAsObjectNode: Writable<ObjectNode> = makeObjectNode(
-      {},
-    )
+    const possibleExpressionAsObjectNode: Writable<ObjectNode> =
+      objectNodeFromOrderedEntries([])
 
     // Used to initialize the resulting `ObjectNode`'s `orderedKeys` sidecar.
     const orderedKeysAccumulator: Atom[] = []
