@@ -14,8 +14,8 @@ import { isSemanticGraph } from './is-semantic-graph.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
 import { isExemptFromElaboration, isKeyword } from './keyword.js'
 import {
-  makeObjectNode,
   objectNodeFromMolecule,
+  objectNodeFromOrderedEntries,
   serializeObjectNode,
   withProperty,
   type ObjectNode,
@@ -168,24 +168,7 @@ export const serialize = (
         either.makeRight(node),
       function: node => serializeFunctionNode(node),
       object: node => serializeObjectNode(node),
-      typeSymbol: node =>
-        serialize(
-          makeIndexExpression({
-            query: makeObjectNode({ 0: 'type' }),
-            object: (() => {
-              switch (node) {
-                case atomTypeSymbol:
-                  return makeLookupExpression('atom')
-                case integerTypeSymbol:
-                  return makeLookupExpression('integer')
-                case naturalNumberTypeSymbol:
-                  return makeLookupExpression('natural_number')
-                case somethingTypeSymbol:
-                  return makeLookupExpression('something')
-              }
-            })(),
-          }),
-        ),
+      typeSymbol: node => serialize(typeSymbolToSemanticGraph(node)),
     }),
     withPhantomData<Serialized>(),
   )
@@ -201,6 +184,25 @@ export const stringifySemanticGraphForEndUser = (
       left: error => `(unserializable value: ${error.message})`,
     },
   )
+
+export const typeSymbolToSemanticGraph = (
+  typeSymbol: TypeSymbol,
+): SemanticGraph =>
+  makeIndexExpression({
+    query: objectNodeFromOrderedEntries([['0', 'type']]),
+    object: (() => {
+      switch (typeSymbol) {
+        case atomTypeSymbol:
+          return makeLookupExpression('atom')
+        case integerTypeSymbol:
+          return makeLookupExpression('integer')
+        case naturalNumberTypeSymbol:
+          return makeLookupExpression('natural_number')
+        case somethingTypeSymbol:
+          return makeLookupExpression('something')
+      }
+    })(),
+  })
 
 const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,
