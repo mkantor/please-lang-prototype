@@ -12,6 +12,7 @@ import {
 export const handleOutput = async (
   process: NodeJS.Process,
   command: () => Promise<Either<{ readonly message: string }, SyntaxTree>>,
+  defaultOutputNotation?: Notation,
 ): Promise<undefined> => {
   const args = parseArgs({
     args: process.argv.slice(2), // remove `execPath` and `filename`
@@ -36,7 +37,11 @@ export const handleOutput = async (
   const outputFormatArg = args.values['output-format']
   let notation: Notation
   if (outputFormatArg === undefined) {
-    throw new Error('Missing required option: --output-format')
+    if (defaultOutputNotation !== undefined) {
+      notation = defaultOutputNotation
+    } else {
+      throw new Error('Missing required option: --output-format')
+    }
   } else if (outputFormatArg === 'json') {
     notation = prettyJson
   } else if (outputFormatArg === 'plz') {

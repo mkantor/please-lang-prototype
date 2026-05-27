@@ -153,7 +153,7 @@ const serializeObjectPropertyValue = (
     case 'symbol':
       return serialize(propertyValue)
     case 'object':
-      return serialize(makeObjectNode(propertyValue))
+      return serialize(propertyValue)
     case 'function':
       return serializeFunctionNode(propertyValue)
   }

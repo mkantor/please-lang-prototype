@@ -740,10 +740,10 @@ export const literalTypeFromSemanticGraph = (
       return either.map(
         either.sequence(
           Object.entries(node).map(([key, value]) =>
-            either.map(
-              literalTypeFromSemanticGraph(value),
-              childType => [key, childType] as const,
-            ),
+            either.map(literalTypeFromSemanticGraph(value), childType => [
+              key,
+              childType,
+            ]),
           ),
         ),
         entries => makeObjectType('', Object.fromEntries(entries)),

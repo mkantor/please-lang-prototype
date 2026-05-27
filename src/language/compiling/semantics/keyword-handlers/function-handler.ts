@@ -3,6 +3,7 @@ import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import type { Atom } from '../../../parsing.js'
 import {
+  asSemanticGraph,
   elaborateWithContext,
   getParameterName,
   getParameterTypeAnnotation,
@@ -10,7 +11,7 @@ import {
   ignoredKey,
   inferType,
   makeFunctionNode,
-  makeObjectNode,
+  objectNodeFromOrderedEntries,
   readFunctionExpression,
   serialize,
   updateValueAtKeyPathInSemanticGraph,
@@ -104,10 +105,9 @@ const apply = (
       'return with a different key to avoid collision with a stupidly-named parameter'
     : 'return'
 
-  const holeBindings: Record<string, SemanticGraph> = option.match(
-    getParameterTypeAnnotation(expression),
-    {
-      none: _ => ({}),
+  const holeBindings: readonly (readonly [string, SemanticGraph])[] =
+    option.match(getParameterTypeAnnotation(expression), {
+      none: _ => [],
       some: annotation => {
         // Specialize each hole's type parameter using the inferred type of the
         // argument, so references like `:a` in the body see the concrete type
@@ -131,29 +131,29 @@ const apply = (
           },
         )
 
-        const holeBindings: Record<string, SemanticGraph> = {}
-        for (const [name, hole] of collectHolesByName(annotation)) {
-          if (
-            name !== parameterName &&
-            name !== ownKey &&
-            name !== returnKey &&
-            name !== ignoredKey
-          ) {
+        return [...collectHolesByName(annotation)]
+          .filter(
+            ([name, _hole]) =>
+              name !== parameterName &&
+              name !== ownKey &&
+              name !== returnKey &&
+              name !== ignoredKey,
+          )
+          .map(([name, hole]) => {
             const specializedType = specializationsByTypeParameterName.get(name)
-            holeBindings[name] =
+            return [
+              name,
               specializedType === undefined ? hole : (
                 makeHoleExpression(
                   name,
                   hole[1].constraint,
                   makeTypeParameter(name, { assignableTo: specializedType }),
                 )
-              )
-          }
-        }
-        return holeBindings
+              ),
+            ]
+          })
       },
-    },
-  )
+    })
 
   const result = either.flatMap(serialize(body), serializedBody =>
     either.flatMap(
@@ -161,23 +161,26 @@ const apply = (
         context.program,
         context.location,
         _ =>
-          makeObjectNode({
+          objectNodeFromOrderedEntries([
             // Include the function itself to allow recursion.
-            [ownKey]: makeFunctionNode(
-              signature,
-              () => either.makeRight(expression),
-              option.makeSome(parameterName),
-              argument => apply(expression, signature, argument, context),
-            ),
+            [
+              ownKey,
+              makeFunctionNode(
+                signature,
+                () => either.makeRight(expression),
+                option.makeSome(parameterName),
+                argument => apply(expression, signature, argument, context),
+              ),
+            ],
             // Put the argument in scope.
-            [parameterName]: argument,
+            [parameterName, argument],
             // Put any `@hole`s from the parameter annotation in scope so type
             // parameters can be referenced.
             ...holeBindings,
             // Use the serialized form so the body in the program matches what
             // gets re-elaborated.
-            [returnKey]: serializedBody,
-          }),
+            [returnKey, asSemanticGraph(serializedBody)],
+          ]),
       ),
       updatedProgram =>
         elaborateWithContext(serializedBody, {

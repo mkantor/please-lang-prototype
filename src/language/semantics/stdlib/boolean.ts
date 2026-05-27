@@ -1,6 +1,6 @@
 import either from '@matt.kantor/either'
 import { makeUnionExpression } from '../expressions/union-expression.js'
-import { makeObjectNode } from '../object-node.js'
+import { objectNodeFromOrderedEntries } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import { makeFunctionType } from '../type-system/type-formats.js'
@@ -11,10 +11,10 @@ import {
 
 export const boolean = {
   type: makeUnionExpression(
-    makeObjectNode({
-      0: 'false',
-      1: 'true',
-    }),
+    objectNodeFromOrderedEntries([
+      ['0', 'false'],
+      ['1', 'true'],
+    ]),
   ),
 
   is: preludeFunctionArity1(
@@ -35,8 +35,14 @@ export const boolean = {
     argument =>
       either.makeRight(
         nodeIsBoolean(argument) ?
-          makeObjectNode({ tag: 'some', value: argument })
-        : makeObjectNode({ tag: 'none', value: makeObjectNode({}) }),
+          objectNodeFromOrderedEntries([
+            ['tag', 'some'],
+            ['value', argument],
+          ])
+        : objectNodeFromOrderedEntries([
+            ['tag', 'none'],
+            ['value', objectNodeFromOrderedEntries([])],
+          ]),
       ),
   ),
 

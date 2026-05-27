@@ -1,5 +1,5 @@
 import either from '@matt.kantor/either'
-import { makeObjectNode } from '../object-node.js'
+import { objectNodeFromOrderedEntries } from '../object-node.js'
 import { types } from '../type-system.js'
 import { makeFunctionType, makeUnionType } from '../type-system/type-formats.js'
 import {
@@ -47,8 +47,14 @@ export const natural_number = {
               members: new Set([argument]),
             })
         ) ?
-          makeObjectNode({ tag: 'some', value: argument })
-        : makeObjectNode({ tag: 'none', value: makeObjectNode({}) }),
+          objectNodeFromOrderedEntries([
+            ['tag', 'some'],
+            ['value', argument],
+          ])
+        : objectNodeFromOrderedEntries([
+            ['tag', 'none'],
+            ['value', objectNodeFromOrderedEntries([])],
+          ]),
       ),
   ),
 

@@ -9,7 +9,7 @@ git clone git@github.com:mkantor/please-lang-prototype.git
 cd please-lang-prototype
 npm install
 npm run build
-echo '@runtime { context => :context.program.start_time }' | ./please --output-format=json
+echo '@runtime { context => :context.program.start_time }' | ./please
 ```
 
 There are more example programs in [`./examples`](./examples).

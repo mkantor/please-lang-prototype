@@ -137,7 +137,8 @@ const inferTypeImplementation = (
     return literalTypeFromSemanticGraph(node)
   }
 
-  // @function: infer return type from the body.
+  // @function: infer parameter type from context (or an explicit annotation)
+  // and return type from the body.
   const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
     return either.flatMap(

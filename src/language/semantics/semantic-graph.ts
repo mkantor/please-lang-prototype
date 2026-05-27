@@ -236,19 +236,30 @@ export const typeToSemanticGraph = (
         )
       }
     },
-    union: type =>
-      type === types.something ?
-        typeSymbolToSemanticGraph(somethingTypeSymbol)
-      : makeUnionExpression(
-          objectNodeFromOrderedEntries(
-            [...type.members].map((member, index) => [
-              String(index),
-              typeof member === 'string' ? member : (
-                recurseWithSameTypeParameters(member)
-              ),
-            ]),
-          ),
-        ),
+    union: type => {
+      if (type === types.something) {
+        return typeSymbolToSemanticGraph(somethingTypeSymbol)
+      } else {
+        const [firstMember, ...remainingMembers] = type.members
+        if (firstMember !== undefined && remainingMembers.length === 0) {
+          // Unwrap singleton unions.
+          return typeof firstMember === 'string' ? firstMember : (
+              recurseWithSameTypeParameters(firstMember)
+            )
+        } else {
+          return makeUnionExpression(
+            objectNodeFromOrderedEntries(
+              [...type.members].map((member, index) => [
+                String(index),
+                typeof member === 'string' ? member : (
+                  recurseWithSameTypeParameters(member)
+                ),
+              ]),
+            ),
+          )
+        }
+      }
+    },
   })
 }
 
