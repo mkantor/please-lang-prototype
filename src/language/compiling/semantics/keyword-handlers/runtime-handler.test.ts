@@ -11,13 +11,15 @@ elaborationSuite('@runtime', [
       withPhantomData<never>()(
         makeObjectNode({
           0: '@runtime',
-          1: makeObjectNode({ function: prelude['identity']! }),
+          1: makeObjectNode({ function: prelude.identity }),
         }),
       ),
     ),
   ],
   [
     { 0: '@runtime', 1: { 0: 'not a function' } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
 ])

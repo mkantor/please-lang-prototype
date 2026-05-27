@@ -362,7 +362,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       )
       option.match(orderedRecord.get(output.value, 'value'), {
         none: () => assert.fail('expected `value` property'),
-        some: value => assert.equal(typeof value, 'string'),
+        some: value => {
+          assert.equal(typeof value, 'string')
+        },
       })
     },
   ],
@@ -401,7 +403,9 @@ testCases(endToEnd, code => code)('end-to-end tests', [
       )
       option.match(orderedRecord.get(output.value, 'value'), {
         none: () => assert.fail('expected `value` property'),
-        some: value => assert.equal(typeof value, 'string'),
+        some: value => {
+          assert.equal(typeof value, 'string')
+        },
       })
     },
   ],

@@ -36,7 +36,7 @@ export type FunctionNodeWithSignature<
 > = FunctionNode & { readonly signature: Signature }
 
 export const isFunctionNode = (node: SemanticGraph) =>
-  typeof node === 'function' && node[nodeTag] === 'function'
+  typeof node === 'function'
 
 export const makeFunctionNode = <Signature extends FunctionType['signature']>(
   signature: Signature,

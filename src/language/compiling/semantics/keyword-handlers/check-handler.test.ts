@@ -9,19 +9,27 @@ elaborationSuite('@check', [
   [{ 0: '@check', 1: { type: '@@a', value: '@@a' } }, success('@a')],
   [
     { 0: '@check', 1: { 0: 'a', 1: 'B' } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     { 0: '@check', 1: { type: 'a', value: 'B' } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     { 0: '@check', 1: { type: 'a', value: {} } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     { 0: '@check', 1: { type: {}, value: 'a' } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -31,7 +39,9 @@ elaborationSuite('@check', [
         value: { a: 'not b' },
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -53,7 +63,9 @@ elaborationSuite('@check', [
         },
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -63,7 +75,9 @@ elaborationSuite('@check', [
         value: {},
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -73,7 +87,9 @@ elaborationSuite('@check', [
         value: { a: {} },
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -83,7 +99,9 @@ elaborationSuite('@check', [
         value: { 0: '@lookup', 1: { 0: 'identity' } },
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   // values with excess properties:
   [
@@ -146,7 +164,9 @@ elaborationSuite('@check', [
         value: '"not a number"',
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -228,7 +248,9 @@ elaborationSuite('@check', [
         value: 'neither a number nor "a"',
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -276,7 +298,9 @@ elaborationSuite('@check', [
         value: 'not an object',
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {
@@ -312,7 +336,9 @@ elaborationSuite('@check', [
         },
       },
     },
-    output => assert(either.isRight(output)),
+    output => {
+      assert(either.isRight(output))
+    },
   ],
   [
     {
@@ -328,6 +354,8 @@ elaborationSuite('@check', [
         },
       },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
 ])

@@ -29,7 +29,9 @@ elaborationSuite('@apply', [
   ],
   [
     { 0: '@apply', 1: { function: 'not a function', argument: 'a' } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     {

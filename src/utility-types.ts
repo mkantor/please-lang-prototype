@@ -15,4 +15,6 @@ export type RemoveIndexSignatures<T> = {
   : number extends K ? never
   : symbol extends K ? never
   : K]: T[K]
-} & unknown // Improves type display.
+} &
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  unknown // Improves type display.

@@ -293,13 +293,13 @@ const isUnionAssignableToNonUnion = ({
  * simplified to `{ a: 'a' | 'b' | 'c' } | atom`.
  */
 export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
-  const reducibleSubsets: Map<
+  const reducibleSubsets = new Map<
     string,
     {
       readonly keys: readonly string[]
       readonly typesToMerge: Set<ObjectType>
     }
-  > = new Map()
+  >()
   for (const type of typeToSimplify.members) {
     if (typeof type !== 'string' && type.kind === 'object') {
       const keys = Object.keys(type.children)
@@ -324,8 +324,9 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
     }
   }
 
-  const canonicalizedTargetMembers: Set<Atom | Exclude<Type, UnionType>> =
-    new Set([...typeToSimplify.members])
+  const canonicalizedTargetMembers = new Set<Atom | Exclude<Type, UnionType>>([
+    ...typeToSimplify.members,
+  ])
 
   // Reduce `reducibleSubsets` by merging all candidate, updating
   // `canonicalizedTargetMembers`. Merge algorithm:
@@ -339,17 +340,15 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
     const typesToMergeAsArray = [...typesToMerge]
     const mergedObjectTypeChildren = Object.fromEntries(
       keys.map(key => {
-        const typesForThisProperty = typesToMergeAsArray
-          .flatMap(type => {
-            const propertyType = type.children[key]
-            return (
-              propertyType === undefined ? []
-              : propertyType.kind === 'union' ?
-                [...propertyType.members] // flatten any existing unions in property types
-              : [propertyType]
-            )
-          })
-          .filter(type => type !== undefined)
+        const typesForThisProperty = typesToMergeAsArray.flatMap(type => {
+          const propertyType = type.children[key]
+          return (
+            propertyType === undefined ? []
+            : propertyType.kind === 'union' ?
+              [...propertyType.members] // flatten any existing unions in property types
+            : [propertyType]
+          )
+        })
         const propertyTypeAsUnion = excludeRedundantUnionTypeMembers(
           makeUnionType('', typesForThisProperty),
         )

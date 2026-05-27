@@ -27,6 +27,8 @@ testCases(
   ],
   [
     ['@check', ['not a boolean', ['@index', [['@lookup', ['boolean']], 'is']]]],
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
 ])

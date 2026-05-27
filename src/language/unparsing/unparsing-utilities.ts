@@ -1,5 +1,5 @@
 import { type Either } from '@matt.kantor/either'
-import * as util from 'node:util'
+import type * as util from 'node:util'
 import type { UnserializableValueError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 

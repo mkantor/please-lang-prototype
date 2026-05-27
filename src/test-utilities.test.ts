@@ -42,7 +42,7 @@ export const testCases =
       check: Output | ((output: Output) => void),
     ])[],
   ) =>
-    suite(suiteName, _ =>
+    suite(suiteName, _ => {
       cases.forEach(([input, check]) => {
         const testName = getTestName(input)
         test(
@@ -50,19 +50,21 @@ export const testCases =
             `${testName.slice(0, testNameLengthLimit - 1)}…`
           : testName,
           () => {
-            const output = functionToTest(input)
-            const widenedCheck: unknown = check
-            // This narrowing is only safe because `Output` cannot be a
-            // function.
-            if (typeof widenedCheck === 'function') {
-              widenedCheck(output)
+            const output: Output | ((output: Output) => void) =
+              functionToTest(input)
+            if (typeof check === 'function') {
+              // This assertion is only safe because `Output` cannot be a
+              // function.
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+              const callableCheck = check as (output: Output) => void
+              callableCheck(output)
             } else {
               assert.deepEqual(output, check)
             }
           },
         )
-      }),
-    )
+      })
+    })
 
 export const toSyntaxTree = (input: JsonValue): SyntaxTree =>
   typeof input === 'string' ? input
@@ -96,9 +98,9 @@ const unparseAndRoundtripWithMultipleNotations = <Error, Value>(
       roundtrippedOutputs,
       ([outputFromPretty, outputFromInline]) =>
         either.map(
-          either.tryCatch(() =>
-            assert.deepEqual(outputFromPretty, outputFromInline),
-          ),
+          either.tryCatch(() => {
+            assert.deepEqual(outputFromPretty, outputFromInline)
+          }),
           _ => outputFromPretty,
         ),
     )

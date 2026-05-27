@@ -26,12 +26,10 @@ export const makeFunctionType = <Signature extends FunctionType['signature']>(
 export type ObjectType = {
   readonly name: string
   readonly kind: 'object'
-  readonly children: {
-    readonly [key: Atom]: Type
-  }
+  readonly children: Readonly<Record<Atom, Type>>
 }
 
-export const makeObjectType = <Children extends { readonly [key: Atom]: Type }>(
+export const makeObjectType = <Children extends Readonly<Record<Atom, Type>>>(
   name: string,
   children: Children,
 ): ObjectType & { readonly children: Children } => ({
@@ -159,17 +157,17 @@ export const isTypeParameter = (value: unknown): value is TypeParameter => {
     'kind' in value &&
     value.kind === 'parameter' &&
     'constraint' in value &&
-    typeof value['constraint'] === 'object' &&
-    value['constraint'] !== null &&
+    typeof value.constraint === 'object' &&
+    value.constraint !== null &&
     'identity' in value &&
     typeof value.identity === 'symbol'
   ) {
-    const newValue = {
+    ;({
       name: value.name,
       kind: value.kind,
       constraint: value.constraint,
       identity: value.identity,
-    } satisfies Omit<TypeParameter, 'constraint'> & {
+    }) satisfies Omit<TypeParameter, 'constraint'> & {
       constraint: Omit<TypeParameter['constraint'], 'assignableTo'>
     }
     return true

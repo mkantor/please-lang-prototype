@@ -57,8 +57,7 @@ export const readHoleExpression = (
           })
         } else if (
           typeParameterKey in node &&
-          (typeof node[typeParameterKey] !== 'object' ||
-            typeof node[typeParameterKey] === null)
+          typeof node[typeParameterKey] !== 'object'
         ) {
           return either.makeLeft({
             kind: 'bug',
@@ -95,9 +94,7 @@ export const readHoleExpression = (
                 })
                 return Object.assign(node, {
                   [typeParameterKey]:
-                    typeParameter === undefined ?
-                      makeTypeParameter(name, { assignableTo })
-                    : typeParameter,
+                    typeParameter ?? makeTypeParameter(name, { assignableTo }),
                 })
               },
             )
@@ -145,7 +142,7 @@ export const collectHolesByName = (
       typeParameterKey in holeExpressionResult.value
     ) {
       const node = holeExpressionResult.value
-      const name = node[1]['name']
+      const name = node[1].name
       if (!accumulator.has(name)) {
         // Side effect: remember the hole.
         accumulator.set(name, node)
@@ -182,7 +179,7 @@ export const findDuplicateHoleNames = (
       typeParameterKey in holeExpressionResult.value
     ) {
       const node = holeExpressionResult.value
-      const name = node[1]['name']
+      const name = node[1].name
       // Side effect: add `name` to `seen` or `duplicates`.
       if (
         seen.has(name) &&

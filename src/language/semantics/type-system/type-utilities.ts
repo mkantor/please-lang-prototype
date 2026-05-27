@@ -241,7 +241,7 @@ const containedTypeParametersImplementation = (
   if (type === types.something) {
     return new Map()
   } else {
-    return matchTypeFormat(type, {
+    return matchTypeFormat<TypeParametersByKeyPath>(type, {
       function: ({ signature }) =>
         mergeTypeParametersByKeyPath(
           containedTypeParametersImplementation(signature.parameter, [
@@ -278,11 +278,10 @@ const containedTypeParametersImplementation = (
         ),
       union: ({ members }) =>
         [...members]
-          .map(
-            (member): TypeParametersByKeyPath =>
-              typeof member === 'string' ?
-                new Map()
-              : containedTypeParametersImplementation(member, root),
+          .map(member =>
+            typeof member === 'string' ?
+              new Map()
+            : containedTypeParametersImplementation(member, root),
           )
           .reduce(mergeTypeParametersByKeyPath, new Map()),
     })
@@ -694,7 +693,7 @@ export const literalTypeFromSemanticGraph = (
       members: new Set([node]),
     })
   } else if (typeof node === 'symbol') {
-    if (node in typesBySymbol && typesBySymbol[node] !== undefined) {
+    if (node in typesBySymbol) {
       return either.makeRight(typesBySymbol[node])
     } else {
       return either.makeLeft({

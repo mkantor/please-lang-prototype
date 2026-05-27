@@ -19,14 +19,38 @@ elaborationSuite('basic keyword syntax', [
   [{ 0: { 0: '@@escaped' } }, success({ 0: { 0: '@escaped' } })],
   [
     { key: { 0: '@someUnknownKeyword' } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
-  [{ '@someUnknownKeyword': 'value' }, output => assert(either.isLeft(output))],
-  [{ key: '@someUnknownKeyword' }, output => assert(either.isLeft(output))],
-  [{ '@todo': 'value' }, output => assert(either.isLeft(output))],
-  [{ key: '@todo' }, output => assert(either.isLeft(output))],
+  [
+    { '@someUnknownKeyword': 'value' },
+    output => {
+      assert(either.isLeft(output))
+    },
+  ],
+  [
+    { key: '@someUnknownKeyword' },
+    output => {
+      assert(either.isLeft(output))
+    },
+  ],
+  [
+    { '@todo': 'value' },
+    output => {
+      assert(either.isLeft(output))
+    },
+  ],
+  [
+    { key: '@todo' },
+    output => {
+      assert(either.isLeft(output))
+    },
+  ],
   [
     { 0: '@todo this is also not valid' },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
 ])
