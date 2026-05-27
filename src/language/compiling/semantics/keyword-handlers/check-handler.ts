@@ -3,6 +3,7 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   isAssignable,
   readCheckExpression,
+  showType,
   stringifySemanticGraphForEndUser,
   type Expression,
   type ExpressionContext,
@@ -12,7 +13,6 @@ import {
 import {
   inferType,
   literalTypeFromSemanticGraph,
-  showType,
 } from '../../../semantics/type-system.js'
 
 const check = ({

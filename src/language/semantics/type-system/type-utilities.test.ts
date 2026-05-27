@@ -1,5 +1,6 @@
 import { testCases } from '../../../test-utilities.test.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from '../key-path.js'
+import { showType } from '../semantic-graph.js'
 import {
   atom,
   integer,
@@ -9,7 +10,6 @@ import {
   option,
   something,
 } from './prelude-types.js'
-import { showType } from './show-type.js'
 import {
   makeFunctionType,
   makeObjectType,
@@ -241,13 +241,13 @@ const genericizeParameterAnnotationSuite = testCases(
 )
 
 genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
-  [['a', atom], '(a <: atom)'],
+  [['a', atom], '(?a: :atom.type)'],
 
-  [['a', integer], '(a <: integer)'],
+  [['a', integer], '(?a: :integer.type)'],
 
-  [['a', makeUnionType('', ['foo', 'bar'])], '(a <: ("foo" | "bar"))'],
+  [['a', makeUnionType('', ['foo', 'bar'])], '(?a: foo | bar)'],
 
-  [['a', something], 'a'],
+  [['a', something], '?a'],
 
   [
     [
@@ -257,7 +257,7 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
         b: atom,
       }),
     ],
-    '{ a: (x.a <: integer), b: (x.b <: atom) }',
+    '{ a: (?"x.a": :integer.type), b: (?"x.b": :atom.type) }',
   ],
 
   [
@@ -267,7 +267,7 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
         a: makeObjectType('', { b: atom }),
       }),
     ],
-    '{ a: { b: (x.a.b <: atom) } }',
+    '{ a: { b: (?"x.a.b": :atom.type) } }',
   ],
 
   [
@@ -277,14 +277,14 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
         callback: makeFunctionType('', { parameter: atom, return: integer }),
       }),
     ],
-    '{ callback: (x.callback.#parameter <: atom) ~> (x.callback.#return <: integer) }',
+    '{ callback: (_: (?"x.callback.#parameter": :atom.type)) => (?"x.callback.#return": :integer.type) }',
   ],
 
   [['empty', makeObjectType('', {})], '{}'],
 
   [
     ['identity', makeFunctionType('', { parameter: A, return: A })],
-    `${showType(A)} ~> ${showType(A)}`,
+    '(_: ?a) => :a',
   ],
 
   [['wrap', makeObjectType('', { value: A })], `{ value: ${showType(A)} }`],

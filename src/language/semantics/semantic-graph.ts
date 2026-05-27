@@ -6,9 +6,18 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
-import { makeIndexExpression, makeLookupExpression } from '../semantics.js'
+import {
+  ignoredKey,
+  makeFunctionExpression,
+  makeIndexExpression,
+  makeLookupExpression,
+  makeUnionExpression,
+  types,
+  type Type,
+} from '../semantics.js'
 import { inlinePlz, unparse, type Notation } from '../unparsing.js'
 import { isExpression } from './expression.js'
+import { makeHoleExpression } from './expressions/hole-expression.js'
 import { serializeFunctionNode, type FunctionNode } from './function-node.js'
 import { isSemanticGraph } from './is-semantic-graph.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from './key-path.js'
@@ -16,6 +25,7 @@ import { isExemptFromElaboration, isKeyword } from './keyword.js'
 import {
   makeObjectNode,
   objectNodeFromMolecule,
+  objectNodeFromOrderedEntries,
   serializeObjectNode,
   withProperty,
   type ObjectNode,
@@ -27,6 +37,7 @@ import {
   naturalNumberTypeSymbol,
   somethingTypeSymbol,
 } from './type-system/prelude-types.js'
+import { matchTypeFormat } from './type-system/type-formats.js'
 
 export type TypeSymbol =
   | typeof atomTypeSymbol
@@ -168,24 +179,7 @@ export const serialize = (
         either.makeRight(node),
       function: node => serializeFunctionNode(node),
       object: node => serializeObjectNode(node),
-      typeSymbol: node =>
-        serialize(
-          makeIndexExpression({
-            query: makeObjectNode({ 0: 'type' }),
-            object: (() => {
-              switch (node) {
-                case atomTypeSymbol:
-                  return makeLookupExpression('atom')
-                case integerTypeSymbol:
-                  return makeLookupExpression('integer')
-                case naturalNumberTypeSymbol:
-                  return makeLookupExpression('natural_number')
-                case somethingTypeSymbol:
-                  return makeLookupExpression('something')
-              }
-            })(),
-          }),
-        ),
+      typeSymbol: node => serialize(typeSymbolToSemanticGraph(node)),
     }),
     withPhantomData<Serialized>(),
   )
@@ -201,6 +195,82 @@ export const stringifySemanticGraphForEndUser = (
       left: error => `(unserializable value: ${error.message})`,
     },
   )
+
+export const typeToSemanticGraph = (
+  type: Type,
+  alreadyIntroducedTypeParameterIdentities: Set<symbol>,
+): SemanticGraph => {
+  const recurseWithSameTypeParameters = (type: Type) =>
+    typeToSemanticGraph(type, alreadyIntroducedTypeParameterIdentities)
+  return matchTypeFormat(type, {
+    function: type =>
+      makeFunctionExpression(
+        objectNodeFromOrderedEntries([
+          [ignoredKey, recurseWithSameTypeParameters(type.signature.parameter)],
+        ]),
+        recurseWithSameTypeParameters(type.signature.return),
+      ),
+    object: type =>
+      objectNodeFromOrderedEntries(
+        Object.entries(type.children).map(([key, value]) => [
+          key,
+          recurseWithSameTypeParameters(value),
+        ]),
+      ),
+    opaque: type => typeSymbolToSemanticGraph(type.symbol),
+    parameter: type => {
+      if (alreadyIntroducedTypeParameterIdentities.has(type.identity)) {
+        return makeLookupExpression(type.name)
+      } else {
+        // Side effect: remember the type parameter. This is a direct mutation
+        // because it needs to be visible to usages not in this call stack.
+        alreadyIntroducedTypeParameterIdentities.add(type.identity)
+        return makeHoleExpression(
+          type.name,
+          makeObjectNode({
+            assignableTo: recurseWithSameTypeParameters(
+              type.constraint.assignableTo,
+            ),
+          }),
+          type,
+        )
+      }
+    },
+    union: type =>
+      type === types.something ?
+        typeSymbolToSemanticGraph(somethingTypeSymbol)
+      : makeUnionExpression(
+          objectNodeFromOrderedEntries(
+            [...type.members].map((member, index) => [
+              String(index),
+              typeof member === 'string' ? member : (
+                recurseWithSameTypeParameters(member)
+              ),
+            ]),
+          ),
+        ),
+  })
+}
+
+export const showType = (type: Type): string =>
+  stringifySemanticGraphForEndUser(typeToSemanticGraph(type, new Set()))
+
+const typeSymbolToSemanticGraph = (typeSymbol: TypeSymbol): SemanticGraph =>
+  makeIndexExpression({
+    query: objectNodeFromOrderedEntries([['0', 'type']]),
+    object: (() => {
+      switch (typeSymbol) {
+        case atomTypeSymbol:
+          return makeLookupExpression('atom')
+        case integerTypeSymbol:
+          return makeLookupExpression('integer')
+        case naturalNumberTypeSymbol:
+          return makeLookupExpression('natural_number')
+        case somethingTypeSymbol:
+          return makeLookupExpression('something')
+      }
+    })(),
+  })
 
 const syntaxTreeToSemanticGraph = (
   syntaxTree: Atom | Molecule,
