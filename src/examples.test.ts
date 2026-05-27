@@ -81,10 +81,12 @@ const snapshotTestProgramOutput = async (
           const testNamePrefix =
             commandLineArguments === '' ? '' : `${commandLineArguments} > `
           Promise.all([
-            test(`${testNamePrefix}stdout`, t =>
-              t.assert.snapshot(stdout, snapshotOptions)),
-            test(`${testNamePrefix}stderr`, t =>
-              t.assert.snapshot(stderr, snapshotOptions)),
+            test(`${testNamePrefix}stdout`, t => {
+              t.assert.snapshot(stdout, snapshotOptions)
+            }),
+            test(`${testNamePrefix}stderr`, t => {
+              t.assert.snapshot(stderr, snapshotOptions)
+            }),
           ])
             .then(resolve)
             .catch(reject)
@@ -104,8 +106,9 @@ const snapshotTestRoundtrippedSourceCode = async (filePath: string) => {
       either.map(unparse(parsedProgram, prettyPlz), stripVTControlCharacters),
   ).value
 
-  return test('roundtripped syntax tree', t =>
-    t.assert.snapshot(roundTrippedSyntaxTreeOrError, snapshotOptions))
+  return test('roundtripped syntax tree', t => {
+    t.assert.snapshot(roundTrippedSyntaxTreeOrError, snapshotOptions)
+  })
 }
 
 // Expect snapshots to already be strings.

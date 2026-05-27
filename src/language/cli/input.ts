@@ -54,7 +54,7 @@ export const readJson = async (
 export const readString = async (
   stream: AsyncIterable<string>,
 ): Promise<string> => {
-  let input: string = ''
+  let input = ''
   for await (const chunk of stream) {
     input += chunk
   }

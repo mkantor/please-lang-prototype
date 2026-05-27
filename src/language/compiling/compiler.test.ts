@@ -74,7 +74,12 @@ testCases(
       1: { function: { 0: '@lookup', 1: { key: 'identity' } } },
     }),
   ],
-  [[['@lookup', ['compose']]], output => assert(either.isLeft(output))],
+  [
+    [['@lookup', ['compose']]],
+    output => {
+      assert(either.isLeft(output))
+    },
+  ],
   [
     ['@runtime', [['@index', [['@lookup', ['boolean']], ['not']]]]],
     output => {

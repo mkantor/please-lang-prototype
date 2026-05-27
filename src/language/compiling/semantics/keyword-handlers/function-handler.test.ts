@@ -7,7 +7,9 @@ import { elaborationSuite } from '../test-utilities.test.js'
 elaborationSuite('@function', [
   [
     { 0: '@function', 1: { 0: 'not a function' } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     { 0: '@function', 1: { 0: 'x', 1: { 0: '@lookup', 1: { 0: 'x' } } } },

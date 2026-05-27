@@ -83,7 +83,7 @@ export const containsAnyUnelaboratedNodes = (node: SemanticGraph): boolean => {
     return true
   } else if (typeof node === 'object') {
     for (const propertyValue of Object.values(node)) {
-      if (containsAnyUnelaboratedNodes(propertyValue) === true) {
+      if (containsAnyUnelaboratedNodes(propertyValue)) {
         return true
       }
     }

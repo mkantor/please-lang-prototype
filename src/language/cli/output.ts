@@ -25,7 +25,7 @@ export const handleOutput = async (
   const noColorArg = args.values['no-color'] ?? false
   if (typeof noColorArg !== 'boolean') {
     throw new Error('Unsupported value for --no-color')
-  } else if (noColorArg === true) {
+  } else if (noColorArg) {
     // Warning: the global state mutation here means that we can't style text in
     // static contexts! Functions like `node:util`'s `styleText` shouldn't be
     // called from the top level of modules.
@@ -48,7 +48,7 @@ export const handleOutput = async (
   }
 
   const result = await command()
-  return either.match(result, {
+  either.match(result, {
     left: error => {
       throw new Error(error.message) // TODO: Improve error reporting.
     },

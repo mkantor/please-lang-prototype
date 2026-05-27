@@ -50,11 +50,15 @@ elaborationSuite('@lookup', [
   ],
   [
     { a: { 0: '@lookup', 1: { _: 'missing key' } } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
   [
     { a: { 0: '@lookup', 1: { key: 'thisPropertyDoesNotExist' } } },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
 
   // lexical scoping

@@ -155,7 +155,7 @@ const elaborateWithinMolecule = (
 
     // At this point `possibleExpressionAsObjectNode` may still have raw escape
     // sequences at the top level (whether it is an expression or not).
-    for (let [key, value] of Object.entries(
+    for (const [key, value] of Object.entries(
       propertiesInNeedOfFinalizationAsNodes,
     )) {
       const cannotBeKeyword = extractStringValueIfPossible(value)
@@ -295,4 +295,4 @@ const handleAtomWhichMayNotBeAKeyword = (
 }
 
 const unescapeKeywordSigil = (value: string) =>
-  /^@@/.test(value) ? value.substring(1) : value
+  value.startsWith('@@') ? value.substring(1) : value

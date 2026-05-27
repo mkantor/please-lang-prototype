@@ -48,21 +48,22 @@ const relativeLinkPattern = /\[[^\]]*\]\((\.\.?\/[^)\s]+)\)/g
 suite('README.md', async () => {
   const readmeSource = await fs.readFile(readmePath, { encoding: 'utf-8' })
 
-  await suite('plz code blocks', _ =>
+  await suite('plz code blocks', _ => {
     fencedCodeBlocks(readmeSource, 'plz').forEach(
       ({ content, startingLineNumber }) =>
-        test(`parsing code in block at line ${startingLineNumber}`, () =>
+        test(`parsing code in block at line ${startingLineNumber}`, () => {
           either.match(parse(content), {
             right: _ => undefined,
             left: error =>
               assert.fail(
                 `block beginning at line ${startingLineNumber} couldn't be parsed: ${error.message}`,
               ),
-          })),
-    ),
-  )
+          })
+        }),
+    )
+  })
 
-  await suite('relative links', _ =>
+  await suite('relative links', _ => {
     relativeLinks(readmeSource).forEach(({ target, lineNumber }) =>
       test(`resolving ${target} (line ${lineNumber})`, async () => {
         const [pathPart] = target.split('#')
@@ -75,13 +76,13 @@ suite('README.md', async () => {
           `link target \`${pathPart}\` does not exist`,
         )
       }),
-    ),
-  )
+    )
+  })
 
   await test('resolving target line range from reserved character sequences link', async () => {
     const linkPattern =
       /\[.*reserved.*\]\(\.\/(src\/language\/parsing\/atom\.ts)#L(\d+)-L(\d+)\)/
-    const match = readmeSource.match(linkPattern)
+    const match = linkPattern.exec(readmeSource)
     assert(match !== null, 'expected the link to exist')
     const [_, relativePath, linkedStart, linkedEnd] = match
     const linkedStartingLine = BigInt(linkedStart ?? 'start not found')

@@ -461,13 +461,28 @@ testCases(parse, input => `parsing \`${input}\``)('parsing', [
   ],
 
   // `|`s in atoms must generally be quoted, with a few exceptions.
-  ['|', result => assert(either.isLeft(result))],
+  [
+    '|',
+    result => {
+      assert(either.isLeft(result))
+    },
+  ],
   ['"|"', either.makeRight(syntaxTree('|'))],
   ['||', either.makeRight(syntaxTree('||'))],
   ['|>', either.makeRight(syntaxTree('|>'))],
   ['<|', either.makeRight(syntaxTree('<|'))],
-  ['||invalid', result => assert(either.isLeft(result))],
-  ['invalid||', result => assert(either.isLeft(result))],
+  [
+    '||invalid',
+    result => {
+      assert(either.isLeft(result))
+    },
+  ],
+  [
+    'invalid||',
+    result => {
+      assert(either.isLeft(result))
+    },
+  ],
   ['"||valid"', either.makeRight(syntaxTree('||valid'))],
   ['"valid||"', either.makeRight(syntaxTree('valid||'))],
 ])

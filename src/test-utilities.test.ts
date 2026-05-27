@@ -42,7 +42,7 @@ export const testCases =
       check: Output | ((output: Output) => void),
     ])[],
   ) =>
-    suite(suiteName, _ =>
+    suite(suiteName, _ => {
       cases.forEach(([input, check]) => {
         const testName = getTestName(input)
         test(
@@ -61,8 +61,8 @@ export const testCases =
             }
           },
         )
-      }),
-    )
+      })
+    })
 
 export const toSyntaxTree = (input: JsonValue): SyntaxTree =>
   typeof input === 'string' ? input
@@ -96,9 +96,9 @@ const unparseAndRoundtripWithMultipleNotations = <Error, Value>(
       roundtrippedOutputs,
       ([outputFromPretty, outputFromInline]) =>
         either.map(
-          either.tryCatch(() =>
-            assert.deepEqual(outputFromPretty, outputFromInline),
-          ),
+          either.tryCatch(() => {
+            assert.deepEqual(outputFromPretty, outputFromInline)
+          }),
           _ => outputFromPretty,
         ),
     )

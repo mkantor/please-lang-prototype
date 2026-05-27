@@ -33,6 +33,8 @@ elaborationSuite('@index', [
       0: '@index',
       1: { object: {}, query: { 0: 'thisPropertyDoesNotExist' } },
     },
-    output => assert(either.isLeft(output)),
+    output => {
+      assert(either.isLeft(output))
+    },
   ],
 ])
