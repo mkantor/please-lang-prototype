@@ -277,15 +277,12 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
         callback: makeFunctionType('', { parameter: atom, return: integer }),
       }),
     ],
-    '{ callback: (_: (?"x.callback.#parameter": :atom.type)) => (?"x.callback.#return": :integer.type) }',
+    '{ callback: (?"x.callback.#parameter": :atom.type) ~> (?"x.callback.#return": :integer.type) }',
   ],
 
   [['empty', makeObjectType('', {})], '{}'],
 
-  [
-    ['identity', makeFunctionType('', { parameter: A, return: A })],
-    '(_: ?a) => :a',
-  ],
+  [['identity', makeFunctionType('', { parameter: A, return: A })], '?a ~> :a'],
 
   [['wrap', makeObjectType('', { value: A })], `{ value: ${showType(A)} }`],
 ])
