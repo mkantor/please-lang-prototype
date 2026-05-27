@@ -162,12 +162,12 @@ export const isTypeParameter = (value: unknown): value is TypeParameter => {
     'identity' in value &&
     typeof value.identity === 'symbol'
   ) {
-    const newValue = {
+    ;({
       name: value.name,
       kind: value.kind,
       constraint: value.constraint,
       identity: value.identity,
-    } satisfies Omit<TypeParameter, 'constraint'> & {
+    }) satisfies Omit<TypeParameter, 'constraint'> & {
       constraint: Omit<TypeParameter['constraint'], 'assignableTo'>
     }
     return true

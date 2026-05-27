@@ -80,7 +80,7 @@ export const moleculeUnparser =
           return sugar(value, readLookupExpression, unparseSugaredLookup)
         case '@union':
           return sugar(value, readUnionExpression, unparseSugaredUnion)
-        default:
+        default: {
           const potentialKeywordExpression = asSemanticGraph(value)
           if (isExpression(potentialKeywordExpression)) {
             const result = unparseSugaredGeneralizedKeywordExpression(
@@ -93,6 +93,7 @@ export const moleculeUnparser =
           } else {
             return unparseSugarFreeMolecule(value, context)
           }
+        }
       }
     }
   }

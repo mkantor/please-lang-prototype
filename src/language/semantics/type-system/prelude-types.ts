@@ -53,7 +53,9 @@ export const object = makeObjectType('object', {})
 
 // `functionType` and `something` reference each other directly, so we need to
 // do a dance:
+// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 export const functionType: FunctionType = {} as FunctionType
+// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 export const something: UnionType = {} as UnionType // the top type
 Object.assign(
   functionType,

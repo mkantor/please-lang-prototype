@@ -28,11 +28,7 @@ export const ifKeywordHandler: KeywordHandler = (
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readIfExpression(expression), ifExpression => {
     // TODO: Make this less ad-hoc.
-    if (
-      !('1' in expression) ||
-      typeof expression[1] !== 'object' ||
-      expression[1] === null
-    ) {
+    if (!('1' in expression) || !isObjectNode(expression[1])) {
       throw new Error(
         '`@if` expression was invalid after being validated. This is a bug!',
       )

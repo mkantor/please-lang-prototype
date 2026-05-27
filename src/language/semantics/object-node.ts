@@ -29,8 +29,7 @@ export type ObjectNode = {
   readonly [key: Atom]: SemanticGraph
 }
 
-export const isObjectNode = (node: SemanticGraph) =>
-  typeof node === 'object' && node[nodeTag] === 'object'
+export const isObjectNode = (node: SemanticGraph) => typeof node === 'object'
 
 export const orderedEntriesOfObjectNode = (
   node: ObjectNode,
@@ -75,6 +74,7 @@ export const makeObjectNode = <
 >(
   properties: Properties,
 ): ObjectNode & PropertiesToSemanticGraphs<Properties> => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   const propertiesAsSemanticGraphs = Object.fromEntries(
     Object.entries(properties).map(
       ([key, value]) => [key, asSemanticGraph(value)] as const,
@@ -122,6 +122,7 @@ export const withProperty = <Key extends Atom, Value extends SemanticGraph>(
   key: Key,
   value: Value,
 ): ObjectNode & Record<Key, Value> =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   ({
     ...node,
     [orderedKeys]:

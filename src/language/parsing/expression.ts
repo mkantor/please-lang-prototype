@@ -168,9 +168,6 @@ const infixTokensToExpression = (
     return firstToken
   } else {
     const leftmostOperationLHS = operation[0]
-    if (leftmostOperationLHS === undefined) {
-      throw new Error('Infix operation was empty. This is a bug!')
-    }
     if (!isOperand(leftmostOperationLHS)) {
       throw new Error(
         'Leftmost token in infix operation was not an operand. This is a bug!',
@@ -581,7 +578,7 @@ const precededByAtSign = map(
   ([_atSign, keyword, _trivia, argument]) =>
     molecule([
       ['0', `@${keyword}`],
-      ['1', argument === undefined ? orderedRecord.empty : argument],
+      ['1', argument ?? orderedRecord.empty],
     ]),
 )
 

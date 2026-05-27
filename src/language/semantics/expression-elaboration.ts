@@ -149,7 +149,7 @@ const elaborateWithinMolecule = (
     possibleExpressionAsObjectNode[orderedKeys] = orderedKeysAccumulator
 
     const {
-      0: possibleKeywordAsNode,
+      0: _possibleKeywordAsNode,
       ...propertiesInNeedOfFinalizationAsNodes
     } = possibleExpressionAsObjectNode
 

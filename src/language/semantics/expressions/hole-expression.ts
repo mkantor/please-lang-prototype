@@ -57,8 +57,7 @@ export const readHoleExpression = (
           })
         } else if (
           typeParameterKey in node &&
-          (typeof node[typeParameterKey] !== 'object' ||
-            typeof node[typeParameterKey] === null)
+          typeof node[typeParameterKey] !== 'object'
         ) {
           return either.makeLeft({
             kind: 'bug',
@@ -95,9 +94,7 @@ export const readHoleExpression = (
                 })
                 return Object.assign(node, {
                   [typeParameterKey]:
-                    typeParameter === undefined ?
-                      makeTypeParameter(name, { assignableTo })
-                    : typeParameter,
+                    typeParameter ?? makeTypeParameter(name, { assignableTo }),
                 })
               },
             )

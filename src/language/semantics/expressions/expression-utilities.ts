@@ -91,6 +91,7 @@ export const readArgumentsFromExpression = <
     return either.makeRight(
       // This is correct since the above loop pushes one argument for each
       // `specification` element.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       expressionArguments as ParsedExpressionArguments<Specification>,
     )
   }

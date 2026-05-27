@@ -340,17 +340,15 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
     const typesToMergeAsArray = [...typesToMerge]
     const mergedObjectTypeChildren = Object.fromEntries(
       keys.map(key => {
-        const typesForThisProperty = typesToMergeAsArray
-          .flatMap(type => {
-            const propertyType = type.children[key]
-            return (
-              propertyType === undefined ? []
-              : propertyType.kind === 'union' ?
-                [...propertyType.members] // flatten any existing unions in property types
-              : [propertyType]
-            )
-          })
-          .filter(type => type !== undefined)
+        const typesForThisProperty = typesToMergeAsArray.flatMap(type => {
+          const propertyType = type.children[key]
+          return (
+            propertyType === undefined ? []
+            : propertyType.kind === 'union' ?
+              [...propertyType.members] // flatten any existing unions in property types
+            : [propertyType]
+          )
+        })
         const propertyTypeAsUnion = excludeRedundantUnionTypeMembers(
           makeUnionType('', typesForThisProperty),
         )

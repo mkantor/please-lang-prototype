@@ -65,9 +65,9 @@ suite('order-preserving JSON parser', () => {
     // integer-like keys appear first when iterating objects returned from
     // `JSON.parse`, rather than in insertion/source order.
 
-    const plainObject = JSON.parse('{"a":"first","999":"second"}')
+    const plainObject: unknown = JSON.parse('{"a":"first","999":"second"}')
     // This is what we want to avoid:
-    assert.deepEqual(Object.keys(plainObject), ['999', 'a'])
+    assert.deepEqual(Object.keys(plainObject ?? {}), ['999', 'a'])
 
     assert.deepEqual(
       parseJson(

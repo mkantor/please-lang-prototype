@@ -50,12 +50,14 @@ export const testCases =
             `${testName.slice(0, testNameLengthLimit - 1)}…`
           : testName,
           () => {
-            const output = functionToTest(input)
-            const widenedCheck: unknown = check
-            // This narrowing is only safe because `Output` cannot be a
-            // function.
-            if (typeof widenedCheck === 'function') {
-              widenedCheck(output)
+            const output: Output | ((output: Output) => void) =
+              functionToTest(input)
+            if (typeof check === 'function') {
+              // This assertion is only safe because `Output` cannot be a
+              // function.
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+              const callableCheck = check as (output: Output) => void
+              callableCheck(output)
             } else {
               assert.deepEqual(output, check)
             }
