@@ -1,3 +1,8 @@
+/**
+ * Outputs the nth fibonacci number.
+ *
+ * Usage: cat ./examples/fibonacci.plz | ./please --input=7
+ */
 {
   fibonacci: (n: :integer.type) =>
     @if {

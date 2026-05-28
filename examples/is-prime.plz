@@ -1,0 +1,35 @@
+/**
+ * Tests whether a natural number is prime by trial division up to its square
+ * root.
+ *
+ * Usage: cat ./examples/is-prime.plz | ./please --input=17
+ */
+{
+  try_divisor: (n: :natural_number.type) => (divisor: :natural_number.type) =>
+    @if {
+      :divisor * :divisor > :n
+      then: true
+      else: @if {
+        :n % :divisor integer.equals 0
+        then: false
+        else: :try_divisor(:n)((:divisor + 1) assume :natural_number.type)
+      }
+    }
+
+  is_prime: (n: :natural_number.type) => @if {
+    :n < 2
+    then: false
+    else: :try_divisor(:n)(2)
+  }
+
+  input: @runtime { context =>
+    :context.arguments.lookup(input)
+  }
+
+  output: :input
+    option.flat_map :natural_number.from
+    match {
+      none: _ => "missing or invalid --input argument (must be a natural number)"
+      some: :is_prime
+    }
+}.output
