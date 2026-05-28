@@ -5,7 +5,11 @@ import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import { asSemanticGraph } from '../semantics.js'
-import { isExpression, type Expression } from './expression.js'
+import {
+  isExpression,
+  isKeywordExpressionWithArgument,
+  type Expression,
+} from './expression.js'
 import type { KeyPath } from './key-path.js'
 import { isKeyword, type Keyword } from './keyword.js'
 import {
@@ -32,6 +36,11 @@ export type ExpressionContext = {
   readonly location: KeyPath
   readonly program: SemanticGraph
   readonly skipReelaboration?: true | undefined
+  /**
+   * When set, `@panic` returns its (un-elaborated) expression instead of
+   * aborting.
+   */
+  readonly panicsAreDeferred?: true | undefined
 }
 
 export type KeywordElaborationResult = Either<ElaborationError, SemanticGraph>
@@ -84,6 +93,15 @@ const elaborateWithinMolecule = (
     )
     return either.map(expandedResult, asSemanticGraph)
   } else {
+    const childrenContext: ExpressionContext =
+      isKeywordExpressionWithArgument('@function', moleculeAsSemanticGraph) ?
+        {
+          ...context,
+          // `@panic`s inside functions shouldn't fire while elaborating the
+          // body, only when the function is eventually called.
+          panicsAreDeferred: true,
+        }
+      : context
     const possibleExpressionAsObjectNode: Writable<ObjectNode> =
       objectNodeFromOrderedEntries([])
 
@@ -111,7 +129,7 @@ const elaborateWithinMolecule = (
           }
         } else {
           const elaborationResult = elaborateWithinMolecule(value, {
-            keywordHandlers: context.keywordHandlers,
+            ...childrenContext,
             location: [...context.location, key],
             program: updatedProgram,
             skipReelaboration:
@@ -205,7 +223,7 @@ const elaborateWithinMolecule = (
             continue
           }
           const reelaborationResult = elaborateWithContext(serialized.value, {
-            keywordHandlers: context.keywordHandlers,
+            ...childrenContext,
             location: [...context.location, key],
             program: updatedProgram,
             skipReelaboration: true,
@@ -248,7 +266,7 @@ const elaborateWithinMolecule = (
               0: possibleKeywordAsString,
             },
             {
-              keywordHandlers: context.keywordHandlers,
+              ...childrenContext,
               program: updatedProgram,
               location: context.location,
             },
