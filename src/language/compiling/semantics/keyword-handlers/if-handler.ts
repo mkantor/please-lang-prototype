@@ -170,8 +170,7 @@ const evaluateSubexpression = (
 ) =>
   either.flatMap(serialize(subexpression), serializedSubexpression =>
     elaborateWithContext(serializedSubexpression, {
-      keywordHandlers: context.keywordHandlers,
-      program: context.program,
+      ...context,
       location: [...context.location, ...subKeyPath],
     }),
   )

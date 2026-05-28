@@ -10,9 +10,11 @@ import {
 
 export const panicKeywordHandler: KeywordHandler = (
   expression: Expression,
-  _context: ExpressionContext,
+  context: ExpressionContext,
 ): Either<ElaborationError, SemanticGraph> =>
-  either.makeLeft({
-    kind: 'panic',
-    message: stringifySemanticGraphForEndUser(expression),
-  })
+  context.panicsAreDeferred ?
+    either.makeRight(expression)
+  : either.makeLeft({
+      kind: 'panic',
+      message: stringifySemanticGraphForEndUser(expression),
+    })

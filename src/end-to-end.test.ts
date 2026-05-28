@@ -157,6 +157,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
     ),
   ],
   [
+    `_ => @panic`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+  [
     '@runtime {_ => @panic}',
     result => {
       assert(either.isLeft(result))

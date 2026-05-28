@@ -1075,4 +1075,18 @@ testCases(
       assert.deepEqual(result.value.kind, 'invalidExpression')
     },
   ],
+
+  [
+    `_ => @panic`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `@runtime { _ => @panic }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
