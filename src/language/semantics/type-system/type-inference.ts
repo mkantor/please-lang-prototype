@@ -391,16 +391,24 @@ const getFunctionParameterType = (
 ): Either<ElaborationError, Type> =>
   option.match(getParameterTypeAnnotation(expression), {
     some: annotation =>
-      either.map(inferType(annotation, contextOfFunction), annotationType => {
-        const parameterName = getParameterName(expression)
-        // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
-        // the parser emits for `~>` syntax sugar). Genericization is skipped
-        // in this case so `a ~> b` and `(_: a) => b` can be used to describe
-        // concrete function types rather than generic ones.
-        return parameterName === ignoredKey ? annotationType : (
-            genericizeFunctionParameterAnnotation(parameterName, annotationType)
-          )
-      }),
+      either.map(
+        // Type annotation lookups happen from the function's scope rather than
+        // their own location (a property within the `@function`).
+        inferType(annotation, contextOfFunction),
+        annotationType => {
+          const parameterName = getParameterName(expression)
+          // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
+          // the parser emits for `~>` syntax sugar). Genericization is skipped
+          // in this case so `a ~> b` and `(_: a) => b` can be used to describe
+          // concrete function types rather than generic ones.
+          return parameterName === ignoredKey ? annotationType : (
+              genericizeFunctionParameterAnnotation(
+                parameterName,
+                annotationType,
+              )
+            )
+        },
+      ),
     none: _ => {
       const contextualType = option.flatMap(
         enclosingExpressionFromPropertyOfExpressionArgument(contextOfFunction),
