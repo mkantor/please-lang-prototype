@@ -60,7 +60,13 @@ export const ifKeywordHandler: KeywordHandler = (
         } else {
           return either.flatMap(
             either.flatMap(
-              inferType(elaboratedCondition, context),
+              inferType(elaboratedCondition, {
+                ...context,
+                location: [
+                  ...context.location,
+                  ...subexpressionKeyPaths.condition,
+                ],
+              }),
               conditionType =>
                 (
                   isAssignable({
@@ -104,9 +110,13 @@ export const ifKeywordHandler: KeywordHandler = (
 
                 const elaborateNestedIfLookups = (
                   branch: SemanticGraph,
+                  branchLocation: KeyPath,
                 ): Either<ElaborationError, SemanticGraph> =>
                   isExpression(branch) && branch['0'] === '@if' ?
-                    ifKeywordHandler(branch, partiallyElaboratingContext)
+                    ifKeywordHandler(branch, {
+                      ...partiallyElaboratingContext,
+                      location: branchLocation,
+                    })
                   : isExpression(branch) && branch['0'] === '@function' ?
                     either.makeRight(branch)
                   : isObjectNode(branch) ?
@@ -114,7 +124,10 @@ export const ifKeywordHandler: KeywordHandler = (
                       either.sequence(
                         orderedEntriesOfObjectNode(branch).map(([key, value]) =>
                           either.map(
-                            elaborateNestedIfLookups(value),
+                            elaborateNestedIfLookups(value, [
+                              ...branchLocation,
+                              key,
+                            ]),
                             elaboratedValue => [key, elaboratedValue] as const,
                           ),
                         ),
@@ -125,8 +138,12 @@ export const ifKeywordHandler: KeywordHandler = (
 
                 const elaborateBranch = (
                   branchKey: 'then' | 'else',
-                ): Either<ElaborationError, SemanticGraph> =>
-                  either.flatMap(
+                ): Either<ElaborationError, SemanticGraph> => {
+                  const branchLocation = [
+                    ...partiallyElaboratingContext.location,
+                    ...subexpressionKeyPaths[branchKey],
+                  ]
+                  return either.flatMap(
                     either.map(
                       evaluateSubexpression(
                         subexpressionKeyPaths[branchKey],
@@ -135,8 +152,9 @@ export const ifKeywordHandler: KeywordHandler = (
                       ),
                       asSemanticGraph,
                     ),
-                    elaborateNestedIfLookups,
+                    branch => elaborateNestedIfLookups(branch, branchLocation),
                   )
+                }
 
                 return either.map(
                   either.sequence([
