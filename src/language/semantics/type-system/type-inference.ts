@@ -425,7 +425,14 @@ const getFunctionParameterType = (
             }
             const contextuallyAppliedFunctionType = inferType(
               applyExpressionResult.value[1].function,
-              contextOfEnclosingExpression,
+              {
+                ...contextOfEnclosingExpression,
+                location: [
+                  ...contextOfEnclosingExpression.location,
+                  '1',
+                  'function',
+                ],
+              },
             )
 
             // If the applied function's signature is `(a ~> b) ~> c`, the
