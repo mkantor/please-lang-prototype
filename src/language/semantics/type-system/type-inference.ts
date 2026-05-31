@@ -71,14 +71,21 @@ export const resolveParameterTypes = (
     )
 
     if (option.isSome(enclosingFunction)) {
+      const enclosingFunctionLocation = currentLocation.slice(0, -2)
+      // Skip the function whose parameter annotation we're inside. Computing
+      // its parameter type requires this very inference (and would infinitely
+      // recurse without this guard).
+      const isInsideOwnAnnotation =
+        context.location[enclosingFunctionLocation.length] === '1' &&
+        context.location[enclosingFunctionLocation.length + 1] === 'parameter'
       const parameterName = getParameterName(enclosingFunction.value)
-      if (!parameterTypes.has(parameterName)) {
+      if (!isInsideOwnAnnotation && !parameterTypes.has(parameterName)) {
         const parameterTypeResult = getFunctionParameterType(
           enclosingFunction.value,
           {
             keywordHandlers: context.keywordHandlers,
             program: context.program,
-            location: currentLocation.slice(0, -2),
+            location: enclosingFunctionLocation,
             mutableInferenceCache: context.mutableInferenceCache,
           },
         )
