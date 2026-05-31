@@ -49,13 +49,11 @@ export const functionKeywordHandler: KeywordHandler = (
               inferredType.signature,
               () => either.makeRight(functionExpression),
               option.makeSome(getParameterName(functionExpression)),
-              argument =>
-                apply(
-                  functionExpression,
-                  inferredType.signature,
-                  argument,
-                  context,
-                ),
+              (argument, applySiteContext) =>
+                apply(functionExpression, inferredType.signature, argument, {
+                  functionDefinitionContext: context,
+                  applySiteContext,
+                }),
             ),
           )
         }
@@ -86,12 +84,21 @@ const apply = (
   expression: FunctionExpression,
   signature: FunctionNode['signature'],
   argument: SemanticGraph,
-  context: ExpressionContext,
+  {
+    functionDefinitionContext,
+    applySiteContext,
+  }: {
+    readonly functionDefinitionContext: ExpressionContext
+    readonly applySiteContext: ExpressionContext
+  },
 ): ReturnType<FunctionNode> => {
   const parameterName = getParameterName(expression)
   const body = expression[1].body
 
-  const ownKey = context.location[context.location.length - 1]
+  const ownKey =
+    functionDefinitionContext.location[
+      functionDefinitionContext.location.length - 1
+    ]
   if (ownKey === undefined) {
     return either.makeLeft({
       kind: 'panic',
@@ -113,7 +120,10 @@ const apply = (
         // argument, so references like `:a` in the body see the concrete type
         // rather than the original unconstrained type parameter.
         const specializationsByTypeParameterName = either.match(
-          inferType(argument, context),
+          inferType(argument, {
+            ...applySiteContext,
+            location: [...applySiteContext.location, '1', 'argument'],
+          }),
           {
             left: _ => new Map<Atom, Type>(),
             right: argumentType =>
@@ -158,8 +168,8 @@ const apply = (
   const result = either.flatMap(serialize(body), serializedBody =>
     either.flatMap(
       updateValueAtKeyPathInSemanticGraph(
-        context.program,
-        context.location,
+        functionDefinitionContext.program,
+        functionDefinitionContext.location,
         _ =>
           objectNodeFromOrderedEntries([
             // Include the function itself to allow recursion.
@@ -169,7 +179,11 @@ const apply = (
                 signature,
                 () => either.makeRight(expression),
                 option.makeSome(parameterName),
-                argument => apply(expression, signature, argument, context),
+                argument =>
+                  apply(expression, signature, argument, {
+                    functionDefinitionContext,
+                    applySiteContext,
+                  }),
               ),
             ],
             // Put the argument in scope.
@@ -184,8 +198,8 @@ const apply = (
       ),
       updatedProgram =>
         elaborateWithContext(serializedBody, {
-          keywordHandlers: context.keywordHandlers,
-          location: [...context.location, returnKey],
+          keywordHandlers: functionDefinitionContext.keywordHandlers,
+          location: [...functionDefinitionContext.location, returnKey],
           program: updatedProgram,
         }),
     ),

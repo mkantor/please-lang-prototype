@@ -13,6 +13,7 @@ import {
   makeTypeParameter,
 } from '../type-system/type-formats.js'
 import {
+  emptyContextForStdlibApplications,
   preludeFunctionArity1,
   preludeFunctionArity2,
 } from './stdlib-utilities.js'
@@ -90,11 +91,13 @@ export const option = {
           } else if (optionValue.tag === 'none') {
             return either.makeRight(optionValue)
           } else {
-            return either.map(transform(optionValue.value), transformedValue =>
-              objectNodeFromOrderedEntries([
-                ['tag', 'some'],
-                ['value', transformedValue],
-              ]),
+            return either.map(
+              transform(optionValue.value, emptyContextForStdlibApplications),
+              transformedValue =>
+                objectNodeFromOrderedEntries([
+                  ['tag', 'some'],
+                  ['value', transformedValue],
+                ]),
             )
           }
         })
@@ -132,7 +135,7 @@ export const option = {
             return either.makeRight(optionValue)
           } else {
             return either.flatMap(
-              transform(optionValue.value),
+              transform(optionValue.value, emptyContextForStdlibApplications),
               transformedValue => {
                 if (!nodeIsOptionLike(transformedValue)) {
                   return either.makeLeft({

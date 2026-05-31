@@ -9,6 +9,7 @@ import type {
   UnserializableValueError,
 } from '../errors.js'
 import type { Atom } from '../parsing.js'
+import type { ExpressionContext } from './expression-elaboration.js'
 import type { ObjectNode } from './object-node.js'
 import { nodeTag } from './semantic-graph-node-tag.js'
 import { serialize, type Output, type SemanticGraph } from './semantic-graph.js'
@@ -22,6 +23,7 @@ export type FunctionNodeCallError =
 
 export type FunctionNodeCallSignature = (
   value: SemanticGraph,
+  contextOfApplication: ExpressionContext,
 ) => Either<FunctionNodeCallError, SemanticGraph>
 
 export type FunctionNode = FunctionNodeCallSignature & {
@@ -42,12 +44,11 @@ export const makeFunctionNode = <Signature extends FunctionType['signature']>(
   signature: Signature,
   serialize: FunctionNode['serialize'],
   parameterName: Option<Atom>,
-  f: (value: SemanticGraph) => Either<FunctionNodeCallError, SemanticGraph>,
+  f: FunctionNodeCallSignature,
 ): FunctionNodeWithSignature<Signature> => {
-  const node: ((
-    value: SemanticGraph,
-  ) => Either<FunctionNodeCallError, SemanticGraph>) &
-    Writable<FunctionNodeWithSignature<Signature>> = value => f(value)
+  const node: FunctionNodeCallSignature &
+    Writable<FunctionNodeWithSignature<Signature>> = (argument, context) =>
+    f(argument, context)
   node[nodeTag] = 'function'
   node.parameterName = parameterName
   node.signature = signature

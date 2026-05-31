@@ -3,6 +3,8 @@ import option from '@matt.kantor/option'
 import {
   keyPathToLookupExpression,
   makeApplyExpression,
+  objectNodeFromOrderedEntries,
+  type ExpressionContext,
 } from '../../semantics.js'
 import {
   makeFunctionNode,
@@ -30,9 +32,32 @@ const handleUnavailableDependencies =
         message: 'one or more dependencies are unavailable',
       })
     } else {
-      return f(argument)
+      return f(argument, emptyContextForStdlibApplications)
     }
   }
+
+/**
+ * Use with calls of user-defined functions from the standard library (which
+ * conceptually occur from "outside your program" and therefore do not have a
+ * meaningful `ExpressionContext`).
+ */
+export const emptyContextForStdlibApplications: ExpressionContext = {
+  keywordHandlers: {
+    '@apply': either.makeRight,
+    '@check': either.makeRight,
+    '@function': either.makeRight,
+    '@hole': either.makeRight,
+    '@if': either.makeRight,
+    '@index': either.makeRight,
+    '@lookup': either.makeRight,
+    '@panic': either.makeRight,
+    '@runtime': either.makeRight,
+    '@todo': either.makeRight,
+    '@union': either.makeRight,
+  },
+  location: [],
+  program: objectNodeFromOrderedEntries([]),
+}
 
 export const serializeOnceAppliedFunction =
   (keyPath: NonEmptyKeyPath, argument: SemanticGraph) => () =>

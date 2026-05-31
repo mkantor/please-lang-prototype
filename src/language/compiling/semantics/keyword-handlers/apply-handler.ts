@@ -85,7 +85,7 @@ export const applyKeywordHandler: KeywordHandler = (
             // The argument isn't ready, so keep the @apply unelaborated.
             return either.makeRight(applyExpression)
           } else if (isFunctionNode(functionToApply)) {
-            const result = functionToApply(argument)
+            const result = functionToApply(argument, context)
             if (either.isLeft(result)) {
               if (result.value.kind === 'dependencyUnavailable') {
                 // Keep the @apply unelaborated.
