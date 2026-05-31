@@ -4,7 +4,7 @@ import { withPhantomData, type WithPhantomData } from '../../phantom-data.js'
 import type { Writable } from '../../utility-types.js'
 import type { ElaborationError, InvalidSyntaxTreeError } from '../errors.js'
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
-import { asSemanticGraph } from '../semantics.js'
+import { asSemanticGraph, type Type } from '../semantics.js'
 import {
   isExpression,
   isKeywordExpressionWithArgument,
@@ -31,10 +31,12 @@ declare const _elaborated: unique symbol
 type Elaborated = { readonly [_elaborated]: true }
 export type ElaboratedSemanticGraph = WithPhantomData<SemanticGraph, Elaborated>
 
+type StringifiedKeyPath = string
 export type ExpressionContext = {
   readonly keywordHandlers: KeywordHandlers
   readonly location: KeyPath
   readonly program: SemanticGraph
+  readonly mutableInferenceCache: Map<StringifiedKeyPath, Type>
   readonly skipReelaboration?: true | undefined
   /**
    * When set, `@panic` returns its (un-elaborated) expression instead of
@@ -59,6 +61,7 @@ export const elaborate = (
   elaborateWithContext(program, {
     keywordHandlers,
     location: [],
+    mutableInferenceCache: new Map(),
     program:
       typeof program === 'string' ? program : objectNodeFromMolecule(program),
   })

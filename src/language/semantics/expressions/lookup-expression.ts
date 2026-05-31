@@ -225,6 +225,7 @@ export const lookup = ({
           keywordHandlers: context.keywordHandlers,
           location: result.nextLocationToCheckFrom,
           program: context.program,
+          mutableInferenceCache: context.mutableInferenceCache,
         },
       })
     }

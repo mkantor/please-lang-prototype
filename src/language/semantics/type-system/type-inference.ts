@@ -41,6 +41,7 @@ import {
   genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
+  stringifyKeyPath,
   supplyTypeArguments,
 } from './type-utilities.js'
 
@@ -78,6 +79,7 @@ export const resolveParameterTypes = (
             keywordHandlers: context.keywordHandlers,
             program: context.program,
             location: currentLocation.slice(0, -2),
+            mutableInferenceCache: context.mutableInferenceCache,
           },
         )
 
@@ -116,6 +118,20 @@ const inferTypeImplementation = (
   lookingUpKeys: ReadonlySet<Atom>,
   context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
+  const cacheKey = stringifyKeyPath(context.location)
+  const cached = context.mutableInferenceCache.get(cacheKey)
+  if (cached !== undefined) {
+    return either.makeRight(cached)
+  }
+
+  const cacheOnSuccess = (
+    result: Either<ElaborationError, Type>,
+  ): Either<ElaborationError, Type> =>
+    either.map(result, type => {
+      context.mutableInferenceCache.set(cacheKey, type)
+      return type
+    })
+
   /**
    * Build context for a descendant node by appending `subPath` to
    * `context.location`.
@@ -134,32 +150,37 @@ const inferTypeImplementation = (
     typeof node === 'symbol' ||
     typeof node === 'function'
   ) {
-    return literalTypeFromSemanticGraph(node)
+    return cacheOnSuccess(literalTypeFromSemanticGraph(node))
   }
 
   // @function: infer parameter type from context (or an explicit annotation)
   // and return type from the body.
   const functionExpressionResult = readFunctionExpression(node)
   if (either.isRight(functionExpressionResult)) {
-    return either.flatMap(
-      getFunctionParameterType(functionExpressionResult.value, context),
-      parameterType =>
-        either.map(
-          inferTypeImplementation(
-            functionExpressionResult.value[1].body,
-            new Map([
-              ...parameterTypes,
-              [getParameterName(functionExpressionResult.value), parameterType],
-            ]),
-            lookingUpKeys,
-            descendantContext(['1', 'body']),
+    return cacheOnSuccess(
+      either.flatMap(
+        getFunctionParameterType(functionExpressionResult.value, context),
+        parameterType =>
+          either.map(
+            inferTypeImplementation(
+              functionExpressionResult.value[1].body,
+              new Map([
+                ...parameterTypes,
+                [
+                  getParameterName(functionExpressionResult.value),
+                  parameterType,
+                ],
+              ]),
+              lookingUpKeys,
+              descendantContext(['1', 'body']),
+            ),
+            returnType =>
+              makeFunctionType('', {
+                parameter: parameterType,
+                return: returnType,
+              }),
           ),
-          returnType =>
-            makeFunctionType('', {
-              parameter: parameterType,
-              return: returnType,
-            }),
-        ),
+      ),
     )
   }
 
@@ -170,20 +191,28 @@ const inferTypeImplementation = (
     const key = lookupExpressionResult.value[1].key
     const paramType = parameterTypes.get(key)
     if (paramType !== undefined) {
-      return either.makeRight(paramType)
+      return cacheOnSuccess(either.makeRight(paramType))
     } else if (!lookingUpKeys.has(key)) {
       const lookupResult = lookup({ key, context })
       if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
         const { foundValue, foundLocation } = lookupResult.value.value
-        return inferTypeImplementation(
+        const innerResult = inferTypeImplementation(
           foundValue,
           parameterTypes,
           new Set([...lookingUpKeys, key]),
-          {
-            ...context,
-            location: foundLocation === 'prelude' ? [] : foundLocation,
-          },
+          foundLocation === 'prelude' ?
+            {
+              ...context,
+              // We don't have a way to key the cache for inferences from the
+              // prelude. Use a fresh cache so as not to pollute the shared one.
+              mutableInferenceCache: new Map(),
+            }
+          : {
+              ...context,
+              location: foundLocation,
+            },
         )
+        return cacheOnSuccess(innerResult)
       } else {
         // Fall back to the top type.
         return either.makeRight(types.something)
@@ -197,18 +226,20 @@ const inferTypeImplementation = (
   // @index: infer object type, look up appropriate type by key path.
   const indexExpressionResult = readIndexExpression(node)
   if (either.isRight(indexExpressionResult)) {
-    return either.flatMap(
-      inferTypeImplementation(
-        indexExpressionResult.value[1].object,
-        parameterTypes,
-        lookingUpKeys,
-        descendantContext(['1', 'object']),
-      ),
-      objectType =>
-        either.map(
-          keyPathFromObjectNode(indexExpressionResult.value[1].query),
-          keyPath => applyKeyPathToType(objectType, keyPath),
+    return cacheOnSuccess(
+      either.flatMap(
+        inferTypeImplementation(
+          indexExpressionResult.value[1].object,
+          parameterTypes,
+          lookingUpKeys,
+          descendantContext(['1', 'object']),
         ),
+        objectType =>
+          either.map(
+            keyPathFromObjectNode(indexExpressionResult.value[1].query),
+            keyPath => applyKeyPathToType(objectType, keyPath),
+          ),
+      ),
     )
   }
 
@@ -221,17 +252,19 @@ const inferTypeImplementation = (
         either.flatMap(runtimeFunction.serialize(), readFunctionExpression)
       : readFunctionExpression(runtimeFunction)
     if (either.isRight(functionExpressionResult)) {
-      return inferTypeImplementation(
-        functionExpressionResult.value[1].body,
-        new Map([
-          ...parameterTypes,
-          [
-            getParameterName(functionExpressionResult.value),
-            types.runtimeContext,
-          ],
-        ]),
-        lookingUpKeys,
-        descendantContext(['1', 'function', '1', 'body']),
+      return cacheOnSuccess(
+        inferTypeImplementation(
+          functionExpressionResult.value[1].body,
+          new Map([
+            ...parameterTypes,
+            [
+              getParameterName(functionExpressionResult.value),
+              types.runtimeContext,
+            ],
+          ]),
+          lookingUpKeys,
+          descendantContext(['1', 'function', '1', 'body']),
+        ),
       )
     } else {
       return either.makeLeft({
@@ -274,17 +307,20 @@ const inferTypeImplementation = (
           if (either.isRight(argumentTypeResult)) {
             // Supply type arguments to the return type based on the inferred
             // argument type.
-            return either.makeRight(
-              supplyTypeArguments(
-                returnType,
-                getTypesForTypeParameters({
-                  parameterType,
-                  argumentType: argumentTypeResult.value,
-                }),
+            return cacheOnSuccess(
+              either.makeRight(
+                supplyTypeArguments(
+                  returnType,
+                  getTypesForTypeParameters({
+                    parameterType,
+                    argumentType: argumentTypeResult.value,
+                  }),
+                ),
               ),
             )
+          } else {
+            return cacheOnSuccess(either.makeRight(returnType))
           }
-          return either.makeRight(returnType)
         },
         none: _ => either.makeRight(types.something),
         // TODO: Error instead once inference is comprehensive enough to do so
@@ -318,60 +354,64 @@ const inferTypeImplementation = (
         descendantContext(['1', 'else']),
       )
 
-    return either.flatMap(
-      inferTypeImplementation(
-        condition,
-        parameterTypes,
-        lookingUpKeys,
-        descendantContext(['1', 'condition']),
+    return cacheOnSuccess(
+      either.flatMap(
+        inferTypeImplementation(
+          condition,
+          parameterTypes,
+          lookingUpKeys,
+          descendantContext(['1', 'condition']),
+        ),
+        conditionType => {
+          if (isAssignable({ source: conditionType, target: 'true' })) {
+            return inferThen()
+          } else if (isAssignable({ source: conditionType, target: 'false' })) {
+            return inferElse()
+          } else {
+            const membersOf = (type: Type) =>
+              type.kind === 'union' ? [...type.members] : [type]
+            return either.flatMap(inferThen(), thenType =>
+              either.map(inferElse(), elseType =>
+                makeUnionType('', [
+                  ...membersOf(thenType),
+                  ...membersOf(elseType),
+                ]),
+              ),
+            )
+          }
+        },
       ),
-      conditionType => {
-        if (isAssignable({ source: conditionType, target: 'true' })) {
-          return inferThen()
-        } else if (isAssignable({ source: conditionType, target: 'false' })) {
-          return inferElse()
-        } else {
-          const membersOf = (type: Type) =>
-            type.kind === 'union' ? [...type.members] : [type]
-          return either.flatMap(inferThen(), thenType =>
-            either.map(inferElse(), elseType =>
-              makeUnionType('', [
-                ...membersOf(thenType),
-                ...membersOf(elseType),
-              ]),
-            ),
-          )
-        }
-      },
     )
   }
 
   // @panic: infer the bottom type.
   const panicExpressionResult = readPanicExpression(node)
   if (either.isRight(panicExpressionResult)) {
-    return either.makeRight(types.nothing)
+    return cacheOnSuccess(either.makeRight(types.nothing))
   }
 
   if (isObjectNode(node) && containsAnyUnelaboratedNodes(node)) {
     // Infer unelaborated descendants' types.
-    return either.map(
-      either.sequence(
-        Object.entries(node).map(([key, value]) =>
-          either.map(
-            inferTypeImplementation(
-              value,
-              parameterTypes,
-              lookingUpKeys,
-              descendantContext([key]),
+    return cacheOnSuccess(
+      either.map(
+        either.sequence(
+          Object.entries(node).map(([key, value]) =>
+            either.map(
+              inferTypeImplementation(
+                value,
+                parameterTypes,
+                lookingUpKeys,
+                descendantContext([key]),
+              ),
+              childType => [key, childType] as const,
             ),
-            childType => [key, childType] as const,
           ),
         ),
+        entries => makeObjectType('', Object.fromEntries(entries)),
       ),
-      entries => makeObjectType('', Object.fromEntries(entries)),
     )
   } else {
-    return literalTypeFromSemanticGraph(node)
+    return cacheOnSuccess(literalTypeFromSemanticGraph(node))
   }
 }
 
@@ -395,7 +435,13 @@ const getFunctionParameterType = (
       either.map(
         // Type annotation lookups happen from the function's scope rather than
         // their own location (a property within the `@function`).
-        inferType(annotation, contextOfFunction),
+        // TODO: Consider separating out the cache key prefix from the
+        // `context.location` somehow so that I can say "lookups start from X,
+        // cache key paths are rooted at Y".
+        inferType(annotation, {
+          ...contextOfFunction,
+          mutableInferenceCache: new Map(),
+        }),
         annotationType => {
           const parameterName = getParameterName(expression)
           // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
@@ -431,6 +477,7 @@ const getFunctionParameterType = (
               program: contextOfFunction.program,
               keywordHandlers: contextOfFunction.keywordHandlers,
               location: contextOfFunction.location.slice(0, -2),
+              mutableInferenceCache: contextOfFunction.mutableInferenceCache,
             }
             const contextuallyAppliedFunctionType = inferType(
               applyExpressionResult.value[1].function,
