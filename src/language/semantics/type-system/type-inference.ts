@@ -174,14 +174,15 @@ const inferTypeImplementation = (
     } else if (!lookingUpKeys.has(key)) {
       const lookupResult = lookup({ key, context })
       if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
+        const { foundValue, foundLocation } = lookupResult.value.value
         return inferTypeImplementation(
-          lookupResult.value.value,
+          foundValue,
           parameterTypes,
           new Set([...lookingUpKeys, key]),
-          // TODO: Possibly adjust `context.location` to point at the looked-up
-          // value? To do so, `lookup` would need to return a `KeyPath` along
-          // with the resolved value.
-          context,
+          {
+            ...context,
+            location: foundLocation === 'prelude' ? [] : foundLocation,
+          },
         )
       } else {
         // Fall back to the top type.
