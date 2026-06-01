@@ -22,27 +22,33 @@ const checkArgumentType = (
   parameterType: Type,
   context: ExpressionContext,
 ): Either<ElaborationError, undefined> =>
-  either.flatMap(inferType(argument, context), argumentType => {
-    // Instantiate type parameters contained in `parameterType` before the
-    // assignability check.
-    const instantiatedParameterType = supplyTypeArguments(
-      parameterType,
-      getTypesForTypeParameters({ parameterType, argumentType }),
-    )
-    return (
-        isAssignable({
-          source: argumentType,
-          target: instantiatedParameterType,
-        })
-      ) ?
-        either.makeRight(undefined)
-      : either.makeLeft({
-          kind: 'typeMismatch',
-          message: `the value \`${stringifySemanticGraphForEndUser(
-            argument,
-          )}\` (inferred to have type \`${showType(argumentType)}\`) is not assignable to the type \`${showType(parameterType)}\``,
-        })
-  })
+  either.flatMap(
+    inferType(argument, {
+      ...context,
+      location: [...context.location, '1', 'argument'],
+    }),
+    argumentType => {
+      // Instantiate type parameters contained in `parameterType` before the
+      // assignability check.
+      const instantiatedParameterType = supplyTypeArguments(
+        parameterType,
+        getTypesForTypeParameters({ parameterType, argumentType }),
+      )
+      return (
+          isAssignable({
+            source: argumentType,
+            target: instantiatedParameterType,
+          })
+        ) ?
+          either.makeRight(undefined)
+        : either.makeLeft({
+            kind: 'typeMismatch',
+            message: `the value \`${stringifySemanticGraphForEndUser(
+              argument,
+            )}\` (inferred to have type \`${showType(argumentType)}\`) is not assignable to the type \`${showType(parameterType)}\``,
+          })
+    },
+  )
 
 export const applyKeywordHandler: KeywordHandler = (
   expression: Expression,
@@ -55,7 +61,10 @@ export const applyKeywordHandler: KeywordHandler = (
       const argument = applyExpression[1].argument
 
       const argumentTypeCheck = either.flatMap(
-        inferType(functionToApply, context),
+        inferType(functionToApply, {
+          ...context,
+          location: [...context.location, '1', 'function'],
+        }),
         functionType =>
           functionType.kind === 'function' ?
             checkArgumentType(
@@ -76,7 +85,7 @@ export const applyKeywordHandler: KeywordHandler = (
             // The argument isn't ready, so keep the @apply unelaborated.
             return either.makeRight(applyExpression)
           } else if (isFunctionNode(functionToApply)) {
-            const result = functionToApply(argument)
+            const result = functionToApply(argument, context)
             if (either.isLeft(result)) {
               if (result.value.kind === 'dependencyUnavailable') {
                 // Keep the @apply unelaborated.

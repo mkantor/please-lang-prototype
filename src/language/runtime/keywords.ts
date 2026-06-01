@@ -160,7 +160,7 @@ export const keywordHandlers: KeywordHandlers = {
   /**
    * Evaluates the given function, passing runtime context captured in `world`.
    */
-  '@runtime': expression =>
+  '@runtime': (expression, expressionContext) =>
     either.flatMap(
       readRuntimeExpression(expression),
       ({ 1: { function: runtimeFunction } }) => {
@@ -173,6 +173,7 @@ export const keywordHandlers: KeywordHandlers = {
         } else {
           const result = runtimeFunction(
             runtimeContext(runtimeFunction.parameterName),
+            expressionContext,
           )
           return either.mapLeft(result, error => ({
             // The runtime function panicked or had an unavailable dependency

@@ -89,7 +89,13 @@ export const lookup = ({
 }: {
   readonly context: ExpressionContext
   readonly key: Atom
-}): Either<ElaborationError, Option<SemanticGraph>> => {
+}): Either<
+  ElaborationError,
+  Option<{
+    readonly foundLocation: 'prelude' | KeyPath
+    readonly foundValue: SemanticGraph
+  }>
+> => {
   if (key === ignoredKey) {
     return either.makeLeft({
       kind: 'invalidExpression',
@@ -103,7 +109,12 @@ export const lookup = ({
           kind: 'invalidExpression',
           message: `property \`${stringifyKeyForEndUser(key)}\` not found`,
         })
-      : either.makeRight(option.makeSome(valueFromPrelude))
+      : either.makeRight(
+          option.makeSome({
+            foundLocation: 'prelude',
+            foundValue: valueFromPrelude,
+          }),
+        )
   } else {
     // Given the following program:
     // ```
@@ -137,6 +148,7 @@ export const lookup = ({
       | {
           readonly kind: 'found'
           readonly foundValue: SemanticGraph
+          readonly foundLocation: KeyPath
         }
       | {
           readonly kind: 'notFound'
@@ -166,6 +178,7 @@ export const lookup = ({
             return {
               kind: 'found',
               foundValue: makeLookupExpression(key),
+              foundLocation: [...pathToCurrentScope, key],
             }
           } else {
             return {
@@ -186,6 +199,7 @@ export const lookup = ({
               some: foundValue => ({
                 kind: 'found',
                 foundValue,
+                foundLocation: [...pathToCurrentScope, key],
               }),
               none: _ => ({
                 kind: 'notFound',
@@ -197,7 +211,12 @@ export const lookup = ({
     )
 
     if (result.kind === 'found') {
-      return either.makeRight(option.makeSome(result.foundValue))
+      return either.makeRight(
+        option.makeSome({
+          foundValue: result.foundValue,
+          foundLocation: result.foundLocation,
+        }),
+      )
     } else {
       // Try the parent scope.
       return lookup({

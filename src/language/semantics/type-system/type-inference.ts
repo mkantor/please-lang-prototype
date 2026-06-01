@@ -174,14 +174,15 @@ const inferTypeImplementation = (
     } else if (!lookingUpKeys.has(key)) {
       const lookupResult = lookup({ key, context })
       if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
+        const { foundValue, foundLocation } = lookupResult.value.value
         return inferTypeImplementation(
-          lookupResult.value.value,
+          foundValue,
           parameterTypes,
           new Set([...lookingUpKeys, key]),
-          // TODO: Possibly adjust `context.location` to point at the looked-up
-          // value? To do so, `lookup` would need to return a `KeyPath` along
-          // with the resolved value.
-          context,
+          {
+            ...context,
+            location: foundLocation === 'prelude' ? [] : foundLocation,
+          },
         )
       } else {
         // Fall back to the top type.
@@ -391,16 +392,24 @@ const getFunctionParameterType = (
 ): Either<ElaborationError, Type> =>
   option.match(getParameterTypeAnnotation(expression), {
     some: annotation =>
-      either.map(inferType(annotation, contextOfFunction), annotationType => {
-        const parameterName = getParameterName(expression)
-        // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
-        // the parser emits for `~>` syntax sugar). Genericization is skipped
-        // in this case so `a ~> b` and `(_: a) => b` can be used to describe
-        // concrete function types rather than generic ones.
-        return parameterName === ignoredKey ? annotationType : (
-            genericizeFunctionParameterAnnotation(parameterName, annotationType)
-          )
-      }),
+      either.map(
+        // Type annotation lookups happen from the function's scope rather than
+        // their own location (a property within the `@function`).
+        inferType(annotation, contextOfFunction),
+        annotationType => {
+          const parameterName = getParameterName(expression)
+          // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
+          // the parser emits for `~>` syntax sugar). Genericization is skipped
+          // in this case so `a ~> b` and `(_: a) => b` can be used to describe
+          // concrete function types rather than generic ones.
+          return parameterName === ignoredKey ? annotationType : (
+              genericizeFunctionParameterAnnotation(
+                parameterName,
+                annotationType,
+              )
+            )
+        },
+      ),
     none: _ => {
       const contextualType = option.flatMap(
         enclosingExpressionFromPropertyOfExpressionArgument(contextOfFunction),
@@ -425,7 +434,14 @@ const getFunctionParameterType = (
             }
             const contextuallyAppliedFunctionType = inferType(
               applyExpressionResult.value[1].function,
-              contextOfEnclosingExpression,
+              {
+                ...contextOfEnclosingExpression,
+                location: [
+                  ...contextOfEnclosingExpression.location,
+                  '1',
+                  'function',
+                ],
+              },
             )
 
             // If the applied function's signature is `(a ~> b) ~> c`, the

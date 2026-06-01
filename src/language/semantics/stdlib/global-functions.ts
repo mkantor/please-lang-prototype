@@ -21,6 +21,7 @@ import {
 } from '../type-system/type-formats.js'
 import { literalTypeFromSemanticGraph } from '../type-system/type-utilities.js'
 import {
+  emptyContextForStdlibApplications,
   preludeFunctionArity1,
   preludeFunctionArity2,
   preludeFunctionArity3,
@@ -66,7 +67,7 @@ export const globalFunctions = {
             message: '`apply` expected a function',
           })
         } else {
-          return functionToApply(argument)
+          return functionToApply(argument, emptyContextForStdlibApplications)
         }
       }),
   ),
@@ -139,8 +140,15 @@ export const globalFunctions = {
               message: '`flow` expected a function',
             })
           } else {
-            return either.makeRight(argument =>
-              either.flatMap(firstFunction(argument), secondFunction),
+            return either.makeRight(firstArgument =>
+              either.flatMap(
+                firstFunction(firstArgument, emptyContextForStdlibApplications),
+                secondArgument =>
+                  secondFunction(
+                    secondArgument,
+                    emptyContextForStdlibApplications,
+                  ),
+              ),
             )
           }
         })
@@ -190,7 +198,10 @@ export const globalFunctions = {
             } else {
               return !isFunctionNode(relevantCase.value) ?
                   either.makeRight(relevantCase.value)
-                : relevantCase.value(argument.value)
+                : relevantCase.value(
+                    argument.value,
+                    emptyContextForStdlibApplications,
+                  )
             }
           }
         })

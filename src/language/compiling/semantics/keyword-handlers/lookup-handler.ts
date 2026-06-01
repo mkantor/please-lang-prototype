@@ -18,14 +18,14 @@ export const lookupKeywordHandler: KeywordHandler = (
 ): Either<ElaborationError, SemanticGraph> =>
   either.flatMap(readLookupExpression(expression), ({ 1: { key } }) => {
     if (isObjectNode(context.program)) {
-      return either.flatMap(lookup({ context, key }), possibleValue =>
-        option.match(possibleValue, {
+      return either.flatMap(lookup({ context, key }), successfulLookup =>
+        option.match(successfulLookup, {
           none: () =>
             either.makeLeft({
               kind: 'invalidExpression',
               message: `property \`${stringifyKeyForEndUser(key)}\` not found`,
             }),
-          some: either.makeRight,
+          some: ({ foundValue }) => either.makeRight(foundValue),
         }),
       )
     } else {
