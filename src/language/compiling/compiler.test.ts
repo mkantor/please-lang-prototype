@@ -1112,4 +1112,46 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `{
+      not: (a: :boolean.type) => @if { :a, false, true }
+      :not(@runtime { context =>
+        :context.program.start_time atom.equals "arbitrary atom"
+      }) ~ false
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      x: true
+      f: _ => :x
+      inner: {
+        x: false
+        :f(@runtime { _ => _ }) ~ true
+      }
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      x: true
+      f: _ => @runtime { _ => :x }
+      inner: {
+        x: false
+        :f(@runtime { _ => _ }) ~ true
+      }
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
