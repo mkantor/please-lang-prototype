@@ -112,15 +112,6 @@ testCases(parseAndCompileAndRun, code => code)('runtime-derived values', [
       '0 (not greater than one) 1 (not greater than one) 2 (greater than one) ',
     ),
   ],
-  [
-    // TODO: Move to the regular end-to-end suite once there's unparser support.
-    `{
-      key1: b
-      get_key2: _ => false
-      {a:{b:{1:{2:{true:{false:{🎉:"it works"}}}}}}}.a.:key1.(1).(1 + 1).(:boolean.not(false)).(:get_key2(_)).(@runtime { _ => 🎉 })
-    }.0`,
-    success('it works'),
-  ],
 ])
 
 testCases(endToEnd, code => code)('end-to-end tests', [
@@ -885,4 +876,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   // `_` can still be used as part of an `@index` query:
   [`{ _: a }._`, success('a')],
+  [
+    `{
+      key1: b
+      get_key2: _ => false
+      {a:{b:{1:{2:{true:{false:{🎉:"it works"}}}}}}}.a.:key1.(1).(1 + 1).(:boolean.not(false)).(:get_key2(_)).(@runtime { _ => 🎉 })
+    }.0`,
+    success('it works'),
+  ],
 ])

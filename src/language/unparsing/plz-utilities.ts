@@ -26,7 +26,6 @@ import {
   type FunctionExpression,
   type HoleExpression,
   type IndexExpression,
-  type KeyPath,
   type LookupExpression,
   type ObjectNode,
   type SemanticGraph,
@@ -441,37 +440,49 @@ const unparseSugaredIndex = (
 
 const unparseKeyPathOfSugaredIndex = (
   query: ObjectNode,
-  { semanticContext }: Context,
-) => {
-  const keyPath = Object.entries(query).reduce(
-    (accumulator: KeyPath | 'invalid', [key, value]) => {
-      if (accumulator === 'invalid') {
-        return accumulator
-      } else {
-        if (key === String(accumulator.length) && typeof value === 'string') {
-          return [...accumulator, value]
-        } else {
-          return 'invalid'
-        }
-      }
-    },
-    [],
+  { unparseAtomOrMolecule, semanticContext }: Context,
+): Either<UnserializableValueError, string> => {
+  const { dot, colon, openGroupingParenthesis, closeGroupingParenthesis } =
+    punctuation(styleText)
+  const componentResults = Object.entries(query).map(
+    ([key, value], index): Either<UnserializableValueError, string> =>
+      // Keys must be sequential ("0", "1", …) to use the dotted sugar.
+      key !== String(index) ?
+        either.makeLeft({
+          kind: 'unserializableValue',
+          message: 'invalid key path',
+        })
+        // A literal atom uses `.a`.
+      : typeof value === 'string' ?
+        either.makeRight(quoteKeyPathComponentIfNecessary(value))
+      : either.match(readLookupExpression(value), {
+          // A `@lookup` uses `.:key`.
+          right: lookup =>
+            either.makeRight(
+              colon.concat(quoteKeyPathComponentIfNecessary(lookup[1].key)),
+            ),
+          // Any other expression uses `.(…)`.
+          left: _ =>
+            either.map(
+              either.flatMap(
+                serializeIfNeeded(value),
+                unparseAtomOrMolecule('default'),
+              ),
+              unparsedExpression =>
+                openGroupingParenthesis.concat(
+                  unparsedExpression,
+                  closeGroupingParenthesis,
+                ),
+            ),
+        }),
   )
 
-  if (keyPath === 'invalid' || Object.keys(query).length !== keyPath.length) {
-    return either.makeLeft({
-      kind: 'unserializableValue',
-      message: 'invalid key path',
-    })
-  } else {
-    const { dot } = punctuation(styleText)
-    return either.makeRight(
-      styleText(
-        semanticContext === 'apply' ? applyColor : keyColor,
-        dot.concat(keyPath.map(quoteKeyPathComponentIfNecessary).join(dot)),
-      ),
-    )
-  }
+  return either.map(either.sequence(componentResults), components =>
+    styleText(
+      semanticContext === 'apply' ? applyColor : keyColor,
+      dot.concat(components.join(dot)),
+    ),
+  )
 }
 
 const unparseSugaredLookup = (
