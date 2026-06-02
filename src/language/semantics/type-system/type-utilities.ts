@@ -24,9 +24,9 @@ import {
   type UnionType,
 } from './type-formats.js'
 
-const functionParameter = Symbol('functionParameter')
-const functionReturn = Symbol('functionReturn')
-const typeParameterAssignableToConstraint = Symbol(
+const functionParameterKey = Symbol('functionParameter')
+const functionReturnKey = Symbol('functionReturn')
+const typeParameterAssignableToConstraintKey = Symbol(
   'typeParameterAssignableToConstraint',
 )
 
@@ -38,9 +38,9 @@ type AtomKeyPathElement =
 
 export type TypeKeyPath = readonly (
   | AtomKeyPathElement
-  | typeof functionParameter
-  | typeof functionReturn
-  | typeof typeParameterAssignableToConstraint
+  | typeof functionParameterKey
+  | typeof functionReturnKey
+  | typeof typeParameterAssignableToConstraintKey
 )[]
 
 type StringifiedKeyPath = string // this could be branded if that seems useful
@@ -89,7 +89,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
           return types.nothing
         } else {
           switch (firstKey) {
-            case functionParameter:
+            case functionParameterKey:
               return makeFunctionType(type.name, {
                 parameter: applyKeyPathToType(
                   type.signature.parameter,
@@ -97,7 +97,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
                 ),
                 return: type.signature.return,
               })
-            case functionReturn:
+            case functionReturnKey:
               return makeFunctionType(type.name, {
                 parameter: type.signature.parameter,
                 return: applyKeyPathToType(
@@ -105,7 +105,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
                   remainingKeyPath,
                 ),
               })
-            case typeParameterAssignableToConstraint:
+            case typeParameterAssignableToConstraintKey:
               // Functions aren't type parameters.
               return types.nothing
           }
@@ -132,15 +132,15 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
           return types.nothing
         } else {
           switch (firstKey) {
-            case typeParameterAssignableToConstraint:
+            case typeParameterAssignableToConstraintKey:
               return makeTypeParameter(type.name, {
                 assignableTo: applyKeyPathToType(
                   type.constraint.assignableTo,
                   remainingKeyPath,
                 ),
               })
-            case functionParameter:
-            case functionReturn:
+            case functionParameterKey:
+            case functionReturnKey:
               // Type parameters aren't function types.
               // TODO: Though perhaps I should drill into the constraint here?
               return types.nothing
@@ -198,12 +198,12 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
         parameter: genericizeFunctionParameterAnnotationAtKeyPath(
           parameterName,
           type.signature.parameter,
-          [...keyPath, functionParameter],
+          [...keyPath, functionParameterKey],
         ),
         return: genericizeFunctionParameterAnnotationAtKeyPath(
           parameterName,
           type.signature.return,
-          [...keyPath, functionReturn],
+          [...keyPath, functionReturnKey],
         ),
       }),
     object: type =>
@@ -255,11 +255,11 @@ const containedTypeParametersImplementation = (
         mergeTypeParametersByKeyPath(
           containedTypeParametersImplementation(signature.parameter, [
             ...root,
-            functionParameter,
+            functionParameterKey,
           ]),
           containedTypeParametersImplementation(signature.return, [
             ...root,
-            functionReturn,
+            functionReturnKey,
           ]),
         ),
       object: type =>
@@ -273,7 +273,7 @@ const containedTypeParametersImplementation = (
         mergeTypeParametersByKeyPath(
           containedTypeParametersImplementation(type.constraint.assignableTo, [
             ...root,
-            typeParameterAssignableToConstraint,
+            typeParameterAssignableToConstraintKey,
           ]),
           new Map([
             [
@@ -318,12 +318,12 @@ const findKeyPathsToTypeParameterImplementation = (
           ...findKeyPathsToTypeParameterImplementation(
             signature.parameter,
             typeParameterToFind,
-            [...root, functionParameter],
+            [...root, functionParameterKey],
           ),
           ...findKeyPathsToTypeParameterImplementation(
             signature.return,
             typeParameterToFind,
-            [...root, functionReturn],
+            [...root, functionReturnKey],
           ),
         ]),
       object: type =>
@@ -345,7 +345,7 @@ const findKeyPathsToTypeParameterImplementation = (
           ...findKeyPathsToTypeParameterImplementation(
             type.constraint.assignableTo,
             typeParameterToFind,
-            [...root, typeParameterAssignableToConstraint],
+            [...root, typeParameterAssignableToConstraintKey],
           ),
           ...(type.identity === typeParameterToFind.identity ? [root] : []),
         ]),
@@ -612,7 +612,7 @@ export const updateTypeAtKeyPathIfValid = (
     return matchTypeFormat(type, {
       function: type => {
         switch (firstKey) {
-          case functionParameter:
+          case functionParameterKey:
             return makeFunctionType(type.name, {
               parameter: updateTypeAtKeyPathIfValid(
                 type.signature.parameter,
@@ -621,7 +621,7 @@ export const updateTypeAtKeyPathIfValid = (
               ),
               return: type.signature.return,
             })
-          case functionReturn:
+          case functionReturnKey:
             return makeFunctionType(type.name, {
               return: updateTypeAtKeyPathIfValid(
                 type.signature.return,
@@ -656,7 +656,7 @@ export const updateTypeAtKeyPathIfValid = (
       opaque: (type): Type => type,
       parameter: type => {
         switch (firstKey) {
-          case typeParameterAssignableToConstraint:
+          case typeParameterAssignableToConstraintKey:
             return makeTypeParameter(type.name, {
               assignableTo: updateTypeAtKeyPathIfValid(
                 type.constraint.assignableTo,
@@ -840,11 +840,11 @@ const stringifyKeyPathComponentForEndUser = (
       // TODO: Consider surfacing this in plz syntax (allowing programmatic
       // access of un-elaborated function parameters/returns and type parameter
       // constraints).
-      case functionParameter:
+      case functionParameterKey:
         return '#parameter'
-      case functionReturn:
+      case functionReturnKey:
         return '#return'
-      case typeParameterAssignableToConstraint:
+      case typeParameterAssignableToConstraintKey:
         return '#constraint'
     }
   }
