@@ -41,7 +41,7 @@ import {
   genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
-  stringifyKeyPath,
+  stringifyTypeKeyPathForEndUser,
   supplyTypeArguments,
 } from './type-utilities.js'
 
@@ -118,7 +118,7 @@ const inferTypeImplementation = (
   lookingUpKeys: ReadonlySet<Atom>,
   context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
-  const cacheKey = stringifyKeyPath(context.location)
+  const cacheKey = stringifyTypeKeyPathForEndUser(context.location)
   const cached = context.mutableInferenceCache.get(cacheKey)
   if (cached !== undefined) {
     return either.makeRight(cached)

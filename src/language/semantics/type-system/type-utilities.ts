@@ -2,6 +2,7 @@ import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
 import type { Bug } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
+import { quoteAtomIfNecessary } from '../../unparsing/plz-utilities.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import {
   getHoleTypeParameter,
@@ -236,23 +237,7 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
 const synthesizeTypeParameterName = (
   parameterName: Atom,
   keyPath: TypeKeyPath,
-): string =>
-  keyPath.reduce<string>((name, key) => {
-    // TODO: Consider surfacing this in plz syntax (allowing programmatic access
-    // of un-elaborated function parameters/returns and type parameter
-    // constraints).
-    if (key === functionParameter) {
-      return `${name}.#parameter`
-    } else if (key === functionReturn) {
-      return `${name}.#return`
-    } else if (key === typeParameterAssignableToConstraint) {
-      return `${name}.#constraint`
-    } else if (typeof key === 'object') {
-      return `${name}.#${[...key.members].join('|')}`
-    } else {
-      return `${name}.${key}`
-    }
-  }, parameterName)
+): string => parameterName.concat(stringifyTypeKeyPathForEndUser(keyPath))
 
 export const containedTypeParameters = (type: Type): TypeParametersByKeyPath =>
   containedTypeParametersImplementation(type, [])
@@ -292,7 +277,7 @@ const containedTypeParametersImplementation = (
           ]),
           new Map([
             [
-              stringifyKeyPath(root),
+              stringifyTypeKeyPathForEndUser(root),
               {
                 keyPath: root,
                 typeParameters: makeUnionType('', [type]),
@@ -826,16 +811,41 @@ const mergeTypeParametersByKeyPath = (
   return result
 }
 
-// The string format is not meant for human consumption. The only guarantee is
-// that every distinct key path produces a unique string.
-export const stringifyKeyPath = (keyPath: TypeKeyPath): string =>
-  keyPath.reduce((stringifiedKeyPath: string, key) => {
-    const stringifiedKey =
-      typeof key === 'symbol' ? key.description : JSON.stringify(key)
-    if (stringifiedKey === undefined) {
-      throw new Error(
-        'Symbol in key path does not have a description. This is a bug!',
-      )
+export const stringifyTypeKeyPathForEndUser = (keyPath: TypeKeyPath): string =>
+  // TODO: Would be nice to use unparser machinery here.
+  keyPath.reduce(
+    (stringifiedTypeKeyPath: string, key) =>
+      stringifiedTypeKeyPath.concat(
+        '.',
+        stringifyKeyPathComponentForEndUser(key),
+      ),
+    '',
+  )
+
+const stringifyKeyPathComponentForEndUser = (
+  component: TypeKeyPath[number],
+): string => {
+  if (typeof component === 'string') {
+    return quoteAtomIfNecessary(component)
+  } else if (typeof component === 'object') {
+    return '('.concat(
+      [...component.members]
+        .sort()
+        .map(stringifyKeyPathComponentForEndUser)
+        .join(' | '),
+      ')',
+    )
+  } else {
+    switch (component) {
+      // TODO: Consider surfacing this in plz syntax (allowing programmatic
+      // access of un-elaborated function parameters/returns and type parameter
+      // constraints).
+      case functionParameter:
+        return '#parameter'
+      case functionReturn:
+        return '#return'
+      case typeParameterAssignableToConstraint:
+        return '#constraint'
     }
-    return `${stringifiedKeyPath}.${stringifiedKey}`
-  }, '')
+  }
+}
