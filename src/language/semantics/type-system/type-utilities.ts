@@ -29,8 +29,14 @@ const typeParameterAssignableToConstraint = Symbol(
   'typeParameterAssignableToConstraint',
 )
 
-export type TypeKeyPath = readonly (
+// An element selecting a property: a literal atom, or a union of literal atoms
+// (when a dynamic key could be one of several atoms).
+type AtomKeyPathElement =
   | Atom
+  | (Omit<UnionType, 'members'> & { readonly members: ReadonlySet<Atom> })
+
+export type TypeKeyPath = readonly (
+  | AtomKeyPathElement
   | typeof functionParameter
   | typeof functionReturn
   | typeof typeParameterAssignableToConstraint
@@ -58,8 +64,24 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
   if (firstKey === undefined) {
     // If the key path is empty, this is the type we're looking for.
     return type
+  } else if (typeof firstKey === 'object') {
+    return makeUnionType(
+      '',
+      // Flatten to avoid nested unions.
+      [...firstKey.members].flatMap(firstKeyMember => {
+        const typeForThisPossibility = applyKeyPathToType(type, [
+          firstKeyMember,
+          ...remainingKeyPath,
+        ])
+        if (typeForThisPossibility.kind === 'union') {
+          return [...typeForThisPossibility.members]
+        } else {
+          return typeForThisPossibility
+        }
+      }),
+    )
   } else {
-    return matchTypeFormat(type, {
+    return matchTypeFormat<Type>(type, {
       function: type => {
         if (typeof firstKey === 'string') {
           // Functions do not have properties.
@@ -225,6 +247,8 @@ const synthesizeTypeParameterName = (
       return `${name}.#return`
     } else if (key === typeParameterAssignableToConstraint) {
       return `${name}.#constraint`
+    } else if (typeof key === 'object') {
+      return `${name}.#${[...key.members].join('|')}`
     } else {
       return `${name}.${key}`
     }
