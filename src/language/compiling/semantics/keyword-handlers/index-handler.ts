@@ -2,24 +2,26 @@ import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  applyKeyPathToSemanticGraph,
   applyKeyPathToType,
   containsAnyUnelaboratedNodes,
   inferType,
-  keyPathFromObjectNode,
   readIndexExpression,
   showType,
-  stringifyKeyPathForEndUser,
   type Expression,
   type ExpressionContext,
-  type KeyPath,
   type KeywordHandler,
   type SemanticGraph,
 } from '../../../semantics.js'
+import { applyTypeKeyPathToSemanticGraph } from '../../../semantics/semantic-graph.js'
+import {
+  stringifyTypeKeyPathForEndUser,
+  typeKeyPathFromObjectNode,
+  type TypeKeyPath,
+} from '../../../semantics/type-system.js'
 
 const checkKeyPathExistsInType = (
   object: SemanticGraph,
-  keyPath: KeyPath,
+  keyPath: TypeKeyPath,
   context: ExpressionContext,
 ): Either<ElaborationError, undefined> =>
   either.flatMap(
@@ -34,7 +36,7 @@ const checkKeyPathExistsInType = (
         ) ?
           either.makeLeft({
             kind: 'typeMismatch',
-            message: `property \`${stringifyKeyPathForEndUser(
+            message: `property \`${stringifyTypeKeyPathForEndUser(
               keyPath,
             )}\` does not exist on type \`${showType(objectType)}\``,
           })
@@ -50,21 +52,36 @@ export const indexKeywordHandler: KeywordHandler = (
     const {
       1: { object, query },
     } = indexExpression
-    return either.flatMap(keyPathFromObjectNode(query), keyPath =>
-      either.flatMap(checkKeyPathExistsInType(object, keyPath, context), _ =>
-        containsAnyUnelaboratedNodes(object) ?
-          // The object isn't ready, so keep the @index unelaborated.
-          either.makeRight(indexExpression)
-        : option.match(applyKeyPathToSemanticGraph(object, keyPath), {
-            none: () =>
-              either.makeLeft({
-                kind: 'typeMismatch',
-                message: `property \`${stringifyKeyPathForEndUser(
-                  keyPath,
-                )}\` not found`,
-              }),
-            some: either.makeRight,
-          }),
+    return either.flatMap(
+      typeKeyPathFromObjectNode(
+        query,
+        { ...context, location: [...context.location, '1', 'query'] },
+        inferType,
       ),
+      typeKeyPath => {
+        return either.flatMap(
+          checkKeyPathExistsInType(object, typeKeyPath, context),
+          _ =>
+            (
+              containsAnyUnelaboratedNodes(object) ||
+              containsAnyUnelaboratedNodes(query)
+            ) ?
+              // The object isn't ready, so keep the @index unelaborated.
+              either.makeRight(indexExpression)
+            : option.match(
+                applyTypeKeyPathToSemanticGraph(object, typeKeyPath),
+                {
+                  none: () =>
+                    either.makeLeft({
+                      kind: 'typeMismatch',
+                      message: `property \`${stringifyTypeKeyPathForEndUser(
+                        typeKeyPath,
+                      )}\` not found`,
+                    }),
+                  some: either.makeRight,
+                },
+              ),
+        )
+      },
     )
   })

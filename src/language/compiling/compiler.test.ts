@@ -1089,4 +1089,27 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{ obj: { a: 1, b: 2 }, get: (key: a | b) => :obj.:key ~ (1 | 2) }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{ obj: { a: 1, b: 2 }, get: (key: a | b) => :obj.(:key) ~ 1 }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ x: { a: 1 }, y: :x.({}) }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

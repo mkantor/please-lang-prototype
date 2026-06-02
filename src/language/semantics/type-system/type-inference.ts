@@ -11,7 +11,6 @@ import {
   isExpression,
   isFunctionNode,
   isObjectNode,
-  keyPathFromObjectNode,
   lookup,
   readApplyExpression,
   readFunctionExpression,
@@ -43,6 +42,7 @@ import {
   literalTypeFromSemanticGraph,
   stringifyTypeKeyPathForEndUser,
   supplyTypeArguments,
+  typeKeyPathFromObjectNode,
 } from './type-utilities.js'
 
 /**
@@ -236,7 +236,17 @@ const inferTypeImplementation = (
         ),
         objectType =>
           either.map(
-            keyPathFromObjectNode(indexExpressionResult.value[1].query),
+            typeKeyPathFromObjectNode(
+              indexExpressionResult.value[1].query,
+              descendantContext(['1', 'query']),
+              (node, context) =>
+                inferTypeImplementation(
+                  node,
+                  parameterTypes,
+                  lookingUpKeys,
+                  context,
+                ),
+            ),
             keyPath => applyKeyPathToType(objectType, keyPath),
           ),
       ),

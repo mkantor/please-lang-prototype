@@ -5,13 +5,14 @@ import type {
   InvalidExpressionError,
   UnserializableValueError,
 } from '../errors.js'
-import type { Atom, Molecule } from '../parsing.js'
+import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import {
   ignoredKey,
   makeFunctionExpression,
   makeIndexExpression,
   makeLookupExpression,
   makeUnionExpression,
+  readFunctionExpression,
   types,
   type Type,
 } from '../semantics.js'
@@ -31,6 +32,12 @@ import {
   type ObjectNode,
 } from './object-node.js'
 import { nodeTag } from './semantic-graph-node-tag.js'
+import {
+  functionParameterKey,
+  functionReturnKey,
+  typeParameterAssignableToConstraintKey,
+  type TypeKeyPath,
+} from './type-system.js'
 import {
   atomTypeSymbol,
   integerTypeSymbol,
@@ -68,6 +75,92 @@ export const applyKeyPathToSemanticGraph = (
             isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
             remainingKeyPath,
           )
+        }
+      },
+    })
+  }
+}
+
+export const applyTypeKeyPathToSemanticGraph = (
+  node: SemanticGraph,
+  keyPath: TypeKeyPath,
+): Option<SemanticGraph> => {
+  const [firstKey, ...remainingKeyPath] = keyPath
+  if (firstKey === undefined) {
+    // If the key path is empty, this is the type we're looking for.
+    return option.makeSome(node)
+  } else if (typeof firstKey === 'object') {
+    return option.map(
+      option.sequence(
+        [...firstKey.members].map(firstKeyMember =>
+          applyTypeKeyPathToSemanticGraph(node, [
+            firstKeyMember,
+            ...remainingKeyPath,
+          ]),
+        ),
+      ),
+      foundNodes =>
+        makeUnionExpression(
+          objectNodeFromOrderedEntries(
+            foundNodes.map((node, index) => [String(index), node]),
+          ),
+        ),
+    )
+  } else {
+    return matchSemanticGraph(node, {
+      // If it's an `Atom` or `TypeSymbol` but we have a non-empty path, we
+      // whiffed.
+      atom: _ => option.none,
+      typeSymbol: _ => option.none,
+
+      function: node => {
+        if (
+          firstKey === functionParameterKey ||
+          firstKey === functionReturnKey
+        ) {
+          return either.match(
+            either.flatMap(node.serialize(), readFunctionExpression),
+            {
+              left: _ => option.none,
+              right: serializedFunction => {
+                // TODO: Determine whether this is useful, expunge if not.
+                switch (firstKey) {
+                  case functionParameterKey:
+                    return option.makeSome(serializedFunction[1].parameter)
+                  case functionReturnKey:
+                    return option.makeSome(serializedFunction[1].body)
+                }
+              },
+            },
+          )
+        } else {
+          return option.none
+        }
+      },
+
+      object: node => {
+        if (typeof firstKey === 'string') {
+          // Exhaustiveness checks:
+          firstKey satisfies string
+          node satisfies ObjectNode
+
+          const next = node[firstKey]
+          if (next === undefined) {
+            return option.none
+          } else {
+            return applyTypeKeyPathToSemanticGraph(
+              isSemanticGraph(next) ? next : syntaxTreeToSemanticGraph(next),
+              remainingKeyPath,
+            )
+          }
+        } else {
+          switch (firstKey) {
+            // None of the following can be applied to object nodes:
+            case functionParameterKey:
+            case functionReturnKey:
+            case typeParameterAssignableToConstraintKey:
+              return option.none
+          }
         }
       },
     })
@@ -184,16 +277,24 @@ export const serialize = (
     withPhantomData<Serialized>(),
   )
 
+export const stringifySyntaxTreeForEndUser = (
+  tree: SyntaxTree,
+  notation: Notation = inlinePlz,
+): string =>
+  either.unwrapOrElse(
+    unparse(tree, notation),
+    error => `(unserializable value: ${error.message})`,
+  )
+
 export const stringifySemanticGraphForEndUser = (
   graph: SemanticGraph,
   notation: Notation = inlinePlz,
 ): string =>
-  either.match(
-    either.flatMap(serialize(graph), output => unparse(output, notation)),
-    {
-      right: stringifiedOutput => stringifiedOutput,
-      left: error => `(unserializable value: ${error.message})`,
-    },
+  either.unwrapOrElse(
+    either.map(serialize(graph), syntaxTree =>
+      stringifySyntaxTreeForEndUser(syntaxTree, notation),
+    ),
+    error => `(unserializable value: ${error.message})`,
   )
 
 export const typeToSemanticGraph = (

@@ -8,9 +8,15 @@ export {
 export {
   applyKeyPathToType,
   containedTypeParameters,
+  functionParameterKey,
+  functionReturnKey,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
   replaceAllTypeParametersWithTheirConstraints,
+  stringifyTypeKeyPathForEndUser,
   supplyTypeArgument,
   supplyTypeArguments,
+  typeKeyPathFromObjectNode,
+  typeParameterAssignableToConstraintKey,
+  type TypeKeyPath,
 } from './type-system/type-utilities.js'

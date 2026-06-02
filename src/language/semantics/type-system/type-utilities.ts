@@ -1,13 +1,15 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
-import type { Bug } from '../../errors.js'
+import type { Bug, ElaborationError, TypeMismatchError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import { quoteAtomIfNecessary } from '../../unparsing/plz-utilities.js'
+import type { ExpressionContext } from '../expression-elaboration.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import {
   getHoleTypeParameter,
   readHoleExpression,
 } from '../expressions/hole-expression.js'
+import type { ObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import { typesBySymbol } from './prelude-types.js'
@@ -24,24 +26,46 @@ import {
   type UnionType,
 } from './type-formats.js'
 
-const functionParameterKey = Symbol('functionParameter')
-const functionReturnKey = Symbol('functionReturn')
-const typeParameterAssignableToConstraintKey = Symbol(
+export const functionParameterKey = Symbol('functionParameter')
+export const functionReturnKey = Symbol('functionReturn')
+export const typeParameterAssignableToConstraintKey = Symbol(
   'typeParameterAssignableToConstraint',
 )
 
-// An element selecting a property: a literal atom, or a union of literal atoms
-// (when a dynamic key could be one of several atoms).
-type AtomKeyPathElement =
+type AtomKeyPathComponent =
   | Atom
   | (Omit<UnionType, 'members'> & { readonly members: ReadonlySet<Atom> })
 
 export type TypeKeyPath = readonly (
-  | AtomKeyPathElement
+  | AtomKeyPathComponent
   | typeof functionParameterKey
   | typeof functionReturnKey
   | typeof typeParameterAssignableToConstraintKey
 )[]
+
+export const typeKeyPathFromObjectNode = (
+  node: ObjectNode,
+  context: ExpressionContext,
+  inferType: (
+    specificKey: SemanticGraph,
+    contextForSpecificKey: ExpressionContext,
+  ) => Either<ElaborationError, Type>,
+): Either<ElaborationError, TypeKeyPath> =>
+  // Each sequentially-keyed property is either a literal atom or a dynamic key
+  // whose type must be an atom or union of atoms.
+  either.sequence(
+    Object.entries(node).map(([key, component]) =>
+      typeof component === 'string' ?
+        either.makeRight(component)
+      : either.flatMap(
+          inferType(component, {
+            ...context,
+            location: [...context.location, key],
+          }),
+          atomKeyPathComponentFromType,
+        ),
+    ),
+  )
 
 type StringifiedKeyPath = string // this could be branded if that seems useful
 type UnionOfTypeParameters = Omit<UnionType, 'members'> & {
@@ -821,6 +845,37 @@ export const stringifyTypeKeyPathForEndUser = (keyPath: TypeKeyPath): string =>
       ),
     '',
   )
+
+const atomKeyPathComponentFromType = (
+  type: Type,
+): Either<TypeMismatchError, AtomKeyPathComponent> => {
+  const concreteType = replaceAllTypeParametersWithTheirConstraints(type)
+  const simplifiedType =
+    concreteType.kind === 'union' ?
+      simplifyUnionType(concreteType)
+    : concreteType
+
+  const atomMembers =
+    simplifiedType.kind === 'union' ?
+      [...simplifiedType.members].filter(member => typeof member === 'string')
+    : []
+
+  const isAtomUnion =
+    simplifiedType.kind === 'union' &&
+    atomMembers.length > 0 &&
+    atomMembers.length === simplifiedType.members.size
+  const [firstAtom, ...remainingAtoms] = atomMembers
+
+  return (
+    !isAtomUnion || firstAtom === undefined ?
+      either.makeLeft({
+        kind: 'typeMismatch',
+        message: 'dynamic index key must be an atom or a union of atoms',
+      })
+    : remainingAtoms.length === 0 ? either.makeRight(firstAtom)
+    : either.makeRight(makeUnionType(simplifiedType.name, atomMembers))
+  )
+}
 
 const stringifyKeyPathComponentForEndUser = (
   component: TypeKeyPath[number],

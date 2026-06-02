@@ -11,7 +11,7 @@ import {
 } from '@matt.kantor/parsing'
 import * as orderedRecord from '../../ordered-record.js'
 import { type OrderedRecord } from '../../ordered-record.js'
-import { arrayToMolecule, ignoredKey, type KeyPath } from '../semantics.js'
+import { arrayToMolecule, ignoredKey } from '../semantics.js'
 import {
   atom,
   atomWithAdditionalQuotationRequirements,
@@ -250,13 +250,33 @@ const propertyDelimiter = oneOf([
 
 const argument = surroundedByParentheses(lazy(() => expression))
 
+const dottedKeyPathKey = oneOf([
+  // (a)
+  // (1 + 1)
+  // (:a.b.c)
+  // (:f(x)(y))
+  surroundedByParentheses(lazy(() => expression)),
+
+  // :a
+  map(sequence([colon, atomRequiringDotQuotation]), ([_colon, key]) =>
+    molecule([
+      ['0', '@lookup'],
+      ['1', molecule([['key', key]])],
+    ]),
+  ),
+
+  // 1
+  // "a.b"
+  atomRequiringDotQuotation,
+])
+
 const compactDottedKeyPathComponent = map(
-  sequence([dot, atomRequiringDotQuotation]),
+  sequence([dot, dottedKeyPathKey]),
   ([_dot, key]) => key,
 )
 
 const dottedKeyPathComponent = map(
-  sequence([optionalTrivia, dot, optionalTrivia, atomRequiringDotQuotation]),
+  sequence([optionalTrivia, dot, optionalTrivia, dottedKeyPathKey]),
   ([_trivia1, _dot, _trivia2, key]) => key,
 )
 
@@ -308,7 +328,7 @@ type TrailingIndexOrArgument =
     }
   | {
       readonly kind: 'index'
-      readonly query: KeyPath
+      readonly query: readonly (Molecule | Atom)[]
     }
 
 const dottedKeyPath = oneOrMore(dottedKeyPathComponent)

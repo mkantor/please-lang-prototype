@@ -1,7 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { ElaborationError } from '../../errors.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
-import { keyPathFromObjectNode } from '../key-path.js'
 import {
   isObjectNode,
   makeObjectNode,
@@ -24,18 +23,13 @@ export const readIndexExpression = (
   isKeywordExpressionWithArgument('@index', node) ?
     either.flatMap(
       readArgumentsFromExpression(node, ['object', 'query']),
-      ([object, query]) => {
-        if (!isObjectNode(query)) {
-          return either.makeLeft({
+      ([object, query]) =>
+        !isObjectNode(query) ?
+          either.makeLeft({
             kind: 'invalidExpression',
             message: 'query must be an object',
           })
-        } else {
-          return either.map(keyPathFromObjectNode(query), _validKeyPath =>
-            makeIndexExpression({ object, query }),
-          )
-        }
-      },
+        : either.makeRight(makeIndexExpression({ object, query })),
     )
   : either.makeLeft({
       kind: 'invalidExpression',

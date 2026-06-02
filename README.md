@@ -114,6 +114,15 @@ You can index into the properties of looked-up values:
 }
 ```
 
+Index keys may be computed dynamically[^2]:
+
+```plz
+{
+  a: { 2: "Hello, World!" }
+  :a.(1 + 1) // "Hello, World!"
+}
+```
+
 Lookups are lexically scoped:
 
 ```plz
@@ -453,3 +462,6 @@ it approaches them over time.
     Every Please program is an
     [arborescence](<https://en.wikipedia.org/wiki/Arborescence_(graph_theory)>)
     with edges labeled by property keys.
+
+[^2]:
+    Dynamic keys are checked. `{ 2: "Hello, World!" }.(1 + 41)` is a type error.
