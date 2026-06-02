@@ -5,7 +5,7 @@ import type { Atom } from '../../parsing.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
 import { isExpression, isKeywordExpressionWithArgument } from '../expression.js'
 import {
-  keyPathToMolecule,
+  arrayToMolecule,
   type KeyPath,
   type NonEmptyKeyPath,
 } from '../key-path.js'
@@ -75,7 +75,7 @@ export const keyPathToLookupExpression = (keyPath: NonEmptyKeyPath) => {
   } else {
     return makeIndexExpression({
       object: initialLookup,
-      query: objectNodeFromMolecule(keyPathToMolecule(indexes)),
+      query: objectNodeFromMolecule(arrayToMolecule(indexes)),
     })
   }
 }

@@ -11,7 +11,7 @@ import {
 } from '@matt.kantor/parsing'
 import * as orderedRecord from '../../ordered-record.js'
 import { type OrderedRecord } from '../../ordered-record.js'
-import { ignoredKey, keyPathToMolecule, type KeyPath } from '../semantics.js'
+import { arrayToMolecule, ignoredKey, type KeyPath } from '../semantics.js'
 import {
   atom,
   atomWithAdditionalQuotationRequirements,
@@ -86,7 +86,7 @@ const trailingIndexesAndArgumentsToExpression = (
             '1',
             molecule([
               ['object', expression],
-              ['query', keyPathToMolecule(indexOrArgument.query)],
+              ['query', arrayToMolecule(indexOrArgument.query)],
             ]),
           ],
         ])
