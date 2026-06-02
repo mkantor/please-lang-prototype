@@ -804,7 +804,7 @@ const mergeTypeParametersByKeyPath = (
 
 // The string format is not meant for human consumption. The only guarantee is
 // that every distinct key path produces a unique string.
-const stringifyKeyPath = (keyPath: TypeKeyPath): string =>
+export const stringifyKeyPath = (keyPath: TypeKeyPath): string =>
   keyPath.reduce((stringifiedKeyPath: string, key) => {
     const stringifiedKey =
       typeof key === 'symbol' ? key.description : JSON.stringify(key)

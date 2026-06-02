@@ -201,6 +201,8 @@ const apply = (
           keywordHandlers: functionDefinitionContext.keywordHandlers,
           location: [...functionDefinitionContext.location, returnKey],
           program: updatedProgram,
+          mutableInferenceCache:
+            functionDefinitionContext.mutableInferenceCache,
         }),
     ),
   )
