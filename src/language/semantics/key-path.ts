@@ -4,6 +4,7 @@ import type { InvalidExpressionError } from '../errors.js'
 import type { Atom, Molecule } from '../parsing.js'
 import { inlinePlz, unparse } from '../unparsing.js'
 import type { ObjectNode } from './object-node.js'
+import { stringifySemanticGraphForEndUser } from './semantic-graph.js'
 
 export type KeyPath = readonly Atom[]
 export type NonEmptyKeyPath = readonly [Atom, ...KeyPath]
@@ -31,7 +32,7 @@ export const keyPathFromObjectNode = (
     if (typeof key !== 'string') {
       return either.makeLeft({
         kind: 'invalidExpression',
-        message: 'expected a key path composed of sequential atoms',
+        message: `expected a key path composed of sequential atoms, got \`${stringifySemanticGraphForEndUser(node)}\``,
       })
     } else {
       relativePath.push(key)
