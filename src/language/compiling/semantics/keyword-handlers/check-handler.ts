@@ -3,8 +3,8 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   isAssignable,
   readCheckExpression,
-  showType,
   stringifySemanticGraphForEndUser,
+  stringifyTypeForEndUser,
   type Expression,
   type ExpressionContext,
   type KeywordHandler,
@@ -43,7 +43,7 @@ const check = ({
             kind: 'typeMismatch',
             message: `the value \`${stringifySemanticGraphForEndUser(
               value,
-            )}\` (inferred to have type \`${showType(valueAsType)}\`) is not assignable to the type \`${showType(typeAsType)}\``,
+            )}\` (inferred to have type \`${stringifyTypeForEndUser(valueAsType)}\`) is not assignable to the type \`${stringifyTypeForEndUser(typeAsType)}\``,
           })
         }
       }),

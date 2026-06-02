@@ -13,7 +13,7 @@ import {
   orderedEntriesOfObjectNode,
   readIfExpression,
   serialize,
-  showType,
+  stringifyTypeForEndUser,
   types,
   type Expression,
   type ExpressionContext,
@@ -77,7 +77,7 @@ export const ifKeywordHandler: KeywordHandler = (
                   either.makeRight(elaboratedCondition)
                 : either.makeLeft({
                     kind: 'typeMismatch',
-                    message: `\`@if\` condition was not assignable to \`${showType(types.boolean)}\` (it was \`${showType(conditionType)}\`)`,
+                    message: `\`@if\` condition was not assignable to \`${stringifyTypeForEndUser(types.boolean)}\` (it was \`${stringifyTypeForEndUser(conditionType)}\`)`,
                   }),
             ),
             condition => {

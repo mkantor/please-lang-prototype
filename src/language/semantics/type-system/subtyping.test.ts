@@ -1,5 +1,5 @@
 import { testCases } from '../../../test-utilities.test.js'
-import { showType } from '../semantic-graph.js'
+import { stringifyTypeForEndUser } from '../semantic-graph.js'
 import {
   atom,
   boolean,
@@ -25,7 +25,7 @@ const typeAssignabilitySuite = testCases(
   ([source, target]: [source: Type, target: Type]) =>
     isAssignable({ source, target }),
   ([source, target]) =>
-    `assignability of \`${showType(source)}\` to \`${showType(target)}\``,
+    `assignability of \`${stringifyTypeForEndUser(source)}\` to \`${stringifyTypeForEndUser(target)}\``,
 )
 
 const A = makeTypeParameter('a', { assignableTo: something })
@@ -56,8 +56,8 @@ const extendsExtendsAnyAtom = makeTypeParameter('u', {
 })
 
 testCases(
-  (type: UnionType) => showType(simplifyUnionType(type)),
-  type => `simplifying type \`${showType(type)}\``,
+  (type: UnionType) => stringifyTypeForEndUser(simplifyUnionType(type)),
+  type => `simplifying type \`${stringifyTypeForEndUser(type)}\``,
 )('simplifying union types', [
   [
     makeUnionType('', [

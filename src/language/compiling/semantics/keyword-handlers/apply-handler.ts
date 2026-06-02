@@ -7,8 +7,8 @@ import {
   isAssignable,
   isFunctionNode,
   readApplyExpression,
-  showType,
   stringifySemanticGraphForEndUser,
+  stringifyTypeForEndUser,
   supplyTypeArguments,
   type Expression,
   type ExpressionContext,
@@ -45,7 +45,7 @@ const checkArgumentType = (
             kind: 'typeMismatch',
             message: `the value \`${stringifySemanticGraphForEndUser(
               argument,
-            )}\` (inferred to have type \`${showType(argumentType)}\`) is not assignable to the type \`${showType(parameterType)}\``,
+            )}\` (inferred to have type \`${stringifyTypeForEndUser(argumentType)}\`) is not assignable to the type \`${stringifyTypeForEndUser(parameterType)}\``,
           })
     },
   )
@@ -74,7 +74,7 @@ export const applyKeywordHandler: KeywordHandler = (
             )
           : either.makeLeft({
               kind: 'invalidExpression',
-              message: `only functions can be applied, but got a \`${showType(functionType)}\``,
+              message: `only functions can be applied, but got a \`${stringifyTypeForEndUser(functionType)}\``,
             }),
       )
 
