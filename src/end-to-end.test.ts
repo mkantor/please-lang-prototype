@@ -876,4 +876,12 @@ testCases(endToEnd, code => code)('end-to-end tests', [
   ],
   // `_` can still be used as part of an `@index` query:
   [`{ _: a }._`, success('a')],
+  [
+    `{
+      key1: b
+      get_key2: _ => false
+      {a:{b:{1:{2:{true:{false:{🎉:"it works"}}}}}}}.a.:key1.(1).(1 + 1).(:boolean.not(false)).(:get_key2(_)).(@runtime { _ => 🎉 })
+    }.0`,
+    success('it works'),
+  ],
 ])

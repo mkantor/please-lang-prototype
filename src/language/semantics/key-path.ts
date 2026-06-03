@@ -9,12 +9,14 @@ export type KeyPath = readonly Atom[]
 export type NonEmptyKeyPath = readonly [Atom, ...KeyPath]
 
 export const stringifyKeyPathForEndUser = (keyPath: KeyPath): string =>
-  either.match(unparse(keyPathToMolecule(keyPath), inlinePlz), {
+  either.match(unparse(arrayToMolecule(keyPath), inlinePlz), {
     right: stringifiedOutput => stringifiedOutput,
     left: error => `(unserializable key path: ${error.message})`,
   })
 
-export const keyPathToMolecule = (keyPath: KeyPath): Molecule =>
+export const arrayToMolecule = (
+  keyPath: readonly (Molecule | Atom)[],
+): Molecule =>
   orderedRecord.make(keyPath.map((key, index) => [String(index), key]))
 
 export const keyPathFromObjectNode = (

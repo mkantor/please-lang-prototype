@@ -11,7 +11,6 @@ import {
   isExpression,
   isFunctionNode,
   isObjectNode,
-  keyPathFromObjectNode,
   lookup,
   readApplyExpression,
   readFunctionExpression,
@@ -41,8 +40,9 @@ import {
   genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
-  stringifyKeyPath,
+  stringifyTypeKeyPathForEndUser,
   supplyTypeArguments,
+  typeKeyPathFromObjectNode,
 } from './type-utilities.js'
 
 /**
@@ -118,7 +118,7 @@ const inferTypeImplementation = (
   lookingUpKeys: ReadonlySet<Atom>,
   context: ExpressionContext,
 ): Either<ElaborationError, Type> => {
-  const cacheKey = stringifyKeyPath(context.location)
+  const cacheKey = stringifyTypeKeyPathForEndUser(context.location)
   const cached = context.mutableInferenceCache.get(cacheKey)
   if (cached !== undefined) {
     return either.makeRight(cached)
@@ -236,7 +236,17 @@ const inferTypeImplementation = (
         ),
         objectType =>
           either.map(
-            keyPathFromObjectNode(indexExpressionResult.value[1].query),
+            typeKeyPathFromObjectNode(
+              indexExpressionResult.value[1].query,
+              descendantContext(['1', 'query']),
+              (node, context) =>
+                inferTypeImplementation(
+                  node,
+                  parameterTypes,
+                  lookingUpKeys,
+                  context,
+                ),
+            ),
             keyPath => applyKeyPathToType(objectType, keyPath),
           ),
       ),

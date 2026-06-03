@@ -1,12 +1,15 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { Writable } from '../../../utility-types.js'
-import type { Bug } from '../../errors.js'
+import type { Bug, ElaborationError, TypeMismatchError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
+import { quoteAtomIfNecessary } from '../../unparsing/plz-utilities.js'
+import type { ExpressionContext } from '../expression-elaboration.js'
 import { isKeywordExpressionWithArgument } from '../expression.js'
 import {
   getHoleTypeParameter,
   readHoleExpression,
 } from '../expressions/hole-expression.js'
+import type { ObjectNode } from '../object-node.js'
 import { type SemanticGraph } from '../semantic-graph.js'
 import { types } from '../type-system.js'
 import { typesBySymbol } from './prelude-types.js'
@@ -23,18 +26,46 @@ import {
   type UnionType,
 } from './type-formats.js'
 
-const functionParameter = Symbol('functionParameter')
-const functionReturn = Symbol('functionReturn')
-const typeParameterAssignableToConstraint = Symbol(
+export const functionParameterKey = Symbol('functionParameter')
+export const functionReturnKey = Symbol('functionReturn')
+export const typeParameterAssignableToConstraintKey = Symbol(
   'typeParameterAssignableToConstraint',
 )
 
-export type TypeKeyPath = readonly (
+type AtomKeyPathComponent =
   | Atom
-  | typeof functionParameter
-  | typeof functionReturn
-  | typeof typeParameterAssignableToConstraint
+  | (Omit<UnionType, 'members'> & { readonly members: ReadonlySet<Atom> })
+
+export type TypeKeyPath = readonly (
+  | AtomKeyPathComponent
+  | typeof functionParameterKey
+  | typeof functionReturnKey
+  | typeof typeParameterAssignableToConstraintKey
 )[]
+
+export const typeKeyPathFromObjectNode = (
+  node: ObjectNode,
+  context: ExpressionContext,
+  inferType: (
+    specificKey: SemanticGraph,
+    contextForSpecificKey: ExpressionContext,
+  ) => Either<ElaborationError, Type>,
+): Either<ElaborationError, TypeKeyPath> =>
+  // Each sequentially-keyed property is either a literal atom or a dynamic key
+  // whose type must be an atom or union of atoms.
+  either.sequence(
+    Object.entries(node).map(([key, component]) =>
+      typeof component === 'string' ?
+        either.makeRight(component)
+      : either.flatMap(
+          inferType(component, {
+            ...context,
+            location: [...context.location, key],
+          }),
+          atomKeyPathComponentFromType,
+        ),
+    ),
+  )
 
 type StringifiedKeyPath = string // this could be branded if that seems useful
 type UnionOfTypeParameters = Omit<UnionType, 'members'> & {
@@ -58,15 +89,31 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
   if (firstKey === undefined) {
     // If the key path is empty, this is the type we're looking for.
     return type
+  } else if (typeof firstKey === 'object') {
+    return makeUnionType(
+      '',
+      // Flatten to avoid nested unions.
+      [...firstKey.members].flatMap(firstKeyMember => {
+        const typeForThisPossibility = applyKeyPathToType(type, [
+          firstKeyMember,
+          ...remainingKeyPath,
+        ])
+        if (typeForThisPossibility.kind === 'union') {
+          return [...typeForThisPossibility.members]
+        } else {
+          return typeForThisPossibility
+        }
+      }),
+    )
   } else {
-    return matchTypeFormat(type, {
+    return matchTypeFormat<Type>(type, {
       function: type => {
         if (typeof firstKey === 'string') {
           // Functions do not have properties.
           return types.nothing
         } else {
           switch (firstKey) {
-            case functionParameter:
+            case functionParameterKey:
               return makeFunctionType(type.name, {
                 parameter: applyKeyPathToType(
                   type.signature.parameter,
@@ -74,7 +121,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
                 ),
                 return: type.signature.return,
               })
-            case functionReturn:
+            case functionReturnKey:
               return makeFunctionType(type.name, {
                 parameter: type.signature.parameter,
                 return: applyKeyPathToType(
@@ -82,7 +129,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
                   remainingKeyPath,
                 ),
               })
-            case typeParameterAssignableToConstraint:
+            case typeParameterAssignableToConstraintKey:
               // Functions aren't type parameters.
               return types.nothing
           }
@@ -109,15 +156,15 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
           return types.nothing
         } else {
           switch (firstKey) {
-            case typeParameterAssignableToConstraint:
+            case typeParameterAssignableToConstraintKey:
               return makeTypeParameter(type.name, {
                 assignableTo: applyKeyPathToType(
                   type.constraint.assignableTo,
                   remainingKeyPath,
                 ),
               })
-            case functionParameter:
-            case functionReturn:
+            case functionParameterKey:
+            case functionReturnKey:
               // Type parameters aren't function types.
               // TODO: Though perhaps I should drill into the constraint here?
               return types.nothing
@@ -175,12 +222,12 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
         parameter: genericizeFunctionParameterAnnotationAtKeyPath(
           parameterName,
           type.signature.parameter,
-          [...keyPath, functionParameter],
+          [...keyPath, functionParameterKey],
         ),
         return: genericizeFunctionParameterAnnotationAtKeyPath(
           parameterName,
           type.signature.return,
-          [...keyPath, functionReturn],
+          [...keyPath, functionReturnKey],
         ),
       }),
     object: type =>
@@ -214,21 +261,7 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
 const synthesizeTypeParameterName = (
   parameterName: Atom,
   keyPath: TypeKeyPath,
-): string =>
-  keyPath.reduce<string>((name, key) => {
-    // TODO: Consider surfacing this in plz syntax (allowing programmatic access
-    // of un-elaborated function parameters/returns and type parameter
-    // constraints).
-    if (key === functionParameter) {
-      return `${name}.#parameter`
-    } else if (key === functionReturn) {
-      return `${name}.#return`
-    } else if (key === typeParameterAssignableToConstraint) {
-      return `${name}.#constraint`
-    } else {
-      return `${name}.${key}`
-    }
-  }, parameterName)
+): string => parameterName.concat(stringifyTypeKeyPathForEndUser(keyPath))
 
 export const containedTypeParameters = (type: Type): TypeParametersByKeyPath =>
   containedTypeParametersImplementation(type, [])
@@ -246,11 +279,11 @@ const containedTypeParametersImplementation = (
         mergeTypeParametersByKeyPath(
           containedTypeParametersImplementation(signature.parameter, [
             ...root,
-            functionParameter,
+            functionParameterKey,
           ]),
           containedTypeParametersImplementation(signature.return, [
             ...root,
-            functionReturn,
+            functionReturnKey,
           ]),
         ),
       object: type =>
@@ -264,11 +297,11 @@ const containedTypeParametersImplementation = (
         mergeTypeParametersByKeyPath(
           containedTypeParametersImplementation(type.constraint.assignableTo, [
             ...root,
-            typeParameterAssignableToConstraint,
+            typeParameterAssignableToConstraintKey,
           ]),
           new Map([
             [
-              stringifyKeyPath(root),
+              stringifyTypeKeyPathForEndUser(root),
               {
                 keyPath: root,
                 typeParameters: makeUnionType('', [type]),
@@ -309,12 +342,12 @@ const findKeyPathsToTypeParameterImplementation = (
           ...findKeyPathsToTypeParameterImplementation(
             signature.parameter,
             typeParameterToFind,
-            [...root, functionParameter],
+            [...root, functionParameterKey],
           ),
           ...findKeyPathsToTypeParameterImplementation(
             signature.return,
             typeParameterToFind,
-            [...root, functionReturn],
+            [...root, functionReturnKey],
           ),
         ]),
       object: type =>
@@ -336,7 +369,7 @@ const findKeyPathsToTypeParameterImplementation = (
           ...findKeyPathsToTypeParameterImplementation(
             type.constraint.assignableTo,
             typeParameterToFind,
-            [...root, typeParameterAssignableToConstraint],
+            [...root, typeParameterAssignableToConstraintKey],
           ),
           ...(type.identity === typeParameterToFind.identity ? [root] : []),
         ]),
@@ -603,7 +636,7 @@ export const updateTypeAtKeyPathIfValid = (
     return matchTypeFormat(type, {
       function: type => {
         switch (firstKey) {
-          case functionParameter:
+          case functionParameterKey:
             return makeFunctionType(type.name, {
               parameter: updateTypeAtKeyPathIfValid(
                 type.signature.parameter,
@@ -612,7 +645,7 @@ export const updateTypeAtKeyPathIfValid = (
               ),
               return: type.signature.return,
             })
-          case functionReturn:
+          case functionReturnKey:
             return makeFunctionType(type.name, {
               return: updateTypeAtKeyPathIfValid(
                 type.signature.return,
@@ -647,7 +680,7 @@ export const updateTypeAtKeyPathIfValid = (
       opaque: (type): Type => type,
       parameter: type => {
         switch (firstKey) {
-          case typeParameterAssignableToConstraint:
+          case typeParameterAssignableToConstraintKey:
             return makeTypeParameter(type.name, {
               assignableTo: updateTypeAtKeyPathIfValid(
                 type.constraint.assignableTo,
@@ -802,16 +835,72 @@ const mergeTypeParametersByKeyPath = (
   return result
 }
 
-// The string format is not meant for human consumption. The only guarantee is
-// that every distinct key path produces a unique string.
-export const stringifyKeyPath = (keyPath: TypeKeyPath): string =>
-  keyPath.reduce((stringifiedKeyPath: string, key) => {
-    const stringifiedKey =
-      typeof key === 'symbol' ? key.description : JSON.stringify(key)
-    if (stringifiedKey === undefined) {
-      throw new Error(
-        'Symbol in key path does not have a description. This is a bug!',
-      )
+export const stringifyTypeKeyPathForEndUser = (keyPath: TypeKeyPath): string =>
+  // TODO: Would be nice to use unparser machinery here.
+  keyPath.reduce(
+    (stringifiedTypeKeyPath: string, key) =>
+      stringifiedTypeKeyPath.concat(
+        '.',
+        stringifyKeyPathComponentForEndUser(key),
+      ),
+    '',
+  )
+
+const atomKeyPathComponentFromType = (
+  type: Type,
+): Either<TypeMismatchError, AtomKeyPathComponent> => {
+  const concreteType = replaceAllTypeParametersWithTheirConstraints(type)
+  const simplifiedType =
+    concreteType.kind === 'union' ?
+      simplifyUnionType(concreteType)
+    : concreteType
+
+  const atomMembers =
+    simplifiedType.kind === 'union' ?
+      [...simplifiedType.members].filter(member => typeof member === 'string')
+    : []
+
+  const isAtomUnion =
+    simplifiedType.kind === 'union' &&
+    atomMembers.length > 0 &&
+    atomMembers.length === simplifiedType.members.size
+  const [firstAtom, ...remainingAtoms] = atomMembers
+
+  return (
+    !isAtomUnion || firstAtom === undefined ?
+      either.makeLeft({
+        kind: 'typeMismatch',
+        message: 'dynamic index key must be an atom or a union of atoms',
+      })
+    : remainingAtoms.length === 0 ? either.makeRight(firstAtom)
+    : either.makeRight(makeUnionType(simplifiedType.name, atomMembers))
+  )
+}
+
+const stringifyKeyPathComponentForEndUser = (
+  component: TypeKeyPath[number],
+): string => {
+  if (typeof component === 'string') {
+    return quoteAtomIfNecessary(component)
+  } else if (typeof component === 'object') {
+    return '('.concat(
+      [...component.members]
+        .sort()
+        .map(stringifyKeyPathComponentForEndUser)
+        .join(' | '),
+      ')',
+    )
+  } else {
+    switch (component) {
+      // TODO: Consider surfacing this in plz syntax (allowing programmatic
+      // access of un-elaborated function parameters/returns and type parameter
+      // constraints).
+      case functionParameterKey:
+        return '#parameter'
+      case functionReturnKey:
+        return '#return'
+      case typeParameterAssignableToConstraintKey:
+        return '#constraint'
     }
-    return `${stringifiedKeyPath}.${stringifiedKey}`
-  }, '')
+  }
+}

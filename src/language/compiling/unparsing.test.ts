@@ -664,5 +664,62 @@ testCases(unparsers, input => `unparsing \`${JSON.stringify(input)}\``)(
           '{\n  "f": {\n    "0": "@function",\n    "1": {\n      "parameter": {\n        "x": {\n          "0": "@hole",\n          "1": {\n            "name": "b",\n            "constraint": {\n              "assignableTo": {\n                "0": "@index",\n                "1": {\n                  "object": {\n                    "0": "@lookup",\n                    "1": {\n                      "key": "atom"\n                    }\n                  },\n                  "query": {\n                    "0": "type"\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      "body": {\n        "0": "@lookup",\n        "1": {\n          "0": "x"\n        }\n      }\n    }\n  }\n}\n',
       },
     ],
+
+    [
+      {
+        key: 'a',
+        x: { a: 'found' },
+        test: {
+          0: '@index',
+          1: {
+            object: { 0: '@lookup', 1: { key: 'x' } },
+            query: { 0: { 0: '@lookup', 1: { key: 'key' } } },
+          },
+        },
+      },
+      {
+        inlinePlz: '{ key: a, x: { a: found }, test: :x.:key }',
+        sugarFreeInlinePlz:
+          '{ key: a, x: { a: found }, test: { 0: "@index", 1: { object: { 0: "@lookup", 1: { key: x } }, query: { 0: { 0: "@lookup", 1: { key: key } } } } } }',
+        prettyPlz:
+          '{\n  key: a\n  x: {\n    a: found\n  }\n  test: :x.:key\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  key: a\n  x: {\n    a: found\n  }\n  test: {\n    0: "@index"\n    1: {\n      object: {\n        0: "@lookup"\n        1: {\n          key: x\n        }\n      }\n      query: {\n        0: {\n          0: "@lookup"\n          1: {\n            key: key\n          }\n        }\n      }\n    }\n  }\n}\n',
+        prettyJson:
+          '{\n  "key": "a",\n  "x": {\n    "a": "found"\n  },\n  "test": {\n    "0": "@index",\n    "1": {\n      "object": {\n        "0": "@lookup",\n        "1": {\n          "key": "x"\n        }\n      },\n      "query": {\n        "0": {\n          "0": "@lookup",\n          "1": {\n            "key": "key"\n          }\n        }\n      }\n    }\n  }\n}\n',
+      },
+    ],
+
+    [
+      {
+        x: { a: 'found' },
+        test: {
+          0: '@index',
+          1: {
+            object: { 0: '@lookup', 1: { key: 'x' } },
+            query: {
+              0: {
+                0: '@apply',
+                1: {
+                  function: { 0: '@lookup', 1: { key: 'identity' } },
+                  argument: 'a',
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        inlinePlz: '{ x: { a: found }, test: :x.(:identity(a)) }',
+        sugarFreeInlinePlz:
+          '{ x: { a: found }, test: { 0: "@index", 1: { object: { 0: "@lookup", 1: { key: x } }, query: { 0: { 0: "@apply", 1: { function: { 0: "@lookup", 1: { key: identity } }, argument: a } } } } } }',
+        prettyPlz:
+          '{\n  x: {\n    a: found\n  }\n  test: :x.(:identity(a))\n}\n',
+        sugarFreePrettyPlz:
+          '{\n  x: {\n    a: found\n  }\n  test: {\n    0: "@index"\n    1: {\n      object: {\n        0: "@lookup"\n        1: {\n          key: x\n        }\n      }\n      query: {\n        0: {\n          0: "@apply"\n          1: {\n            function: {\n              0: "@lookup"\n              1: {\n                key: identity\n              }\n            }\n            argument: a\n          }\n        }\n      }\n    }\n  }\n}\n',
+        prettyJson:
+          '{\n  "x": {\n    "a": "found"\n  },\n  "test": {\n    "0": "@index",\n    "1": {\n      "object": {\n        "0": "@lookup",\n        "1": {\n          "key": "x"\n        }\n      },\n      "query": {\n        "0": {\n          "0": "@apply",\n          "1": {\n            "function": {\n              "0": "@lookup",\n              "1": {\n                "key": "identity"\n              }\n            },\n            "argument": "a"\n          }\n        }\n      }\n    }\n  }\n}\n',
+      },
+    ],
   ],
 )

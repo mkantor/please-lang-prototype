@@ -73,8 +73,8 @@ export {
 } from './semantics/function-node.js'
 export { isSemanticGraph } from './semantics/is-semantic-graph.js'
 export {
+  arrayToMolecule,
   keyPathFromObjectNode,
-  keyPathToMolecule,
   stringifyKeyPathForEndUser,
   type KeyPath,
 } from './semantics/key-path.js'
