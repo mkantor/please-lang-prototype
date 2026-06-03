@@ -1154,4 +1154,14 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      lookup_within: (object: { a: :something.type }) => :object.a
+      :lookup_within(@runtime { _ => { a: true } }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
