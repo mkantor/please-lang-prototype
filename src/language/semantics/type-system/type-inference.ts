@@ -31,16 +31,19 @@ import {
 import * as types from './prelude-types.js'
 import {
   makeFunctionType,
+  makeIndexedAccessType,
   makeObjectType,
   makeUnionType,
   type Type,
 } from './type-formats.js'
 import {
   applyKeyPathToType,
+  containedTypeParameters,
   functionParameterKey,
   genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
+  reduceIndexedAccess,
   stringifyTypeKeyPathForEndUser,
   supplyTypeArguments,
   typeKeyPathFromObjectNode,
@@ -234,6 +237,7 @@ const inferTypeImplementation = (
   // @index: infer object type, look up appropriate type by key path.
   const indexExpressionResult = readIndexExpression(node)
   if (either.isRight(indexExpressionResult)) {
+    const query = indexExpressionResult.value[1].query
     return cacheOnSuccess(
       either.flatMap(
         inferTypeImplementation(
@@ -243,19 +247,43 @@ const inferTypeImplementation = (
           descendantContext(['1', 'object']),
         ),
         objectType =>
-          either.map(
-            typeKeyPathFromObjectNode(
-              indexExpressionResult.value[1].query,
-              descendantContext(['1', 'query']),
-              (node, context) =>
+          // Infer each query component's type. If any component depends on a
+          // type parameter, model it using stuck `IndexedAccessType`s.
+          either.flatMap(
+            either.sequence(
+              Object.entries(query).map(([key, component]) =>
                 inferTypeImplementation(
-                  node,
+                  component,
                   parameterTypes,
                   lookingUpKeys,
-                  context,
+                  descendantContext(['1', 'query', key]),
                 ),
+              ),
             ),
-            keyPath => applyKeyPathToType(objectType, keyPath),
+            componentTypes =>
+              (
+                componentTypes.some(
+                  componentType =>
+                    containedTypeParameters(componentType).size > 0,
+                )
+              ) ?
+                either.makeRight(
+                  componentTypes.reduce(reduceIndexedAccess, objectType),
+                )
+              : either.map(
+                  typeKeyPathFromObjectNode(
+                    query,
+                    descendantContext(['1', 'query']),
+                    (node, context) =>
+                      inferTypeImplementation(
+                        node,
+                        parameterTypes,
+                        lookingUpKeys,
+                        context,
+                      ),
+                  ),
+                  keyPath => applyKeyPathToType(objectType, keyPath),
+                ),
           ),
       ),
     )
@@ -386,6 +414,26 @@ const inferTypeImplementation = (
             return inferThen()
           } else if (isAssignable({ source: conditionType, target: 'false' })) {
             return inferElse()
+          } else if (containedTypeParameters(conditionType).size > 0) {
+            // The condition depends on a type parameter, so keep the choice
+            // unresolved as an indexed access into a boolean-keyed object.
+            // This expression:
+            // ```
+            // @if { :a, b, c }
+            // ```
+            // Is equivalent type-wise to this expression:
+            // ```
+            // { true: b, false: c }.:a
+            // ```
+            return either.flatMap(inferThen(), thenType =>
+              either.map(inferElse(), elseType =>
+                makeIndexedAccessType(
+                  '',
+                  makeObjectType('', { false: elseType, true: thenType }),
+                  conditionType,
+                ),
+              ),
+            )
           } else {
             const membersOf = (type: Type) =>
               type.kind === 'union' ? [...type.members] : [type]

@@ -1164,4 +1164,69 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      not: (a: :boolean.type) => @if { :a, false, true }
+      :not(@runtime { _ => false }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      lookup: (key: a | b) => { a: true, b: false }.:key
+      :lookup(@runtime { _ => a }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      lookup: (key: a | b) => { a: { x: true }, b: { x: false } }.:key.x
+      :lookup(@runtime { _ => a }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      lookup: (keys: { a | b, x | y }) =>
+        { a: { x: true, y: false }, b: { x: false, y: false } }.(:keys.0).(:keys.1)
+      :lookup(@runtime { _ => { a, x } }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      not: (a: :boolean.type) => @if { :a, false, true }
+      :not(@runtime { _ => false }) ~ false
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      lookup: (key: a | b) => { a: true, b: false }.:key
+      :lookup(@runtime { _ => b }) ~ true
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

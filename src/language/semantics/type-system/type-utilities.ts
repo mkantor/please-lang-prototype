@@ -16,6 +16,7 @@ import { typesBySymbol } from './prelude-types.js'
 import { isAssignable, simplifyUnionType } from './subtyping.js'
 import {
   makeFunctionType,
+  makeIndexedAccessType,
   makeObjectType,
   makeTypeParameter,
   makeUnionType,
@@ -148,6 +149,8 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
           return types.nothing
         }
       },
+      indexedAccess: type =>
+        applyKeyPathToType(type.object, [firstKey, ...remainingKeyPath]),
       opaque: _type => types.nothing,
       parameter: type => {
         if (typeof firstKey === 'string') {
@@ -189,6 +192,29 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
         )
       },
     })
+  }
+}
+
+/**
+ * Reduce a (possibly nested) indexed access `object[key]`. A stuck object is
+ * reduced first; projection (via `applyKeyPathToType`) happens only when the
+ * object has known structure and the key is a concrete atom or union of atoms,
+ * otherwise the access stays a stuck `IndexedAccessType`.
+ */
+export const reduceIndexedAccess = (object: Type, key: Type): Type => {
+  const reducedObject =
+    object.kind === 'indexedAccess' ?
+      reduceIndexedAccess(object.object, object.key)
+    : object
+  const keyIsConcrete = containedTypeParameters(key).size === 0
+  const objectHasKnownStructure = reducedObject.kind !== 'indexedAccess'
+  if (keyIsConcrete && objectHasKnownStructure) {
+    return either.match(atomKeyPathComponentFromType(key), {
+      left: _ => types.nothing,
+      right: component => applyKeyPathToType(reducedObject, [component]),
+    })
+  } else {
+    return makeIndexedAccessType('', reducedObject, key)
   }
 }
 
@@ -252,6 +278,7 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
         assignableTo: leafType,
       }),
     parameter: leafType => leafType,
+    indexedAccess: leafType => leafType,
     union: leafType =>
       makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
         assignableTo: leafType,
@@ -292,6 +319,11 @@ const containedTypeParametersImplementation = (
             containedTypeParametersImplementation(child, [...root, key]),
           )
           .reduce(mergeTypeParametersByKeyPath, new Map()),
+      indexedAccess: type =>
+        mergeTypeParametersByKeyPath(
+          containedTypeParametersImplementation(type.object, root),
+          containedTypeParametersImplementation(type.key, root),
+        ),
       opaque: _ => new Map(),
       parameter: type =>
         mergeTypeParametersByKeyPath(
@@ -363,6 +395,19 @@ const findKeyPathsToTypeParameterImplementation = (
             (accumulator, paths) => new Set([...accumulator, ...paths]),
             new Set(),
           ),
+      indexedAccess: type =>
+        new Set([
+          ...findKeyPathsToTypeParameterImplementation(
+            type.object,
+            typeParameterToFind,
+            root,
+          ),
+          ...findKeyPathsToTypeParameterImplementation(
+            type.key,
+            typeParameterToFind,
+            root,
+          ),
+        ]),
       opaque: _ => new Set(),
       parameter: type =>
         new Set([
@@ -463,6 +508,9 @@ export const getTypesForTypeParameters = ({
 
       opaque: _ => new Map(),
 
+      // TODO: Can function parameter types contain stuck indexed access types?
+      indexedAccess: _ => new Map(),
+
       parameter: parameterType =>
         (
           isAssignable({
@@ -562,6 +610,11 @@ export const supplyTypeArgument = (
         }
         return makeObjectType(type.name, substitutedChildren)
       },
+      indexedAccess: type =>
+        reduceIndexedAccess(
+          supplyTypeArgument(type.object, typeParameter, typeArgument),
+          supplyTypeArgument(type.key, typeParameter, typeArgument),
+        ),
       opaque: type => type,
       parameter: type =>
         type.identity === typeParameter.identity ? typeArgument : type,
@@ -607,7 +660,7 @@ export const supplyTypeArguments = (
 export const updateTypeAtKeyPathIfValid = (
   type: Type,
   keyPath: TypeKeyPath,
-  // TODO: `operation` should be able to update `Atom`s
+  // TODO: `operation` should be able to update `Atom`s.
   operation: (typeAtKeyPath: Exclude<Type, UnionType>) => Type,
 ): Type => {
   const [firstKey, ...remainingKeyPath] = keyPath
@@ -633,7 +686,7 @@ export const updateTypeAtKeyPathIfValid = (
       return operation(type)
     }
   } else {
-    return matchTypeFormat(type, {
+    return matchTypeFormat<Type>(type, {
       function: type => {
         switch (firstKey) {
           case functionParameterKey:
@@ -658,6 +711,7 @@ export const updateTypeAtKeyPathIfValid = (
             return type
         }
       },
+      indexedAccess: type => type,
       object: type => {
         if (typeof firstKey === 'string') {
           const next = type.children[firstKey]
@@ -677,7 +731,7 @@ export const updateTypeAtKeyPathIfValid = (
           return type
         }
       },
-      opaque: (type): Type => type,
+      opaque: type => type,
       parameter: type => {
         switch (firstKey) {
           case typeParameterAssignableToConstraintKey:

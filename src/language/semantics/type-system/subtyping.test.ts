@@ -14,6 +14,7 @@ import {
 import { isAssignable, simplifyUnionType } from './subtyping.js'
 import {
   makeFunctionType,
+  makeIndexedAccessType,
   makeObjectType,
   makeTypeParameter,
   makeUnionType,
@@ -54,6 +55,17 @@ const extendsFunctionFromValueToAtom = makeTypeParameter('v', {
 const extendsExtendsAnyAtom = makeTypeParameter('u', {
   assignableTo: extendsAnyAtom,
 })
+
+const indexedAccessBoolean = makeIndexedAccessType(
+  '',
+  makeObjectType('', {
+    a: makeUnionType('', ['true']),
+    b: makeUnionType('', ['false']),
+  }),
+  makeTypeParameter('key', {
+    assignableTo: makeUnionType('', ['a', 'b']),
+  }),
+)
 
 testCases(
   (type: UnionType) => stringifyTypeForEndUser(simplifyUnionType(type)),
@@ -114,6 +126,22 @@ typeAssignabilitySuite('prelude types (assignable)', [
   [[atom, something], true],
   [[object, something], true],
   [[functionType, something], true],
+])
+
+typeAssignabilitySuite('indexed-access types (assignable)', [
+  [[indexedAccessBoolean, boolean], true],
+  [[indexedAccessBoolean, atom], true],
+  [[indexedAccessBoolean, something], true],
+])
+
+typeAssignabilitySuite('indexed-access types (not assignable)', [
+  [[indexedAccessBoolean, makeUnionType('', ['true'])], false],
+  [[makeUnionType('', ['true']), indexedAccessBoolean], false],
+
+  // Despite being `true` or `false` at runtime, `indexedAccessBoolean` can't
+  // have `boolean` assigned to it as it's *specifically* either `true` or
+  // `false` depending on how its type parameter is instantiated.
+  [[boolean, indexedAccessBoolean], false],
 ])
 
 typeAssignabilitySuite('prelude types (not assignable)', [

@@ -311,6 +311,13 @@ export const typeToSemanticGraph = (
         ]),
         recurseWithSameTypeParameters(type.signature.return),
       ),
+    indexedAccess: type =>
+      makeIndexExpression({
+        object: recurseWithSameTypeParameters(type.object),
+        query: objectNodeFromOrderedEntries([
+          ['0', recurseWithSameTypeParameters(type.key)],
+        ]),
+      }),
     object: type =>
       objectNodeFromOrderedEntries(
         Object.entries(type.children).map(([key, value]) => [

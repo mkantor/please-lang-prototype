@@ -10,6 +10,7 @@ import {
 import {
   containedTypeParameters,
   findKeyPathsToTypeParameter,
+  replaceAllTypeParametersWithTheirConstraints,
   supplyTypeArgument,
   updateTypeAtKeyPathIfValid,
 } from './type-utilities.js'
@@ -137,14 +138,21 @@ export const isAssignable = ({
               )
             }
           },
+          indexedAccess: _target => false,
           object: _target => false, // functions are never assignable to objects
           opaque: target => target.isAssignableFrom(source),
           parameter: _target => false, // a function type is never directly assignable to a type parameter
           union: target => isNonUnionAssignableToUnion({ source, target }),
         }),
+      indexedAccess: source =>
+        isAssignable({
+          source: replaceAllTypeParametersWithTheirConstraints(source),
+          target,
+        }),
       object: source =>
         matchTypeFormat(target, {
           function: _ => false, // objects are never assignable to functions
+          indexedAccess: _ => false,
           object: target => {
             // Make sure all properties in the target are present and valid in
             // the source (recursively). Values may have additional properties
@@ -187,6 +195,8 @@ export const isAssignable = ({
       union: source =>
         matchTypeFormat(target, {
           function: target => isUnionAssignableToNonUnion({ source, target }),
+          indexedAccess: target =>
+            isUnionAssignableToNonUnion({ source, target }),
           object: target => isUnionAssignableToNonUnion({ source, target }),
           opaque: target => isUnionAssignableToNonUnion({ source, target }),
           parameter: target => isUnionAssignableToNonUnion({ source, target }),
