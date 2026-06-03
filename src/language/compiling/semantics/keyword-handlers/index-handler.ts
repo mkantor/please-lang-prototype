@@ -6,7 +6,7 @@ import {
   containsAnyUnelaboratedNodes,
   inferType,
   readIndexExpression,
-  showType,
+  stringifyTypeForEndUser,
   type Expression,
   type ExpressionContext,
   type KeywordHandler,
@@ -38,7 +38,7 @@ const checkKeyPathExistsInType = (
             kind: 'typeMismatch',
             message: `property \`${stringifyTypeKeyPathForEndUser(
               keyPath,
-            )}\` does not exist on type \`${showType(objectType)}\``,
+            )}\` does not exist on type \`${stringifyTypeForEndUser(objectType)}\``,
           })
         : either.makeRight(undefined)
     },

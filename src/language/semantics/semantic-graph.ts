@@ -364,7 +364,7 @@ export const typeToSemanticGraph = (
   })
 }
 
-export const showType = (type: Type): string =>
+export const stringifyTypeForEndUser = (type: Type): string =>
   stringifySemanticGraphForEndUser(typeToSemanticGraph(type, new Set()))
 
 const typeSymbolToSemanticGraph = (typeSymbol: TypeSymbol): SemanticGraph =>

@@ -9,8 +9,8 @@ import {
   type ObjectNode,
 } from '../object-node.js'
 import {
-  showType,
   stringifySemanticGraphForEndUser,
+  stringifyTypeForEndUser,
   type SemanticGraph,
 } from '../semantic-graph.js'
 import { isAssignable, types } from '../type-system.js'
@@ -99,7 +99,7 @@ export const globalFunctions = {
                 kind: 'typeMismatch',
                 message: `the value \`${stringifySemanticGraphForEndUser(
                   value,
-                )}\` is not assignable to the type \`${showType(typeAsType)}\``,
+                )}\` is not assignable to the type \`${stringifyTypeForEndUser(typeAsType)}\``,
               })
             }
           }),

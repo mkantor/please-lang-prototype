@@ -223,8 +223,7 @@ with a sole exception: logging to stderr can happen from anywhere. The specific
 approach to modeling other runtime side effects is still to be decided.
 
 Once desugared, a Please program is either an atom or an object. Please code is
-data in the same sense as in Lisp, though without a macro system there's not
-much you can do with this right now.
+data in the same sense as in Lisp.
 
 Before a Please program terminates, it prints the fully-resolved version of
 itself to standard output. That means `hello-world.plz` can be as simple as

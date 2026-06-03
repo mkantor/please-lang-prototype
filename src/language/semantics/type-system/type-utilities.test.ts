@@ -1,6 +1,6 @@
 import { testCases } from '../../../test-utilities.test.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from '../key-path.js'
-import { showType } from '../semantic-graph.js'
+import { stringifyTypeForEndUser } from '../semantic-graph.js'
 import {
   atom,
   integer,
@@ -36,29 +36,37 @@ const applyKeyPathSuite = testCases(
   // dynamically refer to function parameters/returns). If that changes, this
   // will need to be updated.
   ([type, keyPath]: [type: Type, keyPath: KeyPath]) =>
-    showType(applyKeyPathToType(type, keyPath)),
+    stringifyTypeForEndUser(applyKeyPathToType(type, keyPath)),
   ([type, keyPath]) =>
-    `applying key path \`${stringifyKeyPathForEndUser(keyPath)}\` to \`${showType(type)}\``,
+    `applying key path \`${stringifyKeyPathForEndUser(keyPath)}\` to \`${stringifyTypeForEndUser(type)}\``,
 )
 
 applyKeyPathSuite('applyKeyPathToType with empty key path', [
-  [[atom, []], showType(atom)],
-  [[nothing, []], showType(nothing)],
-  [[something, []], showType(something)],
+  [[atom, []], stringifyTypeForEndUser(atom)],
+  [[nothing, []], stringifyTypeForEndUser(nothing)],
+  [[something, []], stringifyTypeForEndUser(something)],
   [
     [makeObjectType('', { a: atom }), []],
-    showType(makeObjectType('', { a: atom })),
+    stringifyTypeForEndUser(makeObjectType('', { a: atom })),
   ],
   [
     [makeFunctionType('', { parameter: atom, return: something }), []],
-    showType(makeFunctionType('', { parameter: atom, return: something })),
+    stringifyTypeForEndUser(
+      makeFunctionType('', { parameter: atom, return: something }),
+    ),
   ],
 ])
 
 applyKeyPathSuite('applyKeyPathToType with object types', [
-  [[makeObjectType('', { a: atom, b: integer }), ['a']], showType(atom)],
-  [[makeObjectType('', { a: atom, b: integer }), ['b']], showType(integer)],
-  [[makeObjectType('', { a: atom }), ['z']], showType(nothing)],
+  [
+    [makeObjectType('', { a: atom, b: integer }), ['a']],
+    stringifyTypeForEndUser(atom),
+  ],
+  [
+    [makeObjectType('', { a: atom, b: integer }), ['b']],
+    stringifyTypeForEndUser(integer),
+  ],
+  [[makeObjectType('', { a: atom }), ['z']], stringifyTypeForEndUser(nothing)],
   [
     [
       makeObjectType('', {
@@ -66,19 +74,22 @@ applyKeyPathSuite('applyKeyPathToType with object types', [
       }),
       ['a', 'b'],
     ],
-    showType(makeUnionType('', ['hello'])),
+    stringifyTypeForEndUser(makeUnionType('', ['hello'])),
   ],
-  [[makeObjectType('', { a: atom }), ['a', 'b']], showType(nothing)],
+  [
+    [makeObjectType('', { a: atom }), ['a', 'b']],
+    stringifyTypeForEndUser(nothing),
+  ],
 ])
 
 applyKeyPathSuite('applyKeyPathToType with non-object types', [
   [
     [makeFunctionType('', { parameter: atom, return: something }), ['a']],
-    showType(nothing),
+    stringifyTypeForEndUser(nothing),
   ],
-  [[atom, ['a']], showType(nothing)],
-  [[integer, ['a']], showType(nothing)],
-  [[A, ['a']], showType(nothing)],
+  [[atom, ['a']], stringifyTypeForEndUser(nothing)],
+  [[integer, ['a']], stringifyTypeForEndUser(nothing)],
+  [[A, ['a']], stringifyTypeForEndUser(nothing)],
 ])
 
 applyKeyPathSuite('applyKeyPathToType with union types', [
@@ -90,7 +101,7 @@ applyKeyPathSuite('applyKeyPathToType with union types', [
       ]),
       ['a'],
     ],
-    showType(makeUnionType('', ['x', 'y'])),
+    stringifyTypeForEndUser(makeUnionType('', ['x', 'y'])),
   ],
   [
     [
@@ -100,7 +111,7 @@ applyKeyPathSuite('applyKeyPathToType with union types', [
       ]),
       ['a'],
     ],
-    showType(makeUnionType('', ['x'])),
+    stringifyTypeForEndUser(makeUnionType('', ['x'])),
   ],
   [
     [
@@ -110,7 +121,7 @@ applyKeyPathSuite('applyKeyPathToType with union types', [
       ]),
       ['a'],
     ],
-    showType(nothing),
+    stringifyTypeForEndUser(nothing),
   ],
   [
     [
@@ -120,7 +131,7 @@ applyKeyPathSuite('applyKeyPathToType with union types', [
       ]),
       ['a'],
     ],
-    showType(integer),
+    stringifyTypeForEndUser(integer),
   ],
 ])
 
@@ -130,7 +141,7 @@ const getTypesForTypeParametersSuite = testCases(
     argumentType: Type,
   ]) => getTypesForTypeParameters({ parameterType, argumentType }),
   ([parameterType, argumentType]) =>
-    `getting types for type parameters in \`${showType(parameterType)}\` from \`${showType(argumentType)}\``,
+    `getting types for type parameters in \`${stringifyTypeForEndUser(parameterType)}\` from \`${stringifyTypeForEndUser(argumentType)}\``,
 )
 
 getTypesForTypeParametersSuite('getTypesForTypeParameters', [
@@ -235,9 +246,11 @@ const genericizeParameterAnnotationSuite = testCases(
     // representation, but since synthesized type parameters contain fresh
     // symbols they can't be structurally compared to `Type`s instantiated here.
     // TODO: Consider traversing the returned type to substitute symbols.
-    showType(genericizeFunctionParameterAnnotation(parameterName, annotation)),
+    stringifyTypeForEndUser(
+      genericizeFunctionParameterAnnotation(parameterName, annotation),
+    ),
   ([parameterName, annotation]) =>
-    `genericizing \`${parameterName}: ${showType(annotation)}\``,
+    `genericizing \`${parameterName}: ${stringifyTypeForEndUser(annotation)}\``,
 )
 
 genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
@@ -284,5 +297,8 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
 
   [['identity', makeFunctionType('', { parameter: A, return: A })], '?a ~> :a'],
 
-  [['wrap', makeObjectType('', { value: A })], `{ value: ${showType(A)} }`],
+  [
+    ['wrap', makeObjectType('', { value: A })],
+    `{ value: ${stringifyTypeForEndUser(A)} }`,
+  ],
 ])
