@@ -43,7 +43,6 @@ import {
   genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
-  reduceIndexedAccess,
   stringifyTypeKeyPathForEndUser,
   supplyTypeArguments,
   typeKeyPathFromObjectNode,
@@ -247,43 +246,19 @@ const inferTypeImplementation = (
           descendantContext(['1', 'object']),
         ),
         objectType =>
-          // Infer each query component's type. If any component depends on a
-          // type parameter, model it using stuck `IndexedAccessType`s.
-          either.flatMap(
-            either.sequence(
-              Object.entries(query).map(([key, component]) =>
+          either.map(
+            typeKeyPathFromObjectNode(
+              query,
+              descendantContext(['1', 'query']),
+              (node, context) =>
                 inferTypeImplementation(
-                  component,
+                  node,
                   parameterTypes,
                   lookingUpKeys,
-                  descendantContext(['1', 'query', key]),
+                  context,
                 ),
-              ),
             ),
-            componentTypes =>
-              (
-                componentTypes.some(
-                  componentType =>
-                    containedTypeParameters(componentType).size > 0,
-                )
-              ) ?
-                either.makeRight(
-                  componentTypes.reduce(reduceIndexedAccess, objectType),
-                )
-              : either.map(
-                  typeKeyPathFromObjectNode(
-                    query,
-                    descendantContext(['1', 'query']),
-                    (node, context) =>
-                      inferTypeImplementation(
-                        node,
-                        parameterTypes,
-                        lookingUpKeys,
-                        context,
-                      ),
-                  ),
-                  keyPath => applyKeyPathToType(objectType, keyPath),
-                ),
+            keyPath => applyKeyPathToType(objectType, keyPath),
           ),
       ),
     )

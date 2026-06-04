@@ -1,4 +1,5 @@
 import either, { type Either } from '@matt.kantor/either'
+import option, { type Option } from '@matt.kantor/option'
 import type { Writable } from '../../../utility-types.js'
 import type { Bug, ElaborationError, TypeMismatchError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
@@ -36,6 +37,9 @@ export const typeParameterAssignableToConstraintKey = Symbol(
 type AtomKeyPathComponent =
   | Atom
   | (Omit<UnionType, 'members'> & { readonly members: ReadonlySet<Atom> })
+  | (TypeParameter & {
+      readonly constraint: { readonly assignableTo: AtomKeyPathComponent }
+    })
 
 export type TypeKeyPath = readonly (
   | AtomKeyPathComponent
@@ -91,21 +95,45 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
     // If the key path is empty, this is the type we're looking for.
     return type
   } else if (typeof firstKey === 'object') {
-    return makeUnionType(
-      '',
-      // Flatten to avoid nested unions.
-      [...firstKey.members].flatMap(firstKeyMember => {
-        const typeForThisPossibility = applyKeyPathToType(type, [
-          firstKeyMember,
-          ...remainingKeyPath,
-        ])
-        if (typeForThisPossibility.kind === 'union') {
-          return [...typeForThisPossibility.members]
-        } else {
-          return typeForThisPossibility
-        }
-      }),
-    )
+    switch (firstKey.kind) {
+      case 'parameter':
+        return remainingKeyPath.reduce(
+          (type, key) => {
+            if (typeof key === 'symbol') {
+              // TODO: Seems like this should either be allowed
+              // (`IndexedAccessType['key']` could be typed as
+              // `TypeKeyPath[number]`?) or handled better (this function could
+              // return an `Either`).
+              throw new Error(
+                'Type key path contained a symbol following a parameter. This is a bug!',
+              )
+            } else {
+              return makeIndexedAccessType(
+                '',
+                type,
+                typeof key === 'string' ? makeUnionType('', [key]) : key,
+              )
+            }
+          },
+          makeIndexedAccessType('', type, firstKey),
+        )
+      case 'union':
+        return makeUnionType(
+          '',
+          // Flatten to avoid nested unions.
+          [...firstKey.members].flatMap(firstKeyMember => {
+            const typeForThisPossibility = applyKeyPathToType(type, [
+              firstKeyMember,
+              ...remainingKeyPath,
+            ])
+            if (typeForThisPossibility.kind === 'union') {
+              return [...typeForThisPossibility.members]
+            } else {
+              return typeForThisPossibility
+            }
+          }),
+        )
+    }
   } else {
     return matchTypeFormat<Type>(type, {
       function: type => {
@@ -192,29 +220,6 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
         )
       },
     })
-  }
-}
-
-/**
- * Reduce a (possibly nested) indexed access `object[key]`. A stuck object is
- * reduced first; projection (via `applyKeyPathToType`) happens only when the
- * object has known structure and the key is a concrete atom or union of atoms,
- * otherwise the access stays a stuck `IndexedAccessType`.
- */
-export const reduceIndexedAccess = (object: Type, key: Type): Type => {
-  const reducedObject =
-    object.kind === 'indexedAccess' ?
-      reduceIndexedAccess(object.object, object.key)
-    : object
-  const keyIsConcrete = containedTypeParameters(key).size === 0
-  const objectHasKnownStructure = reducedObject.kind !== 'indexedAccess'
-  if (keyIsConcrete && objectHasKnownStructure) {
-    return either.match(atomKeyPathComponentFromType(key), {
-      left: _ => types.nothing,
-      right: component => applyKeyPathToType(reducedObject, [component]),
-    })
-  } else {
-    return makeIndexedAccessType('', reducedObject, key)
   }
 }
 
@@ -611,9 +616,20 @@ export const supplyTypeArgument = (
         return makeObjectType(type.name, substitutedChildren)
       },
       indexedAccess: type =>
-        reduceIndexedAccess(
-          supplyTypeArgument(type.object, typeParameter, typeArgument),
-          supplyTypeArgument(type.key, typeParameter, typeArgument),
+        either.match(
+          atomKeyPathComponentFromType(
+            supplyTypeArgument(type.key, typeParameter, typeArgument),
+          ),
+          {
+            left: _ =>
+              // TODO: Should this trigger an error?
+              types.nothing,
+            right: key =>
+              applyKeyPathToType(
+                supplyTypeArgument(type.object, typeParameter, typeArgument),
+                [key],
+              ),
+          },
         ),
       opaque: type => type,
       parameter: type =>
@@ -902,33 +918,98 @@ export const stringifyTypeKeyPathForEndUser = (keyPath: TypeKeyPath): string =>
 
 const atomKeyPathComponentFromType = (
   type: Type,
-): Either<TypeMismatchError, AtomKeyPathComponent> => {
-  const concreteType = replaceAllTypeParametersWithTheirConstraints(type)
-  const simplifiedType =
-    concreteType.kind === 'union' ?
-      simplifyUnionType(concreteType)
-    : concreteType
-
-  const atomMembers =
-    simplifiedType.kind === 'union' ?
-      [...simplifiedType.members].filter(member => typeof member === 'string')
-    : []
-
-  const isAtomUnion =
-    simplifiedType.kind === 'union' &&
-    atomMembers.length > 0 &&
-    atomMembers.length === simplifiedType.members.size
-  const [firstAtom, ...remainingAtoms] = atomMembers
-
-  return (
-    !isAtomUnion || firstAtom === undefined ?
+): Either<TypeMismatchError, AtomKeyPathComponent> =>
+  matchTypeFormat<Either<TypeMismatchError, AtomKeyPathComponent>>(type, {
+    function: _ =>
       either.makeLeft({
         kind: 'typeMismatch',
-        message: 'dynamic index key must be an atom or a union of atoms',
-      })
-    : remainingAtoms.length === 0 ? either.makeRight(firstAtom)
-    : either.makeRight(makeUnionType(simplifiedType.name, atomMembers))
+        message: `${type.kind} types are not valid key path components`,
+      }),
+    indexedAccess: _ =>
+      either.makeLeft({
+        kind: 'typeMismatch',
+        message: `${type.kind} types are not valid key path components`,
+      }),
+    object: _ =>
+      either.makeLeft({
+        kind: 'typeMismatch',
+        message: `${type.kind} types are not valid key path components`,
+      }),
+    opaque: _ =>
+      either.makeLeft({
+        kind: 'typeMismatch',
+        message: `${type.kind} types are not valid key path components`,
+      }),
+    parameter: type => {
+      switch (type.constraint.assignableTo.kind) {
+        case 'function':
+        case 'indexedAccess':
+        case 'object':
+        case 'opaque':
+          return either.makeLeft({
+            kind: 'typeMismatch',
+            message: `type parameters constrained to ${type.constraint.assignableTo.kind} types aren't valid key path components`,
+          })
+        case 'union':
+        case 'parameter':
+          return either.map(
+            atomKeyPathComponentFromType(type.constraint.assignableTo),
+            validAssignableTo => ({
+              ...type,
+              constraint: {
+                ...type.constraint,
+                assignableTo:
+                  typeof validAssignableTo === 'string' ?
+                    makeUnionType('', [validAssignableTo])
+                  : validAssignableTo,
+              },
+            }),
+          )
+      }
+    },
+    union: type => {
+      const [firstAtom, ...remainingAtoms] = [...type.members]
+      return (
+        firstAtom === undefined ?
+          either.makeLeft({
+            kind: 'typeMismatch',
+            message: `union types are only valid key path components if they are non-empty`,
+          })
+        : remainingAtoms.length === 0 && typeof firstAtom === 'string' ?
+          // Unwrap single-member unions.
+          either.makeRight(firstAtom)
+        : option.match(asUnionWithLiteralAtomMembers(type), {
+            none: _ =>
+              either.makeLeft({
+                kind: 'typeMismatch',
+                message: `union types are only valid key path components when all their members are literal atoms`,
+              }),
+            some: either.makeRight,
+          })
+      )
+    },
+  })
+
+/**
+ * Returns a narrowed version of the `UnionType` if all of its members are
+ * literal atom types.
+ */
+const asUnionWithLiteralAtomMembers = (
+  type: UnionType,
+): Option<
+  Omit<UnionType, 'members'> & { readonly members: ReadonlySet<Atom> }
+> => {
+  const simplifiedType = simplifyUnionType(type)
+
+  const atomMembers = [...simplifiedType.members].filter(
+    member => typeof member === 'string',
   )
+
+  const isAtomUnion = atomMembers.length === simplifiedType.members.size
+
+  return !isAtomUnion ?
+      option.none
+    : option.makeSome(makeUnionType(simplifiedType.name, atomMembers))
 }
 
 const stringifyKeyPathComponentForEndUser = (
@@ -937,13 +1018,18 @@ const stringifyKeyPathComponentForEndUser = (
   if (typeof component === 'string') {
     return quoteAtomIfNecessary(component)
   } else if (typeof component === 'object') {
-    return '('.concat(
-      [...component.members]
-        .sort()
-        .map(stringifyKeyPathComponentForEndUser)
-        .join(' | '),
-      ')',
-    )
+    switch (component.kind) {
+      case 'parameter':
+        return `?${component.name}`
+      case 'union':
+        return '('.concat(
+          [...component.members]
+            .sort()
+            .map(stringifyKeyPathComponentForEndUser)
+            .join(' | '),
+          ')',
+        )
+    }
   } else {
     switch (component) {
       // TODO: Consider surfacing this in plz syntax (allowing programmatic
