@@ -37,6 +37,7 @@ import {
 } from './type-formats.js'
 import {
   applyKeyPathToType,
+  functionParameterKey,
   genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
   literalTypeFromSemanticGraph,
@@ -71,14 +72,21 @@ export const resolveParameterTypes = (
     )
 
     if (option.isSome(enclosingFunction)) {
+      const enclosingFunctionLocation = currentLocation.slice(0, -2)
+      // Skip the function whose parameter annotation we're inside. Computing
+      // its parameter type requires this very inference (and would infinitely
+      // recurse without this guard).
+      const isInsideOwnAnnotation =
+        context.location[enclosingFunctionLocation.length] === '1' &&
+        context.location[enclosingFunctionLocation.length + 1] === 'parameter'
       const parameterName = getParameterName(enclosingFunction.value)
-      if (!parameterTypes.has(parameterName)) {
+      if (!isInsideOwnAnnotation && !parameterTypes.has(parameterName)) {
         const parameterTypeResult = getFunctionParameterType(
           enclosingFunction.value,
           {
             keywordHandlers: context.keywordHandlers,
             program: context.program,
-            location: currentLocation.slice(0, -2),
+            location: enclosingFunctionLocation,
             mutableInferenceCache: context.mutableInferenceCache,
           },
         )
@@ -440,99 +448,130 @@ const inferTypeImplementation = (
 const getFunctionParameterType = (
   expression: FunctionExpression,
   contextOfFunction: ExpressionContext,
-): Either<ElaborationError, Type> =>
-  option.match(getParameterTypeAnnotation(expression), {
-    some: annotation =>
-      either.map(
-        // Type annotation lookups happen from the function's scope rather than
-        // their own location (a property within the `@function`).
-        // TODO: Consider separating out the cache key prefix from the
-        // `context.location` somehow so that I can say "lookups start from X,
-        // cache key paths are rooted at Y".
-        inferType(annotation, {
-          ...contextOfFunction,
-          mutableInferenceCache: new Map(),
-        }),
-        annotationType => {
-          const parameterName = getParameterName(expression)
-          // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
-          // the parser emits for `~>` syntax sugar). Genericization is skipped
-          // in this case so `a ~> b` and `(_: a) => b` can be used to describe
-          // concrete function types rather than generic ones.
-          return parameterName === ignoredKey ? annotationType : (
-              genericizeFunctionParameterAnnotation(
-                parameterName,
-                annotationType,
-              )
-            )
-        },
-      ),
-    none: _ => {
-      const contextualType = option.flatMap(
-        enclosingExpressionFromPropertyOfExpressionArgument(contextOfFunction),
-        (enclosingExpression): Option<Type> => {
-          if (
-            isKeywordExpressionWithArgument('@runtime', enclosingExpression)
-          ) {
-            return option.makeSome(types.runtimeContext)
-          }
-
-          const positionInEnclosingExpression =
-            contextOfFunction.location[contextOfFunction.location.length - 1]
-          const applyExpressionResult = readApplyExpression(enclosingExpression)
-          if (
-            either.isRight(applyExpressionResult) &&
-            positionInEnclosingExpression === 'argument'
-          ) {
-            const contextOfEnclosingExpression: ExpressionContext = {
-              program: contextOfFunction.program,
-              keywordHandlers: contextOfFunction.keywordHandlers,
-              location: contextOfFunction.location.slice(0, -2),
-              mutableInferenceCache: contextOfFunction.mutableInferenceCache,
-            }
-            const contextuallyAppliedFunctionType = inferType(
-              applyExpressionResult.value[1].function,
-              {
-                ...contextOfEnclosingExpression,
-                location: [
-                  ...contextOfEnclosingExpression.location,
-                  '1',
-                  'function',
-                ],
-              },
-            )
-
-            // If the applied function's signature is `(a ~> b) ~> c`, the
-            // function passed to it should have its parameter typed as `a`.
-            if (
-              either.isRight(contextuallyAppliedFunctionType) &&
-              contextuallyAppliedFunctionType.value.kind === 'function' &&
-              contextuallyAppliedFunctionType.value.signature.parameter.kind ===
-                'function'
-            ) {
-              return option.makeSome(
-                contextuallyAppliedFunctionType.value.signature.parameter
-                  .signature.parameter,
-              )
-            }
-          }
-
-          return option.none
-        },
-      )
-
-      return option.match(contextualType, {
-        some: either.makeRight,
-        none: _ =>
-          either.makeRight(
-            genericizeFunctionParameterAnnotation(
-              getParameterName(expression),
-              types.something,
-            ),
+): Either<ElaborationError, Type> => {
+  // `genericizeFunctionParameterAnnotation` mints fresh type parameters, but
+  // type parameters are identified by an internal `symbol`. To keep identities
+  // consistent, cache parameter types here.
+  const parameterCacheKey = stringifyTypeKeyPathForEndUser([
+    ...contextOfFunction.location,
+    functionParameterKey,
+  ])
+  const cachedParameterType =
+    contextOfFunction.mutableInferenceCache.get(parameterCacheKey)
+  if (cachedParameterType !== undefined) {
+    return either.makeRight(cachedParameterType)
+  } else {
+    return either.map(
+      option.match(getParameterTypeAnnotation(expression), {
+        some: annotation =>
+          either.map(
+            // Type annotation lookups happen from the function's scope rather than
+            // their own location (a property within the `@function`).
+            // TODO: Consider separating out the cache key prefix from the
+            // `context.location` somehow so that I can say "lookups start from X,
+            // cache key paths are rooted at Y".
+            inferType(annotation, {
+              ...contextOfFunction,
+              mutableInferenceCache: new Map(),
+            }),
+            annotationType => {
+              const parameterName = getParameterName(expression)
+              // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
+              // the parser emits for `~>` syntax sugar). Genericization is skipped
+              // in this case so `a ~> b` and `(_: a) => b` can be used to describe
+              // concrete function types rather than generic ones.
+              return parameterName === ignoredKey ? annotationType : (
+                  genericizeFunctionParameterAnnotation(
+                    parameterName,
+                    annotationType,
+                  )
+                )
+            },
           ),
-      })
-    },
-  })
+        none: _ => {
+          const contextualType = option.flatMap(
+            enclosingExpressionFromPropertyOfExpressionArgument(
+              contextOfFunction,
+            ),
+            (enclosingExpression): Option<Type> => {
+              if (
+                isKeywordExpressionWithArgument('@runtime', enclosingExpression)
+              ) {
+                return option.makeSome(types.runtimeContext)
+              }
+
+              const positionInEnclosingExpression =
+                contextOfFunction.location[
+                  contextOfFunction.location.length - 1
+                ]
+              const applyExpressionResult =
+                readApplyExpression(enclosingExpression)
+              if (
+                either.isRight(applyExpressionResult) &&
+                positionInEnclosingExpression === 'argument'
+              ) {
+                const contextOfEnclosingExpression: ExpressionContext = {
+                  program: contextOfFunction.program,
+                  keywordHandlers: contextOfFunction.keywordHandlers,
+                  location: contextOfFunction.location.slice(0, -2),
+                  mutableInferenceCache:
+                    contextOfFunction.mutableInferenceCache,
+                }
+                const contextuallyAppliedFunctionType = inferType(
+                  applyExpressionResult.value[1].function,
+                  {
+                    ...contextOfEnclosingExpression,
+                    location: [
+                      ...contextOfEnclosingExpression.location,
+                      '1',
+                      'function',
+                    ],
+                  },
+                )
+
+                // If the applied function's signature is `(a ~> b) ~> c`, the
+                // function passed to it should have its parameter typed as `a`.
+                if (
+                  either.isRight(contextuallyAppliedFunctionType) &&
+                  contextuallyAppliedFunctionType.value.kind === 'function' &&
+                  contextuallyAppliedFunctionType.value.signature.parameter
+                    .kind === 'function'
+                ) {
+                  return option.makeSome(
+                    contextuallyAppliedFunctionType.value.signature.parameter
+                      .signature.parameter,
+                  )
+                }
+              }
+
+              return option.none
+            },
+          )
+
+          return option.match(contextualType, {
+            some: either.makeRight,
+            none: _ =>
+              either.makeRight(
+                genericizeFunctionParameterAnnotation(
+                  getParameterName(expression),
+                  types.something,
+                ),
+              ),
+          })
+        },
+      }),
+      parameterType => {
+        // Side effect: cache the parameter type so its type-parameter
+        // identities remain stable.
+        contextOfFunction.mutableInferenceCache.set(
+          parameterCacheKey,
+          parameterType,
+        )
+        return parameterType
+      },
+    )
+  }
+}
 
 const enclosingExpressionFromPropertyOfExpressionArgument = ({
   program,
