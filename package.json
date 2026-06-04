@@ -15,7 +15,7 @@
     "clean": "rm -rf dist* *.tsbuildinfo",
     "lint": "eslint .; prettier --check .",
     "lint:fix": "eslint . --fix; prettier --write .",
-    "test": "npm run build:tests && node --test --no-experimental-strip-types",
+    "test": "echo 'node version:'; node --version; npm run build:tests && node --test --no-experimental-strip-types",
     "test-update-snapshots": "npm run build:tests && node --test --no-experimental-strip-types --test-update-snapshots"
   },
   "devDependencies": {
