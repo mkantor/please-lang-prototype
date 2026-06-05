@@ -504,7 +504,9 @@ export const getTypesForTypeParameters = ({
 
       opaque: _ => new Map(),
 
-      // TODO: Can function parameter types contain stuck indexed access types?
+      // TODO: I don't think this case is solvable when the `IndexedAccessType`
+      // is stuck on its key (e.g. `(?a: :b.:c)`), but when the key is concrete
+      // I could perhaps use it to drill into the argument type. Is that sound?
       indexedAccess: _ => new Map(),
 
       parameter: parameterType =>
