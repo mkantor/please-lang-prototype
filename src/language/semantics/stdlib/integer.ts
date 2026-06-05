@@ -14,7 +14,7 @@ export const integer = {
     ['integer', 'add'],
     {
       parameter: types.integer,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.integer,
         return: types.integer,
       }),
@@ -22,7 +22,7 @@ export const integer = {
     number2 => {
       if (
         typeof number2 !== 'string' ||
-        !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+        !types.integer.isAssignableFrom(makeUnionType([number2]))
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
@@ -32,7 +32,7 @@ export const integer = {
         return either.makeRight(number1 => {
           if (
             typeof number1 !== 'string' ||
-            !types.integer.isAssignableFrom(makeUnionType('', [number1]))
+            !types.integer.isAssignableFrom(makeUnionType([number1]))
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',
@@ -57,7 +57,7 @@ export const integer = {
     ['integer', 'equals'],
     {
       parameter: types.integer,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.integer,
         return: types.boolean,
       }),
@@ -65,7 +65,7 @@ export const integer = {
     number2 => {
       if (
         typeof number2 !== 'string' ||
-        !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+        !types.integer.isAssignableFrom(makeUnionType([number2]))
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
@@ -75,7 +75,7 @@ export const integer = {
         return either.makeRight(number1 => {
           if (
             typeof number1 !== 'string' ||
-            !types.integer.isAssignableFrom(makeUnionType('', [number1]))
+            !types.integer.isAssignableFrom(makeUnionType([number1]))
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',
@@ -101,7 +101,6 @@ export const integer = {
         (
           typeof argument === 'string' &&
             types.integer.isAssignableFrom({
-              name: '',
               kind: 'union',
               members: new Set([argument]),
             })
@@ -122,7 +121,6 @@ export const integer = {
         (
           typeof argument === 'string' &&
             types.integer.isAssignableFrom({
-              name: '',
               kind: 'union',
               members: new Set([argument]),
             })
@@ -142,7 +140,7 @@ export const integer = {
     ['integer', 'is_greater_than'],
     {
       parameter: types.integer,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.integer,
         return: types.boolean,
       }),
@@ -150,7 +148,7 @@ export const integer = {
     number2 => {
       if (
         typeof number2 !== 'string' ||
-        !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+        !types.integer.isAssignableFrom(makeUnionType([number2]))
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
@@ -160,7 +158,7 @@ export const integer = {
         return either.makeRight(number1 => {
           if (
             typeof number1 !== 'string' ||
-            !types.integer.isAssignableFrom(makeUnionType('', [number1]))
+            !types.integer.isAssignableFrom(makeUnionType([number1]))
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',
@@ -179,7 +177,7 @@ export const integer = {
     ['integer', 'is_less_than'],
     {
       parameter: types.integer,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.integer,
         return: types.boolean,
       }),
@@ -187,7 +185,7 @@ export const integer = {
     number2 => {
       if (
         typeof number2 !== 'string' ||
-        !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+        !types.integer.isAssignableFrom(makeUnionType([number2]))
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
@@ -197,7 +195,7 @@ export const integer = {
         return either.makeRight(number1 => {
           if (
             typeof number1 !== 'string' ||
-            !types.integer.isAssignableFrom(makeUnionType('', [number1]))
+            !types.integer.isAssignableFrom(makeUnionType([number1]))
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',
@@ -216,7 +214,7 @@ export const integer = {
     ['integer', 'multiply'],
     {
       parameter: types.integer,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.integer,
         return: types.integer,
       }),
@@ -224,7 +222,7 @@ export const integer = {
     number2 => {
       if (
         typeof number2 !== 'string' ||
-        !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+        !types.integer.isAssignableFrom(makeUnionType([number2]))
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
@@ -234,7 +232,7 @@ export const integer = {
         return either.makeRight(number1 => {
           if (
             typeof number1 !== 'string' ||
-            !types.integer.isAssignableFrom(makeUnionType('', [number1]))
+            !types.integer.isAssignableFrom(makeUnionType([number1]))
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',
@@ -253,7 +251,7 @@ export const integer = {
     ['integer', 'subtract'],
     {
       parameter: types.integer,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.integer,
         return: types.integer,
       }),
@@ -261,7 +259,7 @@ export const integer = {
     number2 => {
       if (
         typeof number2 !== 'string' ||
-        !types.integer.isAssignableFrom(makeUnionType('', [number2]))
+        !types.integer.isAssignableFrom(makeUnionType([number2]))
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
@@ -271,7 +269,7 @@ export const integer = {
         return either.makeRight(number1 => {
           if (
             typeof number1 !== 'string' ||
-            !types.integer.isAssignableFrom(makeUnionType('', [number1]))
+            !types.integer.isAssignableFrom(makeUnionType([number1]))
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',

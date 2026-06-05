@@ -46,45 +46,42 @@ applyKeyPathSuite('applyKeyPathToType with empty key path', [
   [[nothing, []], stringifyTypeForEndUser(nothing)],
   [[something, []], stringifyTypeForEndUser(something)],
   [
-    [makeObjectType('', { a: atom }), []],
-    stringifyTypeForEndUser(makeObjectType('', { a: atom })),
+    [makeObjectType({ a: atom }), []],
+    stringifyTypeForEndUser(makeObjectType({ a: atom })),
   ],
   [
-    [makeFunctionType('', { parameter: atom, return: something }), []],
+    [makeFunctionType({ parameter: atom, return: something }), []],
     stringifyTypeForEndUser(
-      makeFunctionType('', { parameter: atom, return: something }),
+      makeFunctionType({ parameter: atom, return: something }),
     ),
   ],
 ])
 
 applyKeyPathSuite('applyKeyPathToType with object types', [
   [
-    [makeObjectType('', { a: atom, b: integer }), ['a']],
+    [makeObjectType({ a: atom, b: integer }), ['a']],
     stringifyTypeForEndUser(atom),
   ],
   [
-    [makeObjectType('', { a: atom, b: integer }), ['b']],
+    [makeObjectType({ a: atom, b: integer }), ['b']],
     stringifyTypeForEndUser(integer),
   ],
-  [[makeObjectType('', { a: atom }), ['z']], stringifyTypeForEndUser(nothing)],
+  [[makeObjectType({ a: atom }), ['z']], stringifyTypeForEndUser(nothing)],
   [
     [
-      makeObjectType('', {
-        a: makeObjectType('', { b: makeUnionType('', ['hello']) }),
+      makeObjectType({
+        a: makeObjectType({ b: makeUnionType(['hello']) }),
       }),
       ['a', 'b'],
     ],
-    stringifyTypeForEndUser(makeUnionType('', ['hello'])),
+    stringifyTypeForEndUser(makeUnionType(['hello'])),
   ],
-  [
-    [makeObjectType('', { a: atom }), ['a', 'b']],
-    stringifyTypeForEndUser(nothing),
-  ],
+  [[makeObjectType({ a: atom }), ['a', 'b']], stringifyTypeForEndUser(nothing)],
 ])
 
 applyKeyPathSuite('applyKeyPathToType with non-object types', [
   [
-    [makeFunctionType('', { parameter: atom, return: something }), ['a']],
+    [makeFunctionType({ parameter: atom, return: something }), ['a']],
     stringifyTypeForEndUser(nothing),
   ],
   [[atom, ['a']], stringifyTypeForEndUser(nothing)],
@@ -95,39 +92,33 @@ applyKeyPathSuite('applyKeyPathToType with non-object types', [
 applyKeyPathSuite('applyKeyPathToType with union types', [
   [
     [
-      makeUnionType('', [
-        makeObjectType('', { a: makeUnionType('', ['x']) }),
-        makeObjectType('', { a: makeUnionType('', ['y']) }),
+      makeUnionType([
+        makeObjectType({ a: makeUnionType(['x']) }),
+        makeObjectType({ a: makeUnionType(['y']) }),
       ]),
       ['a'],
     ],
-    stringifyTypeForEndUser(makeUnionType('', ['x', 'y'])),
+    stringifyTypeForEndUser(makeUnionType(['x', 'y'])),
   ],
   [
     [
-      makeUnionType('', [
-        makeObjectType('', { a: makeUnionType('', ['x']) }),
-        'some_atom',
-      ]),
+      makeUnionType([makeObjectType({ a: makeUnionType(['x']) }), 'some_atom']),
       ['a'],
     ],
-    stringifyTypeForEndUser(makeUnionType('', ['x'])),
+    stringifyTypeForEndUser(makeUnionType(['x'])),
   ],
   [
     [
-      makeUnionType('', [
-        makeObjectType('', { b: atom }),
-        makeObjectType('', { c: atom }),
-      ]),
+      makeUnionType([makeObjectType({ b: atom }), makeObjectType({ c: atom })]),
       ['a'],
     ],
     stringifyTypeForEndUser(nothing),
   ],
   [
     [
-      makeUnionType('', [
-        makeObjectType('', { a: integer }),
-        makeFunctionType('', { parameter: atom, return: atom }),
+      makeUnionType([
+        makeObjectType({ a: integer }),
+        makeFunctionType({ parameter: atom, return: atom }),
       ]),
       ['a'],
     ],
@@ -151,12 +142,20 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
 
   [[something, atom], new Map()],
 
-  [[makeObjectType('', { a: A }), atom], new Map()],
+  [[makeObjectType({ a: A }), atom], new Map()],
+
+  [
+    [makeObjectType({ a: A, b: B }), makeObjectType({ a: atom, b: integer })],
+    new Map([
+      [A, atom],
+      [B, integer],
+    ]),
+  ],
 
   [
     [
-      makeObjectType('', { a: A, b: B }),
-      makeObjectType('', { a: atom, b: integer }),
+      makeFunctionType({ parameter: A, return: B }),
+      makeFunctionType({ parameter: atom, return: integer }),
     ],
     new Map([
       [A, atom],
@@ -166,19 +165,8 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
 
   [
     [
-      makeFunctionType('', { parameter: A, return: B }),
-      makeFunctionType('', { parameter: atom, return: integer }),
-    ],
-    new Map([
-      [A, atom],
-      [B, integer],
-    ]),
-  ],
-
-  [
-    [
-      makeFunctionType('', { parameter: A, return: A }),
-      makeFunctionType('', { parameter: atom, return: integer }),
+      makeFunctionType({ parameter: A, return: A }),
+      makeFunctionType({ parameter: atom, return: integer }),
     ],
     // The first occurrence should be used in situations like this. In real code
     // this will likely result in a type error later.
@@ -186,10 +174,7 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
   ],
 
   [
-    [
-      makeObjectType('', { a: A, b: A }),
-      makeObjectType('', { a: atom, b: integer }),
-    ],
+    [makeObjectType({ a: A, b: A }), makeObjectType({ a: atom, b: integer })],
     // The first occurrence should be used in situations like this. In real code
     // this will likely result in a type error later.
     new Map([[A, atom]]),
@@ -197,35 +182,33 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
 
   [[extendsAnyAtom, object], new Map()],
 
-  [[makeUnionType('', [A, atom]), object], new Map([[A, object]])],
+  [[makeUnionType([A, atom]), object], new Map([[A, object]])],
 
-  [[makeUnionType('', [A, atom]), something], new Map([[A, something]])],
+  [[makeUnionType([A, atom]), something], new Map([[A, something]])],
 
-  [[makeUnionType('', [A, atom]), atom], new Map([[A, atom]])],
+  [[makeUnionType([A, atom]), atom], new Map([[A, atom]])],
 
   [
-    [makeUnionType('', [A, object]), makeUnionType('', ['specific atom'])],
-    new Map([[A, makeUnionType('', ['specific atom'])]]),
+    [makeUnionType([A, object]), makeUnionType(['specific atom'])],
+    new Map([[A, makeUnionType(['specific atom'])]]),
   ],
 
   [
     [
-      makeUnionType('', [extendsAnyAtom, object]),
-      makeUnionType('', ['specific atom', object]),
+      makeUnionType([extendsAnyAtom, object]),
+      makeUnionType(['specific atom', object]),
     ],
-    new Map([
-      [extendsAnyAtom, makeUnionType('specific atom', ['specific atom'])],
-    ]),
+    new Map([[extendsAnyAtom, makeUnionType(['specific atom'])]]),
   ],
 
-  [[makeUnionType('', [extendsAnyAtom, object]), object], new Map()],
+  [[makeUnionType([extendsAnyAtom, object]), object], new Map()],
 
   [[option(A), option(naturalNumber)], new Map([[A, naturalNumber]])],
 
   [
     [
-      makeFunctionType('', { parameter: A, return: option(B) }),
-      makeFunctionType('', {
+      makeFunctionType({ parameter: A, return: option(B) }),
+      makeFunctionType({
         parameter: atom,
         return: option(naturalNumber),
       }),
@@ -258,14 +241,14 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
 
   [['a', integer], '(?a: :integer.type)'],
 
-  [['a', makeUnionType('', ['foo', 'bar'])], '(?a: foo | bar)'],
+  [['a', makeUnionType(['foo', 'bar'])], '(?a: foo | bar)'],
 
   [['a', something], '?a'],
 
   [
     [
       'x',
-      makeObjectType('', {
+      makeObjectType({
         a: integer,
         b: atom,
       }),
@@ -276,8 +259,8 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
   [
     [
       'x',
-      makeObjectType('', {
-        a: makeObjectType('', { b: atom }),
+      makeObjectType({
+        a: makeObjectType({ b: atom }),
       }),
     ],
     '{ a: { b: (?"x.a.b": :atom.type) } }',
@@ -286,19 +269,19 @@ genericizeParameterAnnotationSuite('genericizeParameterAnnotation', [
   [
     [
       'x',
-      makeObjectType('', {
-        callback: makeFunctionType('', { parameter: atom, return: integer }),
+      makeObjectType({
+        callback: makeFunctionType({ parameter: atom, return: integer }),
       }),
     ],
     '{ callback: (?"x.callback.#parameter": :atom.type) ~> (?"x.callback.#return": :integer.type) }',
   ],
 
-  [['empty', makeObjectType('', {})], '{}'],
+  [['empty', makeObjectType({})], '{}'],
 
-  [['identity', makeFunctionType('', { parameter: A, return: A })], '?a ~> :a'],
+  [['identity', makeFunctionType({ parameter: A, return: A })], '?a ~> :a'],
 
   [
-    ['wrap', makeObjectType('', { value: A })],
+    ['wrap', makeObjectType({ value: A })],
     `{ value: ${stringifyTypeForEndUser(A)} }`,
   ],
 ])

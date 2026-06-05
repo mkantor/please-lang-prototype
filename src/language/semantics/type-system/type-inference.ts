@@ -185,7 +185,7 @@ const inferTypeImplementation = (
               descendantContext(['1', 'body']),
             ),
             returnType =>
-              makeFunctionType('', {
+              makeFunctionType({
                 parameter: parameterType,
                 return: returnType,
               }),
@@ -403,8 +403,7 @@ const inferTypeImplementation = (
             return either.flatMap(inferThen(), thenType =>
               either.map(inferElse(), elseType =>
                 makeIndexedAccessType(
-                  '',
-                  makeObjectType('', { false: elseType, true: thenType }),
+                  makeObjectType({ false: elseType, true: thenType }),
                   conditionType,
                 ),
               ),
@@ -414,10 +413,7 @@ const inferTypeImplementation = (
               type.kind === 'union' ? [...type.members] : [type]
             return either.flatMap(inferThen(), thenType =>
               either.map(inferElse(), elseType =>
-                makeUnionType('', [
-                  ...membersOf(thenType),
-                  ...membersOf(elseType),
-                ]),
+                makeUnionType([...membersOf(thenType), ...membersOf(elseType)]),
               ),
             )
           }
@@ -449,7 +445,7 @@ const inferTypeImplementation = (
             ),
           ),
         ),
-        entries => makeObjectType('', Object.fromEntries(entries)),
+        entries => makeObjectType(Object.fromEntries(entries)),
       ),
     )
   } else {

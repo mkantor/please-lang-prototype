@@ -19,7 +19,7 @@ export const object = {
     {
       // TODO
       parameter: types.atom,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.object,
         return: types.option(types.something),
       }),
@@ -81,7 +81,7 @@ export const object = {
     {
       // TODO
       parameter: types.atom,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.something,
         return: types.object,
       }),
@@ -105,7 +105,7 @@ export const object = {
     {
       // TODO
       parameter: types.object,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.object,
         return: types.object,
       }),

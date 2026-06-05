@@ -68,7 +68,7 @@ export const boolean = {
     ['boolean', 'and'],
     {
       parameter: types.boolean,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.boolean,
         return: types.boolean,
       }),
@@ -103,7 +103,7 @@ export const boolean = {
     ['boolean', 'or'],
     {
       parameter: types.boolean,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.boolean,
         return: types.boolean,
       }),

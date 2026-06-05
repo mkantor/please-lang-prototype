@@ -69,8 +69,8 @@ export const option = {
   map: preludeFunctionArity2(
     ['option', 'map'],
     {
-      parameter: makeFunctionType('', { parameter: A, return: B }),
-      return: makeFunctionType('', {
+      parameter: makeFunctionType({ parameter: A, return: B }),
+      return: makeFunctionType({
         parameter: types.option(A),
         return: types.option(B),
       }),
@@ -109,11 +109,11 @@ export const option = {
   flat_map: preludeFunctionArity2(
     ['option', 'flat_map'],
     {
-      parameter: makeFunctionType('', {
+      parameter: makeFunctionType({
         parameter: A,
         return: types.option(B),
       }),
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.option(A),
         return: types.option(B),
       }),

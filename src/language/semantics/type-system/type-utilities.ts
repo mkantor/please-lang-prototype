@@ -109,17 +109,15 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
               )
             } else {
               return makeIndexedAccessType(
-                '',
                 type,
-                typeof key === 'string' ? makeUnionType('', [key]) : key,
+                typeof key === 'string' ? makeUnionType([key]) : key,
               )
             }
           },
-          makeIndexedAccessType('', type, firstKey),
+          makeIndexedAccessType(type, firstKey),
         )
       case 'union':
         return makeUnionType(
-          '',
           // Flatten to avoid nested unions.
           [...firstKey.members].flatMap(firstKeyMember => {
             const typeForThisPossibility = applyKeyPathToType(type, [
@@ -143,7 +141,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
         } else {
           switch (firstKey) {
             case functionParameterKey:
-              return makeFunctionType(type.name, {
+              return makeFunctionType({
                 parameter: applyKeyPathToType(
                   type.signature.parameter,
                   remainingKeyPath,
@@ -151,7 +149,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
                 return: type.signature.return,
               })
             case functionReturnKey:
-              return makeFunctionType(type.name, {
+              return makeFunctionType({
                 parameter: type.signature.parameter,
                 return: applyKeyPathToType(
                   type.signature.return,
@@ -204,7 +202,6 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
       },
       union: type => {
         return makeUnionType(
-          type.name,
           [...type.members].flatMap(member => {
             if (typeof member === 'string') {
               return []
@@ -249,7 +246,7 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
 ): Type =>
   matchTypeFormat(type, {
     function: (type): Type =>
-      makeFunctionType(type.name, {
+      makeFunctionType({
         parameter: genericizeFunctionParameterAnnotationAtKeyPath(
           parameterName,
           type.signature.parameter,
@@ -263,7 +260,6 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
       }),
     object: type =>
       makeObjectType(
-        type.name,
         Object.fromEntries(
           Object.entries(type.children).map(
             ([key, child]) =>
@@ -341,7 +337,7 @@ const containedTypeParametersImplementation = (
               stringifyTypeKeyPathForEndUser(root),
               {
                 keyPath: root,
-                typeParameters: makeUnionType('', [type]),
+                typeParameters: makeUnionType([type]),
               },
             ],
           ]),
@@ -535,9 +531,7 @@ export const getTypesForTypeParameters = ({
             // of `(A <: atom) | object` and an `argumentType` of `atom |
             // object`, `A` should be inferred as `atom`.
             [...argumentType.members].flatMap((member): readonly Type[] =>
-              typeof member === 'string' ?
-                [makeUnionType(member, [member])]
-              : [member],
+              typeof member === 'string' ? [makeUnionType([member])] : [member],
             )
           : []),
         ] as const
@@ -592,7 +586,7 @@ export const supplyTypeArgument = (
   } else {
     return matchTypeFormat(type, {
       function: type =>
-        makeFunctionType(type.name, {
+        makeFunctionType({
           parameter: supplyTypeArgument(
             type.signature.parameter,
             typeParameter,
@@ -613,7 +607,7 @@ export const supplyTypeArgument = (
             typeArgument,
           )
         }
-        return makeObjectType(type.name, substitutedChildren)
+        return makeObjectType(substitutedChildren)
       },
       indexedAccess: type =>
         either.match(
@@ -636,7 +630,6 @@ export const supplyTypeArgument = (
         type.identity === typeParameter.identity ? typeArgument : type,
       union: type =>
         makeUnionType(
-          type.name,
           [...type.members].flatMap(member => {
             if (typeof member === 'string') {
               return member
@@ -684,7 +677,6 @@ export const updateTypeAtKeyPathIfValid = (
     // If the key path is empty, this is the type to operate on.
     if (type.kind === 'union') {
       return makeUnionType(
-        type.name,
         [...type.members].flatMap(member => {
           if (typeof member === 'string') {
             return member
@@ -706,7 +698,7 @@ export const updateTypeAtKeyPathIfValid = (
       function: type => {
         switch (firstKey) {
           case functionParameterKey:
-            return makeFunctionType(type.name, {
+            return makeFunctionType({
               parameter: updateTypeAtKeyPathIfValid(
                 type.signature.parameter,
                 remainingKeyPath,
@@ -715,7 +707,7 @@ export const updateTypeAtKeyPathIfValid = (
               return: type.signature.return,
             })
           case functionReturnKey:
-            return makeFunctionType(type.name, {
+            return makeFunctionType({
               return: updateTypeAtKeyPathIfValid(
                 type.signature.return,
                 remainingKeyPath,
@@ -734,7 +726,7 @@ export const updateTypeAtKeyPathIfValid = (
           if (next === undefined) {
             return type
           } else {
-            return makeObjectType(type.name, {
+            return makeObjectType({
               ...type.children,
               [firstKey]: updateTypeAtKeyPathIfValid(
                 next,
@@ -764,7 +756,6 @@ export const updateTypeAtKeyPathIfValid = (
       },
       union: type =>
         makeUnionType(
-          type.name,
           [...type.members].flatMap(member => {
             if (typeof member === 'string') {
               return []
@@ -791,7 +782,6 @@ export const literalTypeFromSemanticGraph = (
 ): Either<Bug, Type> => {
   if (typeof node === 'string') {
     return either.makeRight({
-      name: '',
       kind: 'union',
       members: new Set([node]),
     })
@@ -806,7 +796,6 @@ export const literalTypeFromSemanticGraph = (
     }
   } else if (typeof node === 'function') {
     return either.makeRight({
-      name: '',
       kind: 'function',
       signature: node.signature,
     })
@@ -821,7 +810,6 @@ export const literalTypeFromSemanticGraph = (
         ),
         memberTypes =>
           makeUnionType(
-            '',
             memberTypes.flatMap(memberType =>
               memberType.kind === 'union' ?
                 [...memberType.members]
@@ -849,7 +837,7 @@ export const literalTypeFromSemanticGraph = (
             ]),
           ),
         ),
-        entries => makeObjectType('', Object.fromEntries(entries)),
+        entries => makeObjectType(Object.fromEntries(entries)),
       )
     }
   }
@@ -869,7 +857,7 @@ const mergeTypeParametersByKeyPath = (
       // Merge all type(s) at this key path into a (simplified) union.
       const supposedTypeParametersAsArray = [
         ...simplifyUnionType(
-          makeUnionType(typeParameters.name, [
+          makeUnionType([
             ...typeParameters.members,
             ...valueFromB.typeParameters.members,
           ]),
@@ -889,10 +877,7 @@ const mergeTypeParametersByKeyPath = (
 
       result.set(key, {
         keyPath,
-        typeParameters: makeUnionType(
-          typeParameters.name,
-          supposedTypeParametersAsArray,
-        ),
+        typeParameters: makeUnionType(supposedTypeParametersAsArray),
       })
     }
   }
@@ -960,7 +945,7 @@ const atomKeyPathComponentFromType = (
                 ...type.constraint,
                 assignableTo:
                   typeof validAssignableTo === 'string' ?
-                    makeUnionType('', [validAssignableTo])
+                    makeUnionType([validAssignableTo])
                   : validAssignableTo,
               },
             }),
@@ -1009,7 +994,7 @@ const asUnionWithLiteralAtomMembers = (
 
   return !isAtomUnion ?
       option.none
-    : option.makeSome(makeUnionType(simplifiedType.name, atomMembers))
+    : option.makeSome(makeUnionType(atomMembers))
 }
 
 const stringifyKeyPathComponentForEndUser = (

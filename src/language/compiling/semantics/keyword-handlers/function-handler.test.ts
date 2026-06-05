@@ -31,7 +31,6 @@ elaborationSuite('@function', [
         elaboratedFunction.value.signature.parameter.kind,
         'parameter',
       )
-      assert.deepEqual(elaboratedFunction.value.signature.parameter.name, 'x')
       assert.deepEqual(
         elaboratedFunction.value.signature.return,
         elaboratedFunction.value.signature.parameter,

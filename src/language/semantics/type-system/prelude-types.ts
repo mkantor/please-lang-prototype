@@ -10,12 +10,12 @@ import {
   type UnionType,
 } from './type-formats.js'
 
-export const nothing = makeUnionType('nothing', []) // the bottom type
+export const nothing = makeUnionType([]) // the bottom type
 
 // `null` unfortunately can't be a variable name
-export const nullType = makeUnionType('null', ['null'])
+export const nullType = makeUnionType(['null'])
 
-export const boolean = makeUnionType('boolean', ['false', 'true'])
+export const boolean = makeUnionType(['false', 'true'])
 
 // The current type hierarchy for opaque types is:
 //  - atom
@@ -23,14 +23,14 @@ export const boolean = makeUnionType('boolean', ['false', 'true'])
 //      - natural_number
 
 export const atomTypeSymbol = Symbol('atom')
-export const atom = makeOpaqueType('atom', atomTypeSymbol, {
+export const atom = makeOpaqueType(atomTypeSymbol, {
   isAssignableFromLiteralType: (_literalType: string) => true,
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(integer),
   nearestOpaqueAssignableTo: () => optionAdt.none,
 })
 
 export const integerTypeSymbol = Symbol('integer')
-export const integer = makeOpaqueType('integer', integerTypeSymbol, {
+export const integer = makeOpaqueType(integerTypeSymbol, {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(naturalNumber),
@@ -38,18 +38,14 @@ export const integer = makeOpaqueType('integer', integerTypeSymbol, {
 })
 
 export const naturalNumberTypeSymbol = Symbol('natural_number')
-export const naturalNumber = makeOpaqueType(
-  'natural_number',
-  naturalNumberTypeSymbol,
-  {
-    isAssignableFromLiteralType: literalType =>
-      /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
-    nearestOpaqueAssignableFrom: () => optionAdt.none,
-    nearestOpaqueAssignableTo: () => optionAdt.makeSome(integer),
-  },
-)
+export const naturalNumber = makeOpaqueType(naturalNumberTypeSymbol, {
+  isAssignableFromLiteralType: literalType =>
+    /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
+  nearestOpaqueAssignableFrom: () => optionAdt.none,
+  nearestOpaqueAssignableTo: () => optionAdt.makeSome(integer),
+})
 
-export const object = makeObjectType('object', {})
+export const object = makeObjectType({})
 
 // `functionType` and `something` reference each other directly, so we need to
 // do a dance:
@@ -59,14 +55,14 @@ export const functionType: FunctionType = {} as FunctionType
 export const something: UnionType = {} as UnionType // the top type
 Object.assign(
   functionType,
-  makeFunctionType('function', {
+  makeFunctionType({
     parameter: nothing,
     return: something,
   }) satisfies FunctionType,
 )
 Object.assign(
   something,
-  makeUnionType('something', [functionType, atom, object]) satisfies UnionType,
+  makeUnionType([functionType, atom, object]) satisfies UnionType,
 )
 
 // Despite not being opaque, `something` gets a type symbol to avoid
@@ -81,26 +77,26 @@ export const typesBySymbol = {
 }
 
 export const option = (value: Type) =>
-  makeUnionType('', [
-    makeObjectType('some', {
-      tag: makeUnionType('', ['some']),
+  makeUnionType([
+    makeObjectType({
+      tag: makeUnionType(['some']),
       value,
     }),
-    makeObjectType('none', {
-      tag: makeUnionType('', ['none']),
-      value: makeObjectType('', {}),
+    makeObjectType({
+      tag: makeUnionType(['none']),
+      value: makeObjectType({}),
     }),
   ])
 
 const A = makeTypeParameter('a', { assignableTo: something })
 
-export const runtimeContext = makeObjectType('runtime_context', {
-  arguments: makeObjectType('', {
-    lookup: makeFunctionType('', { parameter: atom, return: option(atom) }),
+export const runtimeContext = makeObjectType({
+  arguments: makeObjectType({
+    lookup: makeFunctionType({ parameter: atom, return: option(atom) }),
   }),
-  environment: makeObjectType('', {
-    lookup: makeFunctionType('', { parameter: atom, return: option(atom) }),
+  environment: makeObjectType({
+    lookup: makeFunctionType({ parameter: atom, return: option(atom) }),
   }),
-  log: makeFunctionType('', { parameter: A, return: A }),
-  program: makeObjectType('', { start_time: atom }),
+  log: makeFunctionType({ parameter: A, return: A }),
+  program: makeObjectType({ start_time: atom }),
 })
