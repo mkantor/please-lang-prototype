@@ -22,6 +22,7 @@ import {
   makeTypeParameter,
   makeUnionType,
   matchTypeFormat,
+  type IndexedAccessType,
   type ObjectType,
   type Type,
   type TypeParameter,
@@ -97,25 +98,7 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
   } else if (typeof firstKey === 'object') {
     switch (firstKey.kind) {
       case 'parameter':
-        return remainingKeyPath.reduce(
-          (type, key) => {
-            if (typeof key === 'symbol') {
-              // TODO: Seems like this should either be allowed
-              // (`IndexedAccessType['key']` could be typed as
-              // `TypeKeyPath[number]`?) or handled better (this function could
-              // return an `Either`).
-              throw new Error(
-                'Type key path contained a symbol following a parameter. This is a bug!',
-              )
-            } else {
-              return makeIndexedAccessType(
-                type,
-                typeof key === 'string' ? makeUnionType([key]) : key,
-              )
-            }
-          },
-          makeIndexedAccessType(type, firstKey),
-        )
+        return nestedIndexedAccess(type, [firstKey, ...remainingKeyPath])
       case 'union':
         return makeUnionType(
           // Flatten to avoid nested unions.
@@ -180,9 +163,21 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
       opaque: _type => types.nothing,
       parameter: type => {
         if (typeof firstKey === 'string') {
-          // Type parameters do not have properties.
-          // TODO: Though perhaps I should drill into the constraint here?
-          return types.nothing
+          // Indexing into a type parameter yields a stuck (object-neutral)
+          // indexed access, kept dependent on the parameter so it can be reduced
+          // once the parameter is instantiated. This is only done when the key
+          // path is valid for the parameter's constraint; otherwise the property
+          // genuinely doesn't exist.
+          const typeAtKeyPathInConstraint = applyKeyPathToType(
+            type.constraint.assignableTo,
+            keyPath,
+          )
+          return (
+              typeAtKeyPathInConstraint.kind === 'union' &&
+                typeAtKeyPathInConstraint.members.size === 0
+            ) ?
+              types.nothing
+            : nestedIndexedAccess(type, [firstKey, ...remainingKeyPath])
         } else {
           switch (firstKey) {
             case typeParameterAssignableToConstraintKey:
@@ -995,6 +990,40 @@ const asUnionWithLiteralAtomMembers = (
   return !isAtomUnion ?
       option.none
     : option.makeSome(makeUnionType(atomMembers))
+}
+
+const indexedAccessFromTypeKeyPathEntry = (
+  object: Type,
+  key: TypeKeyPath[number],
+): IndexedAccessType => {
+  if (typeof key === 'symbol') {
+    // TODO: Seems like this should either be allowed
+    // (`IndexedAccessType['key']` could be typed as `TypeKeyPath[number]`?) or
+    // handled better (this function could return an `Either`).
+    throw new Error(
+      'Type key path contained a symbol following a parameter. This is a bug!',
+    )
+  } else {
+    return makeIndexedAccessType(
+      object,
+      typeof key === 'string' ? makeUnionType([key]) : key,
+    )
+  }
+}
+
+/**
+ * Build a left-nested `IndexedAccessType` projecting `keyPath` out of `object`.
+ */
+const nestedIndexedAccess = (
+  object: Type,
+  keyPath: readonly [TypeKeyPath[number], ...TypeKeyPath],
+): IndexedAccessType => {
+  const [firstKey, ...remainingKeyPath] = keyPath
+  const firstIndexedAccess = indexedAccessFromTypeKeyPathEntry(object, firstKey)
+  return remainingKeyPath.reduce(
+    indexedAccessFromTypeKeyPathEntry,
+    firstIndexedAccess,
+  )
 }
 
 const stringifyKeyPathComponentForEndUser = (
