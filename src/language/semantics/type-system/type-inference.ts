@@ -366,11 +366,14 @@ const inferTypeImplementation = (
               ),
             )
             const applicationIsStuck =
-              // When the applied function is itself a bare type parameter, an
-              // eager return type would lose track of which concrete function
-              // is supplied, so the application should stay stuck until that
-              // type parameter is instantiated.
+              // When the applied function is directly typed as a non-concrete
+              // function (it's a bare type parameter or a stuck indexed
+              // access/application), an eager return type would lose track of
+              // which concrete function is supplied, so the application should
+              // stay stuck until requisite type parameters are instantiated.
               appliedFunctionType.kind === 'parameter' ||
+              appliedFunctionType.kind === 'indexedAccess' ||
+              appliedFunctionType.kind === 'application' ||
               // Also keep the application stuck if a free type parameter (e.g.
               // from an enclosing function's signature) would escape into the
               // return value. The type parameter must be mentioned in the

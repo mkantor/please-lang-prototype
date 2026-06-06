@@ -646,11 +646,15 @@ export const applicableFunctionSignatures = (
             ),
           option.makeSome([]),
         ),
-
-    // TODO: Determine when stuck types will provably reduce to function types.
-    application: _ => option.none,
-    indexedAccess: _ => option.none,
-
+    // A stuck application/indexed access is applicable when its upper bound is.
+    application: type =>
+      applicableFunctionSignatures(
+        replaceAllTypeParametersWithTheirConstraints(type),
+      ),
+    indexedAccess: type =>
+      applicableFunctionSignatures(
+        replaceAllTypeParametersWithTheirConstraints(type),
+      ),
     object: _ => option.none,
     opaque: _ => option.none,
   })
