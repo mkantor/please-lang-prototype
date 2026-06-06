@@ -618,30 +618,29 @@ export const applicableFunctionSignature = (
 
 /**
  * Attempt to reduce a (possibly stuck) application of `functionType(argument)`.
- * When the applied function's return type only depends on its own parameter
- * type, applying it results in a concrete return type. Otherwise the
- * application remains stuck.
+ * While the function still contains any of the `flexibleParameters` (type
+ * parameters an enclosing function will instantiate), the application stays
+ * stuck. Once they're all gone the function is applied: any of its own type
+ * parameters are bound from the argument, and type parameters appearing only in
+ * the return legitimately remain.
  */
-const reduceApplication = (functionType: Type, argumentType: Type): Type => {
-  if (functionType.kind === 'function') {
-    const parameterIdentities = typeParameterIdentitiesWithinType(
-      functionType.signature.parameter,
-    )
-    const returnIsDeterminedByParameter = [
-      ...typeParameterIdentitiesWithinType(functionType.signature.return),
-    ].every(identity => parameterIdentities.has(identity))
-    return returnIsDeterminedByParameter ?
-        supplyTypeArguments(
-          functionType.signature.return,
-          getTypesForTypeParameters({
-            parameterType: functionType.signature.parameter,
-            argumentType: argumentType,
-          }),
-        )
-      : makeApplicationType(functionType, argumentType)
-  } else {
-    return makeApplicationType(functionType, argumentType)
-  }
+const reduceApplication = (
+  functionType: Type,
+  argumentType: Type,
+  flexibleParameters: ReadonlySet<symbol>,
+): Type => {
+  const stillAwaitingFlexibleParameter = [
+    ...typeParameterIdentitiesWithinType(functionType),
+  ].some(identity => flexibleParameters.has(identity))
+  return !stillAwaitingFlexibleParameter && functionType.kind === 'function' ?
+      supplyTypeArguments(
+        functionType.signature.return,
+        getTypesForTypeParameters({
+          parameterType: functionType.signature.parameter,
+          argumentType: argumentType,
+        }),
+      )
+    : makeApplicationType(functionType, argumentType, flexibleParameters)
 }
 
 /**
@@ -689,6 +688,7 @@ export const supplyTypeArgument = (
         reduceApplication(
           supplyTypeArgument(type.function, typeParameter, typeArgument),
           supplyTypeArgument(type.argument, typeParameter, typeArgument),
+          type.flexibleParameters,
         ),
       indexedAccess: type =>
         either.match(

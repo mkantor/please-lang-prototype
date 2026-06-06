@@ -67,12 +67,22 @@ const indexedAccessBoolean = makeIndexedAccessType(
   }),
 )
 
+const applicationFunctionParameter = makeTypeParameter('a', {
+  assignableTo: something,
+})
+const applicationReturnParameter = makeTypeParameter('b', {
+  assignableTo: boolean,
+})
 const applicationBoolean = makeApplicationType(
   makeFunctionType({
-    parameter: makeTypeParameter('a', { assignableTo: something }),
-    return: makeTypeParameter('b', { assignableTo: boolean }),
+    parameter: applicationFunctionParameter,
+    return: applicationReturnParameter,
   }),
   makeUnionType(['true']),
+  new Set([
+    applicationFunctionParameter.identity,
+    applicationReturnParameter.identity,
+  ]),
 )
 
 testCases(

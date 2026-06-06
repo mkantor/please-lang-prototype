@@ -41,22 +41,30 @@ export const makeIndexedAccessType = (
 
 /**
  * A stuck application (i.e. `function(argument)`), produced when an `@apply`
- * can't be fully resolved because the applied function's type depends on a type
- * parameter belonging to an enclosing (not-yet-applied) function.
+ * can't be fully resolved because the applied function's type depends on type
+ * parameters belonging to enclosing (not-yet-applied) functions.
+ *
+ * `flexibleParameters` holds the `identity`s of those type parameters. The
+ * application stays stuck while its `function` still contains any of them, and
+ * reduces once they have all been substituted away (leaving only the applied
+ * function's own rigid parameters, which may remain in the result).
  */
 export type ApplicationType = {
   readonly kind: 'application'
   readonly function: Type
   readonly argument: Type
+  readonly flexibleParameters: ReadonlySet<symbol>
 }
 
 export const makeApplicationType = (
   functionType: Type,
   argument: Type,
+  flexibleParameters: ReadonlySet<symbol>,
 ): ApplicationType => ({
   kind: 'application',
   function: functionType,
   argument,
+  flexibleParameters,
 })
 
 export type ObjectType = {
