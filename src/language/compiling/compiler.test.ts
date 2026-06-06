@@ -1239,4 +1239,26 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ false
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

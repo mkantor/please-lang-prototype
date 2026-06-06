@@ -13,6 +13,7 @@ import {
 } from './prelude-types.js'
 import { isAssignable, simplifyUnionType } from './subtyping.js'
 import {
+  makeApplicationType,
   makeFunctionType,
   makeIndexedAccessType,
   makeObjectType,
@@ -64,6 +65,14 @@ const indexedAccessBoolean = makeIndexedAccessType(
   makeTypeParameter('key', {
     assignableTo: makeUnionType(['a', 'b']),
   }),
+)
+
+const applicationBoolean = makeApplicationType(
+  makeFunctionType({
+    parameter: makeTypeParameter('a', { assignableTo: something }),
+    return: makeTypeParameter('b', { assignableTo: boolean }),
+  }),
+  makeUnionType(['true']),
 )
 
 testCases(
@@ -141,6 +150,21 @@ typeAssignabilitySuite('indexed-access types (not assignable)', [
   // have `boolean` assigned to it as it's *specifically* either `true` or
   // `false` depending on how its type parameter is instantiated.
   [[boolean, indexedAccessBoolean], false],
+])
+
+typeAssignabilitySuite('application types (assignable)', [
+  [[applicationBoolean, boolean], true],
+  [[applicationBoolean, atom], true],
+  [[applicationBoolean, something], true],
+])
+
+typeAssignabilitySuite('application types (not assignable)', [
+  [[applicationBoolean, makeUnionType(['true'])], false],
+  [[makeUnionType(['true']), applicationBoolean], false],
+
+  // As with stuck indexed accesses, `boolean` can't be assigned to a stuck
+  // application even though the application's upper bound is `boolean`.
+  [[boolean, applicationBoolean], false],
 ])
 
 typeAssignabilitySuite('prelude types (not assignable)', [

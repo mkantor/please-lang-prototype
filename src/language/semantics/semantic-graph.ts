@@ -8,6 +8,7 @@ import type {
 import type { Atom, Molecule, SyntaxTree } from '../parsing.js'
 import {
   ignoredKey,
+  makeApplyExpression,
   makeFunctionExpression,
   makeIndexExpression,
   makeLookupExpression,
@@ -315,6 +316,11 @@ export const typeToSemanticGraph = (
   const recurseWithSameTypeParameters = (type: Type) =>
     typeToSemanticGraph(type, alreadyIntroducedTypeParameterIdentities)
   return matchTypeFormat(type, {
+    application: type =>
+      makeApplyExpression({
+        function: recurseWithSameTypeParameters(type.function),
+        argument: recurseWithSameTypeParameters(type.argument),
+      }),
     function: type =>
       makeFunctionExpression(
         objectNodeFromOrderedEntries([
