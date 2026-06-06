@@ -23,6 +23,7 @@ import {
   makeTypeParameter,
   makeUnionType,
   matchTypeFormat,
+  type FunctionType,
   type IndexedAccessType,
   type ObjectType,
   type Type,
@@ -600,6 +601,20 @@ export const typeParameterIdentitiesWithinType = (
       [...typeParameters.members].map(typeParameter => typeParameter.identity),
     ),
   )
+
+/**
+ * If `type` is something that can be applied, return its signature.
+ */
+export const applicableFunctionSignature = (
+  type: Type,
+): Option<FunctionType['signature']> =>
+  type.kind === 'function' ? option.makeSome(type.signature)
+  : (
+    type.kind === 'parameter' &&
+    type.constraint.assignableTo.kind === 'function'
+  ) ?
+    option.makeSome(type.constraint.assignableTo.signature)
+  : option.none
 
 /**
  * Attempt to reduce a (possibly stuck) application of `functionType(argument)`.

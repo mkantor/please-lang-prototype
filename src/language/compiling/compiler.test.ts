@@ -1261,4 +1261,36 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `{
+      apply_to_true: (f: (?g: :something.type ~> :something.type)) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: (?g: :something.type ~> :something.type)) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ false
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: (?g: :something.type ~> :something.type)) => :f(true)
+      :apply_to_true(@runtime { _ => _ => false }) ~ false
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
