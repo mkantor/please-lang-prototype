@@ -119,8 +119,24 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
     }
   } else {
     return matchTypeFormat<Type>(type, {
-      // TODO: Recurse into the application's reduction once that's reachable.
-      application: _type => types.nothing,
+      application: applicationType => {
+        // Indexing into a stuck application stays stuck, provided the key path
+        // is valid for the application's upper bound. Otherwise the property
+        // definitely doesn't exist.
+        const typeAtKeyPathInUpperBound = applyKeyPathToType(
+          replaceAllTypeParametersWithTheirConstraints(applicationType),
+          keyPath,
+        )
+        return (
+            typeAtKeyPathInUpperBound.kind === 'union' &&
+              typeAtKeyPathInUpperBound.members.size === 0
+          ) ?
+            types.nothing
+          : nestedIndexedAccess(applicationType, [
+              firstKey,
+              ...remainingKeyPath,
+            ])
+      },
       function: type => {
         if (typeof firstKey === 'string') {
           // Functions do not have properties.

@@ -31,10 +31,17 @@ export const isAssignable = ({
     source === target || // in this case there's no reason to spend time checking structural assignability
     matchTypeFormat(source, {
       application: source =>
-        isAssignable({
-          source: replaceAllTypeParametersWithTheirConstraints(source),
-          target,
-        }),
+        target.kind === 'application' ?
+          // Two stuck applications are assignable when their functions and
+          // arguments are mutually assignable.
+          isAssignable({ source: source.function, target: target.function }) &&
+          isAssignable({ source: target.function, target: source.function }) &&
+          isAssignable({ source: source.argument, target: target.argument }) &&
+          isAssignable({ source: target.argument, target: source.argument })
+        : isAssignable({
+            source: replaceAllTypeParametersWithTheirConstraints(source),
+            target,
+          }),
       function: source =>
         matchTypeFormat(target, {
           function: target => {

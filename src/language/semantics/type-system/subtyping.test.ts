@@ -84,6 +84,18 @@ const applicationBoolean = makeApplicationType(
     applicationReturnParameter.identity,
   ]),
 )
+// Same as above:
+const applicationBoolean2 = makeApplicationType(
+  makeFunctionType({
+    parameter: applicationFunctionParameter,
+    return: applicationReturnParameter,
+  }),
+  makeUnionType(['true']),
+  new Set([
+    applicationFunctionParameter.identity,
+    applicationReturnParameter.identity,
+  ]),
+)
 
 testCases(
   (type: UnionType) => stringifyTypeForEndUser(simplifyUnionType(type)),
@@ -166,6 +178,8 @@ typeAssignabilitySuite('application types (assignable)', [
   [[applicationBoolean, boolean], true],
   [[applicationBoolean, atom], true],
   [[applicationBoolean, something], true],
+  // A stuck application is assignable to an identical one.
+  [[applicationBoolean, applicationBoolean2], true],
 ])
 
 typeAssignabilitySuite('application types (not assignable)', [

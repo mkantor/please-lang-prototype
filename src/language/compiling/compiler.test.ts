@@ -1317,4 +1317,42 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `{
+      lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).foo
+      :lookup_foo(@runtime { _ => _ => { foo: 42 } }) ~ 42
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).foo
+      :lookup_foo(@runtime { _ => _ => { foo: 42 } }) ~ 43
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).bar }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ outer: (f: ?a ~> ?b) => ((g: :f(true)) => :g)(:f(true)) }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
