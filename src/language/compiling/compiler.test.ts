@@ -1355,4 +1355,52 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      test: (f: (:something.type ~> :integer.type) | (:something.type ~> :boolean.type)) =>
+        :f(_)
+      :test(@runtime { _ => _ => 42 }) ~ :integer.type
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      test: (f: (:something.type ~> :integer.type) | (:something.type ~> :boolean.type)) =>
+        :f(_)
+      :test(@runtime { _ => _ => 42 }) ~ :boolean.type
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      apply_natural: (f:
+        (:integer.type ~> :something.type) | (:natural_number.type ~> :something.type)
+      ) => :f(5)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_natural: (f:
+        (:integer.type ~> :something.type) | (:natural_number.type ~> :something.type)
+      ) => :f(-1)
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

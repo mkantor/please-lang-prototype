@@ -2,7 +2,7 @@ import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import {
-  applicableFunctionSignature,
+  applicableFunctionSignatures,
   containsAnyUnelaboratedNodes,
   getTypesForTypeParameters,
   inferType,
@@ -68,9 +68,19 @@ export const applyKeywordHandler: KeywordHandler = (
           location: [...context.location, '1', 'function'],
         }),
         functionType =>
-          option.match(applicableFunctionSignature(functionType), {
-            some: signature =>
-              checkArgumentType(argument, signature.parameter, context),
+          option.match(applicableFunctionSignatures(functionType), {
+            // The function may resolve to several possible signatures (e.g. if
+            // it's a union of function types). The argument must be compatible
+            // with all possible parameter types.
+            some: signatures =>
+              either.map(
+                either.sequence(
+                  signatures.map(signature =>
+                    checkArgumentType(argument, signature.parameter, context),
+                  ),
+                ),
+                _ => undefined,
+              ),
             none: _ =>
               either.makeLeft({
                 kind: 'invalidExpression',

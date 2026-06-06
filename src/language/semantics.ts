@@ -105,7 +105,7 @@ export {
   type SemanticGraph,
 } from './semantics/semantic-graph.js'
 export {
-  applicableFunctionSignature,
+  applicableFunctionSignatures,
   applyKeyPathToType,
   containedTypeParameters,
   getTypesForTypeParameters,

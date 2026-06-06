@@ -6,7 +6,7 @@ export {
   resolveParameterTypes,
 } from './type-system/type-inference.js'
 export {
-  applicableFunctionSignature,
+  applicableFunctionSignatures,
   applyKeyPathToType,
   containedTypeParameters,
   functionParameterKey,

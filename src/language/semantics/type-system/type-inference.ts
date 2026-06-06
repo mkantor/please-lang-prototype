@@ -36,9 +36,10 @@ import {
   makeObjectType,
   makeUnionType,
   type Type,
+  type UnionType,
 } from './type-formats.js'
 import {
-  applicableFunctionSignature,
+  applicableFunctionSignatures,
   applyKeyPathToType,
   containedTypeParameters,
   functionParameterKey,
@@ -310,8 +311,23 @@ const inferTypeImplementation = (
     if (either.isRight(inferredFunctionType)) {
       const appliedFunctionType = inferredFunctionType.value
 
-      return option.match(applicableFunctionSignature(appliedFunctionType), {
-        some: ({ parameter: parameterType, return: returnType }) => {
+      return option.match(applicableFunctionSignatures(appliedFunctionType), {
+        some: signatures => {
+          const {
+            parameter: combinedParameterType,
+            return: combinedReturnType,
+          } =
+            signatures.length === 1 && signatures[0] !== undefined ?
+              signatures[0]
+            : {
+                parameter: flatUnionOf(
+                  signatures.map(signature => signature.parameter),
+                ),
+                return: flatUnionOf(
+                  signatures.map(signature => signature.return),
+                ),
+              }
+
           const argumentTypeResult = inferTypeImplementation(
             applyExpressionResult.value[1].argument,
             parameterTypes,
@@ -322,11 +338,11 @@ const inferTypeImplementation = (
             // Supply type arguments to the return type based on the inferred
             // argument type.
             const typeArguments = getTypesForTypeParameters({
-              parameterType,
+              parameterType: combinedParameterType,
               argumentType: argumentTypeResult.value,
             })
             const eagerReturnType = supplyTypeArguments(
-              returnType,
+              combinedReturnType,
               typeArguments,
             )
             const boundTypeParameters = new Set(
@@ -379,7 +395,7 @@ const inferTypeImplementation = (
               ),
             )
           } else {
-            return cacheOnSuccess(either.makeRight(returnType))
+            return cacheOnSuccess(either.makeRight(combinedReturnType))
           }
         },
         none: _ => either.makeRight(types.something),
@@ -648,3 +664,8 @@ const enclosingExpressionFromPropertyOfExpressionArgument = ({
     )
   }
 }
+
+const flatUnionOf = (types: readonly Type[]): UnionType =>
+  makeUnionType(
+    types.flatMap(type => (type.kind === 'union' ? [...type.members] : [type])),
+  )
