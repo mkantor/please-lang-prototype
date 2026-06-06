@@ -31,12 +31,14 @@ import {
 import * as types from './prelude-types.js'
 import {
   makeFunctionType,
+  makeIndexedAccessType,
   makeObjectType,
   makeUnionType,
   type Type,
 } from './type-formats.js'
 import {
   applyKeyPathToType,
+  containedTypeParameters,
   functionParameterKey,
   genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
@@ -234,6 +236,7 @@ const inferTypeImplementation = (
   // @index: infer object type, look up appropriate type by key path.
   const indexExpressionResult = readIndexExpression(node)
   if (either.isRight(indexExpressionResult)) {
+    const query = indexExpressionResult.value[1].query
     return cacheOnSuccess(
       either.flatMap(
         inferTypeImplementation(
@@ -245,7 +248,7 @@ const inferTypeImplementation = (
         objectType =>
           either.map(
             typeKeyPathFromObjectNode(
-              indexExpressionResult.value[1].query,
+              query,
               descendantContext(['1', 'query']),
               (node, context) =>
                 inferTypeImplementation(
@@ -386,6 +389,26 @@ const inferTypeImplementation = (
             return inferThen()
           } else if (isAssignable({ source: conditionType, target: 'false' })) {
             return inferElse()
+          } else if (containedTypeParameters(conditionType).size > 0) {
+            // The condition depends on a type parameter, so keep the choice
+            // unresolved as an indexed access into a boolean-keyed object.
+            // This expression:
+            // ```
+            // @if { :a, b, c }
+            // ```
+            // Is equivalent type-wise to this expression:
+            // ```
+            // { true: b, false: c }.:a
+            // ```
+            return either.flatMap(inferThen(), thenType =>
+              either.map(inferElse(), elseType =>
+                makeIndexedAccessType(
+                  '',
+                  makeObjectType('', { false: elseType, true: thenType }),
+                  conditionType,
+                ),
+              ),
+            )
           } else {
             const membersOf = (type: Type) =>
               type.kind === 'union' ? [...type.members] : [type]

@@ -87,25 +87,36 @@ export const applyTypeKeyPathToSemanticGraph = (
 ): Option<SemanticGraph> => {
   const [firstKey, ...remainingKeyPath] = keyPath
   if (firstKey === undefined) {
-    // If the key path is empty, this is the type we're looking for.
+    // If the key path is empty, this is the node we're looking for.
     return option.makeSome(node)
   } else if (typeof firstKey === 'object') {
-    return option.map(
-      option.sequence(
-        [...firstKey.members].map(firstKeyMember =>
-          applyTypeKeyPathToSemanticGraph(node, [
-            firstKeyMember,
-            ...remainingKeyPath,
-          ]),
-        ),
-      ),
-      foundNodes =>
-        makeUnionExpression(
-          objectNodeFromOrderedEntries(
-            foundNodes.map((node, index) => [String(index), node]),
+    switch (firstKey.kind) {
+      case 'parameter':
+        // Use the constraint.
+        // TODO: Make sure this is actually sound. It's currently not exposed
+        // because the `@index` handler bails early on unelaborated queries.
+        return applyTypeKeyPathToSemanticGraph(node, [
+          firstKey.constraint.assignableTo,
+          ...remainingKeyPath,
+        ])
+      case 'union':
+        return option.map(
+          option.sequence(
+            [...firstKey.members].map(firstKeyMember =>
+              applyTypeKeyPathToSemanticGraph(node, [
+                firstKeyMember,
+                ...remainingKeyPath,
+              ]),
+            ),
           ),
-        ),
-    )
+          foundNodes =>
+            makeUnionExpression(
+              objectNodeFromOrderedEntries(
+                foundNodes.map((node, index) => [String(index), node]),
+              ),
+            ),
+        )
+    }
   } else {
     return matchSemanticGraph(node, {
       // If it's an `Atom` or `TypeSymbol` but we have a non-empty path, we
@@ -311,6 +322,13 @@ export const typeToSemanticGraph = (
         ]),
         recurseWithSameTypeParameters(type.signature.return),
       ),
+    indexedAccess: type =>
+      makeIndexExpression({
+        object: recurseWithSameTypeParameters(type.object),
+        query: objectNodeFromOrderedEntries([
+          ['0', recurseWithSameTypeParameters(type.key)],
+        ]),
+      }),
     object: type =>
       objectNodeFromOrderedEntries(
         Object.entries(type.children).map(([key, value]) => [

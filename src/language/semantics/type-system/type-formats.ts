@@ -23,6 +23,28 @@ export const makeFunctionType = <Signature extends FunctionType['signature']>(
   signature,
 })
 
+/**
+ * A stuck projection (i.e. `object[key]`), produced when an `@index` or `@if`
+ * can't be fully resolved because its key/condition contains a type parameter.
+ */
+export type IndexedAccessType = {
+  readonly name: string
+  readonly kind: 'indexedAccess'
+  readonly object: Type
+  readonly key: Type
+}
+
+export const makeIndexedAccessType = (
+  name: string,
+  object: Type,
+  key: Type,
+): IndexedAccessType => ({
+  name,
+  kind: 'indexedAccess',
+  object,
+  key,
+})
+
 export type ObjectType = {
   readonly name: string
   readonly kind: 'object'
@@ -73,6 +95,9 @@ export const makeOpaqueType = (
     isAssignableFrom: source =>
       matchTypeFormat(source, {
         function: _ => false,
+        // TODO: Use the stuck index's upper bound once the cycle with
+        // `type-utilities.ts` can be avoided. Conservative (sound) for now.
+        indexedAccess: _ => false,
         object: _ => false,
         opaque: source =>
           source === self ||
@@ -99,6 +124,7 @@ export const makeOpaqueType = (
     isAssignableTo: target =>
       matchTypeFormat(target, {
         function: _ => false,
+        indexedAccess: _ => false,
         object: _ => false,
         opaque: target =>
           target === self ||
@@ -202,6 +228,7 @@ export const makeUnionType = <Member extends Atom | Exclude<Type, UnionType>>(
 
 export type Type =
   | FunctionType
+  | IndexedAccessType
   | ObjectType
   | OpaqueType
   | TypeParameter
@@ -211,6 +238,7 @@ export const matchTypeFormat = <Result>(
   type: Type,
   cases: {
     function: (type: FunctionType) => Result
+    indexedAccess: (type: IndexedAccessType) => Result
     object: (type: ObjectType) => Result
     opaque: (type: OpaqueType) => Result
     parameter: (type: TypeParameter) => Result
@@ -219,6 +247,8 @@ export const matchTypeFormat = <Result>(
 ): Result => {
   switch (type.kind) {
     case 'function':
+      return cases[type.kind](type)
+    case 'indexedAccess':
       return cases[type.kind](type)
     case 'object':
       return cases[type.kind](type)
