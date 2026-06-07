@@ -54,8 +54,8 @@ export const globalFunctions = {
     ['apply'],
     {
       parameter: A,
-      return: makeFunctionType('', {
-        parameter: makeFunctionType('', { parameter: A, return: B }),
+      return: makeFunctionType({
+        parameter: makeFunctionType({ parameter: A, return: B }),
         return: B,
       }),
     },
@@ -78,7 +78,7 @@ export const globalFunctions = {
     ['assume'],
     {
       parameter: A,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.something,
         return: A,
       }),
@@ -111,16 +111,16 @@ export const globalFunctions = {
   flow: preludeFunctionArity3(
     ['flow'],
     {
-      parameter: makeFunctionType('', {
+      parameter: makeFunctionType({
         parameter: B,
         return: C,
       }),
-      return: makeFunctionType('', {
-        parameter: makeFunctionType('', {
+      return: makeFunctionType({
+        parameter: makeFunctionType({
           parameter: A,
           return: B,
         }),
-        return: makeFunctionType('', {
+        return: makeFunctionType({
           parameter: A,
           return: C,
         }),
@@ -167,8 +167,8 @@ export const globalFunctions = {
       //  - The final return type should be a union or all the return types from
       //    the first parameter.
       parameter: types.object,
-      return: makeFunctionType('', {
-        parameter: makeObjectType('', {
+      return: makeFunctionType({
+        parameter: makeObjectType({
           tag: types.atom,
           value: types.something,
         }),

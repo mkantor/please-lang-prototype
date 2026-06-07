@@ -21,7 +21,6 @@ export const natural_number = {
         (
           typeof argument === 'string' &&
             types.naturalNumber.isAssignableFrom({
-              name: '',
               kind: 'union',
               members: new Set([argument]),
             })
@@ -42,7 +41,6 @@ export const natural_number = {
         (
           typeof argument === 'string' &&
             types.naturalNumber.isAssignableFrom({
-              name: '',
               kind: 'union',
               members: new Set([argument]),
             })
@@ -62,7 +60,7 @@ export const natural_number = {
     ['natural_number', 'modulo'],
     {
       parameter: types.naturalNumber,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.naturalNumber,
         return: types.naturalNumber,
       }),
@@ -70,7 +68,7 @@ export const natural_number = {
     number2 => {
       if (
         typeof number2 !== 'string' ||
-        !types.naturalNumber.isAssignableFrom(makeUnionType('', [number2]))
+        !types.naturalNumber.isAssignableFrom(makeUnionType([number2]))
       ) {
         return either.makeLeft({
           kind: 'typeMismatch',
@@ -80,7 +78,7 @@ export const natural_number = {
         return either.makeRight(number1 => {
           if (
             typeof number1 !== 'string' ||
-            !types.naturalNumber.isAssignableFrom(makeUnionType('', [number1]))
+            !types.naturalNumber.isAssignableFrom(makeUnionType([number1]))
           ) {
             return either.makeLeft({
               kind: 'typeMismatch',

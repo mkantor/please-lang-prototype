@@ -4,7 +4,6 @@ import type { Atom } from '../../parsing.js'
 import type { TypeSymbol } from '../semantic-graph.js'
 
 export type FunctionType = {
-  readonly name: string
   readonly kind: 'function'
   readonly signature: {
     readonly parameter: Type
@@ -13,12 +12,10 @@ export type FunctionType = {
 }
 
 export const makeFunctionType = <Signature extends FunctionType['signature']>(
-  name: string,
   signature: Signature,
 ): FunctionType & {
   readonly signature: Signature
 } => ({
-  name,
   kind: 'function',
   signature,
 })
@@ -28,40 +25,33 @@ export const makeFunctionType = <Signature extends FunctionType['signature']>(
  * can't be fully resolved because its key/condition contains a type parameter.
  */
 export type IndexedAccessType = {
-  readonly name: string
   readonly kind: 'indexedAccess'
   readonly object: Type
   readonly key: Type
 }
 
 export const makeIndexedAccessType = (
-  name: string,
   object: Type,
   key: Type,
 ): IndexedAccessType => ({
-  name,
   kind: 'indexedAccess',
   object,
   key,
 })
 
 export type ObjectType = {
-  readonly name: string
   readonly kind: 'object'
   readonly children: Readonly<Record<Atom, Type>>
 }
 
 export const makeObjectType = <Children extends Readonly<Record<Atom, Type>>>(
-  name: string,
   children: Children,
 ): ObjectType & { readonly children: Children } => ({
-  name,
   kind: 'object',
   children,
 })
 
 export type OpaqueType = {
-  readonly name: string
   readonly symbol: TypeSymbol
   readonly kind: 'opaque'
   readonly isAssignableFrom: (source: Type) => boolean
@@ -69,7 +59,6 @@ export type OpaqueType = {
 }
 
 export const makeOpaqueType = (
-  name: string,
   symbol: TypeSymbol,
   subtyping: {
     readonly isAssignableFromLiteralType: (literalType: string) => boolean
@@ -89,7 +78,6 @@ export const makeOpaqueType = (
   ),
 ): OpaqueType => {
   const self: OpaqueType = {
-    name,
     symbol,
     kind: 'opaque',
     isAssignableFrom: source =>
@@ -203,7 +191,6 @@ export const isTypeParameter = (value: unknown): value is TypeParameter => {
 }
 
 export type UnionType = {
-  readonly name: string
   readonly kind: 'union'
   readonly members: ReadonlySet<
     Atom | Exclude<Type, UnionType> // unions are always flat
@@ -218,10 +205,8 @@ type SpecificUnionType<Member extends Atom | Exclude<Type, UnionType>> = Omit<
 }
 
 export const makeUnionType = <Member extends Atom | Exclude<Type, UnionType>>(
-  name: string,
   members: readonly Member[],
 ): SpecificUnionType<Member> => ({
-  name,
   kind: 'union',
   members: new Set(members),
 })

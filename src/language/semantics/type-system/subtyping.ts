@@ -23,9 +23,9 @@ export const isAssignable = ({
   readonly target: Type | Atom
 }): boolean => {
   const source =
-    typeof rawSource === 'string' ? makeUnionType('', [rawSource]) : rawSource
+    typeof rawSource === 'string' ? makeUnionType([rawSource]) : rawSource
   const target =
-    typeof rawTarget === 'string' ? makeUnionType('', [rawTarget]) : rawTarget
+    typeof rawTarget === 'string' ? makeUnionType([rawTarget]) : rawTarget
 
   return (
     source === target || // in this case there's no reason to spend time checking structural assignability
@@ -215,7 +215,7 @@ export const isAssignable = ({
                         target: targetMember,
                         source:
                           typeof sourceMember !== 'string' ? sourceMember : (
-                            makeUnionType(sourceMember, [sourceMember])
+                            makeUnionType([sourceMember])
                           ),
                       })
                     ) {
@@ -360,12 +360,12 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
           )
         })
         const propertyTypeAsUnion = excludeRedundantUnionTypeMembers(
-          makeUnionType('', typesForThisProperty),
+          makeUnionType(typesForThisProperty),
         )
         return [key, propertyTypeAsUnion] as const
       }),
     )
-    const mergedObjectType = makeObjectType('', mergedObjectTypeChildren)
+    const mergedObjectType = makeObjectType(mergedObjectTypeChildren)
 
     // Remove all `typesToMerge` from `canonicalizedTargetMembers`.
     for (const typeWhichHasBeenMerged of typesToMerge) {
@@ -376,7 +376,6 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
 
   return excludeRedundantUnionTypeMembers({
     kind: 'union',
-    name: typeToSimplify.name,
     members: canonicalizedTargetMembers,
   })
 }
@@ -384,7 +383,6 @@ export const simplifyUnionType = (typeToSimplify: UnionType): UnionType => {
 const excludeRedundantUnionTypeMembers = (type: UnionType) => {
   const membersAsArray = [...type.members]
   return makeUnionType(
-    type.name,
     membersAsArray.filter(
       (possiblyRedundantMember, index) =>
         // If `possiblyRedundantMember` is assignable to any other member,

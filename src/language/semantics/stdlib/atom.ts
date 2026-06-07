@@ -14,7 +14,7 @@ export const atom = {
     ['atom', 'append'],
     {
       parameter: types.atom,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.atom,
         return: types.atom,
       }),
@@ -48,7 +48,7 @@ export const atom = {
     ['atom', 'equals'],
     {
       parameter: types.atom,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.atom,
         return: types.boolean,
       }),
@@ -98,7 +98,7 @@ export const atom = {
     ['atom', 'prepend'],
     {
       parameter: types.atom,
-      return: makeFunctionType('', {
+      return: makeFunctionType({
         parameter: types.atom,
         return: types.atom,
       }),
