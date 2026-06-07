@@ -1229,4 +1229,14 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `{
+      lookup_within: (object: (?o: { a: :something.type })) => :object.a
+      :lookup_within(@runtime { _ => { a: true } }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
