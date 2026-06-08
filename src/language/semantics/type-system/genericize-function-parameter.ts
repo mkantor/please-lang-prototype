@@ -74,6 +74,7 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
     parameter: leafType => leafType,
     application: leafType => leafType,
     indexedAccess: leafType => leafType,
+    intrinsicApplication: leafType => leafType,
     union: leafType =>
       makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
         assignableTo: leafType,

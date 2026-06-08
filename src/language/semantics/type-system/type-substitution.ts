@@ -1,11 +1,14 @@
-import either from '@matt.kantor/either'
+import either, { type Either } from '@matt.kantor/either'
 import option, { type Option } from '@matt.kantor/option'
 import type { Writable } from '../../../utility-types.js'
+import type { Atom } from '../../parsing.js'
+import type { FunctionNodeCallError } from '../function-node.js'
 import { nothing, something } from './prelude-types.js'
-import { isAssignable } from './subtyping.js'
+import { asUnionWithLiteralAtomMembers, isAssignable } from './subtyping.js'
 import {
   makeApplicationType,
   makeFunctionType,
+  makeIntrinsicApplicationType,
   makeObjectType,
   makeTypeParameter,
   makeUnionType,
@@ -74,6 +77,25 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
           ) ?
             nothing
           : nestedIndexedAccess(applicationType, [
+              firstKey,
+              ...remainingKeyPath,
+            ])
+      },
+      intrinsicApplication: intrinsicApplicationType => {
+        // As with `ApplicationType`s, indexing stays stuck while the key path
+        // is valid for the upper bound. Otherwise the property doesn't exist.
+        const typeAtKeyPathInUpperBound = applyKeyPathToType(
+          replaceAllTypeParametersWithTheirConstraints(
+            intrinsicApplicationType,
+          ),
+          keyPath,
+        )
+        return (
+            typeAtKeyPathInUpperBound.kind === 'union' &&
+              typeAtKeyPathInUpperBound.members.size === 0
+          ) ?
+            nothing
+          : nestedIndexedAccess(intrinsicApplicationType, [
               firstKey,
               ...remainingKeyPath,
             ])
@@ -179,18 +201,20 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
 export const replaceAllTypeParametersWithTheirConstraints = (
   type: Type,
 ): Type =>
-  // TODO: Specialize this implementation to only traverse `type` once
-  [...containedTypeParameters(type).values()]
-    .flatMap(({ typeParameters }) => [...typeParameters.members])
-    .reduce(
-      (partiallyAppliedType, typeParameter) =>
-        supplyTypeArgument(
-          partiallyAppliedType,
-          typeParameter,
-          typeParameter.constraint.assignableTo,
-        ),
-      type,
-    )
+  type.kind === 'intrinsicApplication' ?
+    replaceAllTypeParametersWithTheirConstraints(type.upperBound)
+    // TODO: Specialize the below to only traverse `type` once.
+  : [...containedTypeParameters(type).values()]
+      .flatMap(({ typeParameters }) => [...typeParameters.members])
+      .reduce<Type>(
+        (partiallyAppliedType, typeParameter) =>
+          supplyTypeArgument(
+            partiallyAppliedType,
+            typeParameter,
+            typeParameter.constraint.assignableTo,
+          ),
+        type,
+      )
 
 /**
  * Finds concrete types for the `TypeParameter`s in `parameter` by locating the
@@ -210,6 +234,11 @@ export const getTypesForTypeParameters = ({
   // Avoid infinite recursion when we hit the top type.
   if (parameterType === something) {
     return new Map()
+  } else if (argumentType.kind === 'intrinsicApplication') {
+    return getTypesForTypeParameters({
+      parameterType,
+      argumentType: replaceAllTypeParametersWithTheirConstraints(argumentType),
+    })
   } else {
     return matchTypeFormat(parameterType, {
       function: parameterType =>
@@ -255,6 +284,9 @@ export const getTypesForTypeParameters = ({
       // argument from an enclosing function that hasn't been applied, so no
       // bindings are inferred from it.
       application: _ => new Map(),
+
+      // Likewise, a stuck intrinsic application yields no bindings.
+      intrinsicApplication: _ => new Map(),
 
       parameter: parameterType =>
         (
@@ -349,6 +381,10 @@ export const applicableFunctionSignatures = (
       applicableFunctionSignatures(
         replaceAllTypeParametersWithTheirConstraints(type),
       ),
+    intrinsicApplication: type =>
+      applicableFunctionSignatures(
+        replaceAllTypeParametersWithTheirConstraints(type),
+      ),
     object: _ => option.none,
     opaque: _ => option.none,
   })
@@ -378,6 +414,53 @@ const reduceApplication = (
         }),
       )
     : makeApplicationType(functionType, argumentType, flexibleParameters)
+}
+
+const cartesianProduct = <Element>(lists: readonly (readonly Element[])[]) =>
+  lists.reduce<readonly (readonly Element[])[]>(
+    (tuples, list) =>
+      tuples.flatMap(tuple => list.map(value => [...tuple, value])),
+    [[]],
+  )
+
+/**
+ * Attempt to reduce a (possibly stuck) intrinsic application.
+ */
+const reduceIntrinsicApplication = (
+  parameterTypes: readonly Type[],
+  reduce: (
+    argumentValues: readonly Atom[],
+  ) => Either<FunctionNodeCallError, Type>,
+  upperBound: Type,
+): Type => {
+  const argumentValues = parameterTypes.map(type =>
+    type.kind !== 'union' ? option.none : asUnionWithLiteralAtomMembers(type),
+  )
+  const stuck = makeIntrinsicApplicationType(parameterTypes, reduce, upperBound)
+  return option.match(option.sequence(argumentValues), {
+    none: _ => stuck,
+    some: argumentValues =>
+      either.match(
+        either.sequence(
+          cartesianProduct(argumentValues.map(union => [...union.members])).map(
+            reduce,
+          ),
+        ),
+        {
+          left: _ => stuck,
+          right: resultTypes =>
+            resultTypes.length === 1 && resultTypes[0] !== undefined ?
+              resultTypes[0]
+            : makeUnionType(
+                resultTypes.flatMap(resultType =>
+                  resultType.kind === 'union' ?
+                    [...resultType.members]
+                  : [resultType],
+                ),
+              ),
+        },
+      ),
+  })
 }
 
 /**
@@ -427,22 +510,38 @@ export const supplyTypeArgument = (
           supplyTypeArgument(type.argument, typeParameter, typeArgument),
           type.flexibleParameters,
         ),
-      indexedAccess: type =>
-        either.match(
-          atomKeyPathComponentFromType(
-            supplyTypeArgument(type.key, typeParameter, typeArgument),
+      intrinsicApplication: type =>
+        reduceIntrinsicApplication(
+          type.parameterTypes.map(parameterType =>
+            supplyTypeArgument(parameterType, typeParameter, typeArgument),
           ),
-          {
-            left: _ =>
-              // TODO: Should this trigger an error?
-              nothing,
-            right: key =>
-              applyKeyPathToType(
-                supplyTypeArgument(type.object, typeParameter, typeArgument),
-                [key],
-              ),
-          },
+          type.reduce,
+          supplyTypeArgument(type.upperBound, typeParameter, typeArgument),
         ),
+      indexedAccess: type => {
+        const substitutedKey = supplyTypeArgument(
+          type.key,
+          typeParameter,
+          typeArgument,
+        )
+        // A stuck intrinsic application used as a key (e.g. an `atom.equals`
+        // application) is reduced to its upper bound so indexing can proceed
+        // (e.g. `{ false: …, true: … }[boolean]`).
+        const keyForIndexing =
+          substitutedKey.kind === 'intrinsicApplication' ?
+            replaceAllTypeParametersWithTheirConstraints(substitutedKey)
+          : substitutedKey
+        return either.match(atomKeyPathComponentFromType(keyForIndexing), {
+          left: _ =>
+            // TODO: Should this trigger an error?
+            nothing,
+          right: key =>
+            applyKeyPathToType(
+              supplyTypeArgument(type.object, typeParameter, typeArgument),
+              [key],
+            ),
+        })
+      },
       opaque: type => type,
       parameter: type =>
         type.identity === typeParameter.identity ? typeArgument : type,

@@ -66,6 +66,10 @@ const containedTypeParametersImplementation = (
           containedTypeParametersImplementation(type.object, root),
           containedTypeParametersImplementation(type.key, root),
         ),
+      intrinsicApplication: type =>
+        [...type.parameterTypes, type.upperBound]
+          .map(type => containedTypeParametersImplementation(type, root))
+          .reduce(mergeTypeParametersByKeyPath, new Map()),
       opaque: _ => new Map(),
       parameter: type =>
         mergeTypeParametersByKeyPath(
@@ -163,6 +167,16 @@ const findKeyPathsToTypeParameterImplementation = (
             root,
           ),
         ]),
+      intrinsicApplication: type =>
+        new Set(
+          [...type.parameterTypes, type.upperBound].flatMap(type => [
+            ...findKeyPathsToTypeParameterImplementation(
+              type,
+              typeParameterToFind,
+              root,
+            ),
+          ]),
+        ),
       opaque: _ => new Set(),
       parameter: type =>
         new Set([

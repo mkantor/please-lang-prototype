@@ -1,12 +1,12 @@
 import either, { type Either } from '@matt.kantor/either'
-import option, { type Option } from '@matt.kantor/option'
+import option from '@matt.kantor/option'
 import type { ElaborationError, TypeMismatchError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import { quoteAtomIfNecessary } from '../../unparsing/plz-utilities.js'
 import type { ExpressionContext } from '../expression-elaboration.js'
 import type { ObjectNode } from '../object-node.js'
 import type { SemanticGraph } from '../semantic-graph.js'
-import { simplifyUnionType } from './subtyping.js'
+import { asUnionWithLiteralAtomMembers } from './subtyping.js'
 import {
   makeFunctionType,
   makeIndexedAccessType,
@@ -123,6 +123,7 @@ export const updateTypeAtKeyPathIfValid = (
       },
       application: type => type,
       indexedAccess: type => type,
+      intrinsicApplication: type => type,
       object: type => {
         if (typeof firstKey === 'string') {
           const next = type.children[firstKey]
@@ -210,6 +211,11 @@ export const atomKeyPathComponentFromType = (
         kind: 'typeMismatch',
         message: `${type.kind} types are not valid key path components`,
       }),
+    intrinsicApplication: _ =>
+      either.makeLeft({
+        kind: 'typeMismatch',
+        message: `${type.kind} types are not valid key path components`,
+      }),
     object: _ =>
       either.makeLeft({
         kind: 'typeMismatch',
@@ -225,6 +231,7 @@ export const atomKeyPathComponentFromType = (
         case 'application':
         case 'function':
         case 'indexedAccess':
+        case 'intrinsicApplication':
         case 'object':
         case 'opaque':
           return either.makeLeft({
@@ -270,28 +277,6 @@ export const atomKeyPathComponentFromType = (
       )
     },
   })
-
-/**
- * Returns a narrowed version of the `UnionType` if all of its members are
- * literal atom types.
- */
-const asUnionWithLiteralAtomMembers = (
-  type: UnionType,
-): Option<
-  Omit<UnionType, 'members'> & { readonly members: ReadonlySet<Atom> }
-> => {
-  const simplifiedType = simplifyUnionType(type)
-
-  const atomMembers = [...simplifiedType.members].filter(
-    member => typeof member === 'string',
-  )
-
-  const isAtomUnion = atomMembers.length === simplifiedType.members.size
-
-  return !isAtomUnion ?
-      option.none
-    : option.makeSome(makeUnionType(atomMembers))
-}
 
 const indexedAccessFromTypeKeyPathEntry = (
   object: Type,
