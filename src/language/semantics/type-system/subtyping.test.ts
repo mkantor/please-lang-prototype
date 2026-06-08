@@ -13,6 +13,7 @@ import {
 } from './prelude-types.js'
 import { isAssignable, simplifyUnionType } from './subtyping.js'
 import {
+  makeApplicationType,
   makeFunctionType,
   makeIndexedAccessType,
   makeObjectType,
@@ -64,6 +65,36 @@ const indexedAccessBoolean = makeIndexedAccessType(
   makeTypeParameter('key', {
     assignableTo: makeUnionType(['a', 'b']),
   }),
+)
+
+const applicationFunctionParameter = makeTypeParameter('a', {
+  assignableTo: something,
+})
+const applicationReturnParameter = makeTypeParameter('b', {
+  assignableTo: boolean,
+})
+const applicationBoolean = makeApplicationType(
+  makeFunctionType({
+    parameter: applicationFunctionParameter,
+    return: applicationReturnParameter,
+  }),
+  makeUnionType(['true']),
+  new Set([
+    applicationFunctionParameter.identity,
+    applicationReturnParameter.identity,
+  ]),
+)
+// Same as above:
+const applicationBoolean2 = makeApplicationType(
+  makeFunctionType({
+    parameter: applicationFunctionParameter,
+    return: applicationReturnParameter,
+  }),
+  makeUnionType(['true']),
+  new Set([
+    applicationFunctionParameter.identity,
+    applicationReturnParameter.identity,
+  ]),
 )
 
 testCases(
@@ -141,6 +172,23 @@ typeAssignabilitySuite('indexed-access types (not assignable)', [
   // have `boolean` assigned to it as it's *specifically* either `true` or
   // `false` depending on how its type parameter is instantiated.
   [[boolean, indexedAccessBoolean], false],
+])
+
+typeAssignabilitySuite('application types (assignable)', [
+  [[applicationBoolean, boolean], true],
+  [[applicationBoolean, atom], true],
+  [[applicationBoolean, something], true],
+  // A stuck application is assignable to an identical one.
+  [[applicationBoolean, applicationBoolean2], true],
+])
+
+typeAssignabilitySuite('application types (not assignable)', [
+  [[applicationBoolean, makeUnionType(['true'])], false],
+  [[makeUnionType(['true']), applicationBoolean], false],
+
+  // As with stuck indexed accesses, `boolean` can't be assigned to a stuck
+  // application even though the application's upper bound is `boolean`.
+  [[boolean, applicationBoolean], false],
 ])
 
 typeAssignabilitySuite('prelude types (not assignable)', [

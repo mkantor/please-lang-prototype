@@ -1239,4 +1239,120 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ false
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: (?g: :something.type ~> :something.type)) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ true
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: (?g: :something.type ~> :something.type)) => :f(true)
+      :apply_to_true(@runtime { _ => a => :a }) ~ false
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: (?g: :something.type ~> :something.type)) => :f(true)
+      :apply_to_true(@runtime { _ => _ => false }) ~ false
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      first: x => _y => :x
+      :apply_to_true(@runtime { _ => :first }) ~ (:something.type ~> true)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      first: x => _y => :x
+      :apply_to_true(@runtime { _ => :first }) ~ (:something.type ~> false)
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).foo
+      :lookup_foo(@runtime { _ => _ => { foo: 42 } }) ~ 42
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).foo
+      :lookup_foo(@runtime { _ => _ => { foo: 42 } }) ~ 43
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).bar }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ outer: (f: ?a ~> ?b) => ((g: :f(true)) => :g)(:f(true)) }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

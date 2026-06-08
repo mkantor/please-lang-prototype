@@ -30,6 +30,18 @@ export const isAssignable = ({
   return (
     source === target || // in this case there's no reason to spend time checking structural assignability
     matchTypeFormat(source, {
+      application: source =>
+        target.kind === 'application' ?
+          // Two stuck applications are assignable when their functions and
+          // arguments are mutually assignable.
+          isAssignable({ source: source.function, target: target.function }) &&
+          isAssignable({ source: target.function, target: source.function }) &&
+          isAssignable({ source: source.argument, target: target.argument }) &&
+          isAssignable({ source: target.argument, target: source.argument })
+        : isAssignable({
+            source: replaceAllTypeParametersWithTheirConstraints(source),
+            target,
+          }),
       function: source =>
         matchTypeFormat(target, {
           function: target => {
@@ -138,6 +150,7 @@ export const isAssignable = ({
               )
             }
           },
+          application: _target => false,
           indexedAccess: _target => false,
           object: _target => false, // functions are never assignable to objects
           opaque: target => target.isAssignableFrom(source),
@@ -152,6 +165,7 @@ export const isAssignable = ({
       object: source =>
         matchTypeFormat(target, {
           function: _ => false, // objects are never assignable to functions
+          application: _ => false,
           indexedAccess: _ => false,
           object: target => {
             // Make sure all properties in the target are present and valid in
@@ -195,6 +209,8 @@ export const isAssignable = ({
       union: source =>
         matchTypeFormat(target, {
           function: target => isUnionAssignableToNonUnion({ source, target }),
+          application: target =>
+            isUnionAssignableToNonUnion({ source, target }),
           indexedAccess: target =>
             isUnionAssignableToNonUnion({ source, target }),
           object: target => isUnionAssignableToNonUnion({ source, target }),

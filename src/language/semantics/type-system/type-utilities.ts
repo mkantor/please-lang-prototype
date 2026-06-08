@@ -16,12 +16,14 @@ import { types } from '../type-system.js'
 import { typesBySymbol } from './prelude-types.js'
 import { isAssignable, simplifyUnionType } from './subtyping.js'
 import {
+  makeApplicationType,
   makeFunctionType,
   makeIndexedAccessType,
   makeObjectType,
   makeTypeParameter,
   makeUnionType,
   matchTypeFormat,
+  type FunctionType,
   type IndexedAccessType,
   type ObjectType,
   type Type,
@@ -117,6 +119,24 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
     }
   } else {
     return matchTypeFormat<Type>(type, {
+      application: applicationType => {
+        // Indexing into a stuck application stays stuck, provided the key path
+        // is valid for the application's upper bound. Otherwise the property
+        // definitely doesn't exist.
+        const typeAtKeyPathInUpperBound = applyKeyPathToType(
+          replaceAllTypeParametersWithTheirConstraints(applicationType),
+          keyPath,
+        )
+        return (
+            typeAtKeyPathInUpperBound.kind === 'union' &&
+              typeAtKeyPathInUpperBound.members.size === 0
+          ) ?
+            types.nothing
+          : nestedIndexedAccess(applicationType, [
+              firstKey,
+              ...remainingKeyPath,
+            ])
+      },
       function: type => {
         if (typeof firstKey === 'string') {
           // Functions do not have properties.
@@ -274,6 +294,7 @@ const genericizeFunctionParameterAnnotationAtKeyPath = (
         assignableTo: leafType,
       }),
     parameter: leafType => leafType,
+    application: leafType => leafType,
     indexedAccess: leafType => leafType,
     union: leafType =>
       makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
@@ -315,6 +336,11 @@ const containedTypeParametersImplementation = (
             containedTypeParametersImplementation(child, [...root, key]),
           )
           .reduce(mergeTypeParametersByKeyPath, new Map()),
+      application: type =>
+        mergeTypeParametersByKeyPath(
+          containedTypeParametersImplementation(type.function, root),
+          containedTypeParametersImplementation(type.argument, root),
+        ),
       indexedAccess: type =>
         mergeTypeParametersByKeyPath(
           containedTypeParametersImplementation(type.object, root),
@@ -391,6 +417,19 @@ const findKeyPathsToTypeParameterImplementation = (
             (accumulator, paths) => new Set([...accumulator, ...paths]),
             new Set(),
           ),
+      application: type =>
+        new Set([
+          ...findKeyPathsToTypeParameterImplementation(
+            type.function,
+            typeParameterToFind,
+            root,
+          ),
+          ...findKeyPathsToTypeParameterImplementation(
+            type.argument,
+            typeParameterToFind,
+            root,
+          ),
+        ]),
       indexedAccess: type =>
         new Set([
           ...findKeyPathsToTypeParameterImplementation(
@@ -509,6 +548,11 @@ export const getTypesForTypeParameters = ({
       // I could perhaps use it to drill into the argument type. Is that sound?
       indexedAccess: _ => new Map(),
 
+      // A application type in a function parameter is necessarily stuck on an
+      // argument from an enclosing function that hasn't been applied, so no
+      // bindings are inferred from it.
+      application: _ => new Map(),
+
       parameter: parameterType =>
         (
           isAssignable({
@@ -565,6 +609,56 @@ export const getTypesForTypeParameters = ({
   }
 }
 
+export const typeParameterIdentitiesWithinType = (
+  type: Type,
+): ReadonlySet<symbol> =>
+  new Set(
+    [...containedTypeParameters(type).values()].flatMap(({ typeParameters }) =>
+      [...typeParameters.members].map(typeParameter => typeParameter.identity),
+    ),
+  )
+
+/**
+ * If `type` is something that can be applied, return its signature.
+ */
+export const applicableFunctionSignature = (
+  type: Type,
+): Option<FunctionType['signature']> =>
+  type.kind === 'function' ? option.makeSome(type.signature)
+  : (
+    type.kind === 'parameter' &&
+    type.constraint.assignableTo.kind === 'function'
+  ) ?
+    option.makeSome(type.constraint.assignableTo.signature)
+  : option.none
+
+/**
+ * Attempt to reduce a (possibly stuck) application of `functionType(argument)`.
+ * While the function still contains any of the `flexibleParameters` (type
+ * parameters an enclosing function will instantiate), the application stays
+ * stuck. Once they're all gone the function is applied: any of its own type
+ * parameters are bound from the argument, and type parameters appearing only in
+ * the return legitimately remain.
+ */
+const reduceApplication = (
+  functionType: Type,
+  argumentType: Type,
+  flexibleParameters: ReadonlySet<symbol>,
+): Type => {
+  const stillAwaitingFlexibleParameter = [
+    ...typeParameterIdentitiesWithinType(functionType),
+  ].some(identity => flexibleParameters.has(identity))
+  return !stillAwaitingFlexibleParameter && functionType.kind === 'function' ?
+      supplyTypeArguments(
+        functionType.signature.return,
+        getTypesForTypeParameters({
+          parameterType: functionType.signature.parameter,
+          argumentType: argumentType,
+        }),
+      )
+    : makeApplicationType(functionType, argumentType, flexibleParameters)
+}
+
 /**
  * Substitute the given `typeParameter` with the given `typeArgument` within
  * `type`, recursively visiting object properties, union members, etc.
@@ -606,6 +700,12 @@ export const supplyTypeArgument = (
         }
         return makeObjectType(substitutedChildren)
       },
+      application: type =>
+        reduceApplication(
+          supplyTypeArgument(type.function, typeParameter, typeArgument),
+          supplyTypeArgument(type.argument, typeParameter, typeArgument),
+          type.flexibleParameters,
+        ),
       indexedAccess: type =>
         either.match(
           atomKeyPathComponentFromType(
@@ -716,6 +816,7 @@ export const updateTypeAtKeyPathIfValid = (
             return type
         }
       },
+      application: type => type,
       indexedAccess: type => type,
       object: type => {
         if (typeof firstKey === 'string') {
@@ -902,6 +1003,11 @@ const atomKeyPathComponentFromType = (
   type: Type,
 ): Either<TypeMismatchError, AtomKeyPathComponent> =>
   matchTypeFormat<Either<TypeMismatchError, AtomKeyPathComponent>>(type, {
+    application: _ =>
+      either.makeLeft({
+        kind: 'typeMismatch',
+        message: `${type.kind} types are not valid key path components`,
+      }),
     function: _ =>
       either.makeLeft({
         kind: 'typeMismatch',
@@ -924,6 +1030,7 @@ const atomKeyPathComponentFromType = (
       }),
     parameter: type => {
       switch (type.constraint.assignableTo.kind) {
+        case 'application':
         case 'function':
         case 'indexedAccess':
         case 'object':

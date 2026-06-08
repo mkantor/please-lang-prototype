@@ -1,6 +1,8 @@
 import either, { type Either } from '@matt.kantor/either'
+import option from '@matt.kantor/option'
 import type { ElaborationError } from '../../../errors.js'
 import {
+  applicableFunctionSignature,
   containsAnyUnelaboratedNodes,
   getTypesForTypeParameters,
   inferType,
@@ -66,16 +68,15 @@ export const applyKeywordHandler: KeywordHandler = (
           location: [...context.location, '1', 'function'],
         }),
         functionType =>
-          functionType.kind === 'function' ?
-            checkArgumentType(
-              argument,
-              functionType.signature.parameter,
-              context,
-            )
-          : either.makeLeft({
-              kind: 'invalidExpression',
-              message: `only functions can be applied, but got a \`${stringifyTypeForEndUser(functionType)}\``,
-            }),
+          option.match(applicableFunctionSignature(functionType), {
+            some: signature =>
+              checkArgumentType(argument, signature.parameter, context),
+            none: _ =>
+              either.makeLeft({
+                kind: 'invalidExpression',
+                message: `only functions can be applied, but got a \`${stringifyTypeForEndUser(functionType)}\``,
+              }),
+          }),
       )
 
       return either.flatMap(

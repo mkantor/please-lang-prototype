@@ -30,6 +30,7 @@ import {
 } from '../expressions/function-expression.js'
 import * as types from './prelude-types.js'
 import {
+  makeApplicationType,
   makeFunctionType,
   makeIndexedAccessType,
   makeObjectType,
@@ -37,6 +38,7 @@ import {
   type Type,
 } from './type-formats.js'
 import {
+  applicableFunctionSignature,
   applyKeyPathToType,
   containedTypeParameters,
   functionParameterKey,
@@ -46,6 +48,7 @@ import {
   stringifyTypeKeyPathForEndUser,
   supplyTypeArguments,
   typeKeyPathFromObjectNode,
+  typeParameterIdentitiesWithinType,
 } from './type-utilities.js'
 
 /**
@@ -305,20 +308,10 @@ const inferTypeImplementation = (
       descendantContext(['1', 'function']),
     )
     if (either.isRight(inferredFunctionType)) {
-      const inferredFunctionTypeAsFunctionType =
-        inferredFunctionType.value.kind === 'function' ?
-          option.makeSome(inferredFunctionType.value)
-        : (
-          inferredFunctionType.value.kind === 'parameter' &&
-          inferredFunctionType.value.constraint.assignableTo.kind === 'function'
-        ) ?
-          option.makeSome(inferredFunctionType.value.constraint.assignableTo)
-        : option.none
+      const appliedFunctionType = inferredFunctionType.value
 
-      return option.match(inferredFunctionTypeAsFunctionType, {
-        some: ({
-          signature: { parameter: parameterType, return: returnType },
-        }) => {
+      return option.match(applicableFunctionSignature(appliedFunctionType), {
+        some: ({ parameter: parameterType, return: returnType }) => {
           const argumentTypeResult = inferTypeImplementation(
             applyExpressionResult.value[1].argument,
             parameterTypes,
@@ -328,15 +321,61 @@ const inferTypeImplementation = (
           if (either.isRight(argumentTypeResult)) {
             // Supply type arguments to the return type based on the inferred
             // argument type.
+            const typeArguments = getTypesForTypeParameters({
+              parameterType,
+              argumentType: argumentTypeResult.value,
+            })
+            const eagerReturnType = supplyTypeArguments(
+              returnType,
+              typeArguments,
+            )
+            const boundTypeParameters = new Set(
+              [...typeArguments.keys()].map(
+                typeParameter => typeParameter.identity,
+              ),
+            )
+            const flexibleTypeParameters = new Set(
+              [...parameterTypes.values()].flatMap(enclosingParameterType => [
+                ...typeParameterIdentitiesWithinType(enclosingParameterType),
+              ]),
+            )
+            const typeParametersMentionedInThisSignature =
+              typeParameterIdentitiesWithinType(appliedFunctionType)
+            // Flexible parameters this application requires to become unstuck,
+            // i.e. those of the applied function that an enclosing function
+            // will instantiate.
+            const flexibleParametersOfApplication = new Set(
+              [...typeParametersMentionedInThisSignature].filter(identity =>
+                flexibleTypeParameters.has(identity),
+              ),
+            )
+            const applicationIsStuck =
+              // When the applied function is itself a bare type parameter, an
+              // eager return type would lose track of which concrete function
+              // is supplied, so the application should stay stuck until that
+              // type parameter is instantiated.
+              appliedFunctionType.kind === 'parameter' ||
+              // Also keep the application stuck if a free type parameter (e.g.
+              // from an enclosing function's signature) would escape into the
+              // return value. The type parameter must be mentioned in the
+              // applied function's own type and mustn't have been instantiated
+              // by its argument. Such an application can only be reduced once
+              // the enclosing function is applied.
+              [...typeParameterIdentitiesWithinType(eagerReturnType)].some(
+                identity =>
+                  typeParametersMentionedInThisSignature.has(identity) &&
+                  flexibleTypeParameters.has(identity) &&
+                  !boundTypeParameters.has(identity),
+              )
             return cacheOnSuccess(
               either.makeRight(
-                supplyTypeArguments(
-                  returnType,
-                  getTypesForTypeParameters({
-                    parameterType,
-                    argumentType: argumentTypeResult.value,
-                  }),
-                ),
+                applicationIsStuck ?
+                  makeApplicationType(
+                    appliedFunctionType,
+                    argumentTypeResult.value,
+                    flexibleParametersOfApplication,
+                  )
+                : eagerReturnType,
               ),
             )
           } else {

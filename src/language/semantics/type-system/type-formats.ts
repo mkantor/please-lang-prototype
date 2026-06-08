@@ -39,6 +39,34 @@ export const makeIndexedAccessType = (
   key,
 })
 
+/**
+ * A stuck application (i.e. `function(argument)`), produced when an `@apply`
+ * can't be fully resolved because the applied function's type depends on type
+ * parameters belonging to enclosing (not-yet-applied) functions.
+ *
+ * `flexibleParameters` holds the `identity`s of those type parameters. The
+ * application stays stuck while its `function` still contains any of them, and
+ * reduces once they have all been substituted away (leaving only the applied
+ * function's own rigid parameters, which may remain in the result).
+ */
+export type ApplicationType = {
+  readonly kind: 'application'
+  readonly function: Type
+  readonly argument: Type
+  readonly flexibleParameters: ReadonlySet<symbol>
+}
+
+export const makeApplicationType = (
+  functionType: Type,
+  argument: Type,
+  flexibleParameters: ReadonlySet<symbol>,
+): ApplicationType => ({
+  kind: 'application',
+  function: functionType,
+  argument,
+  flexibleParameters,
+})
+
 export type ObjectType = {
   readonly kind: 'object'
   readonly children: Readonly<Record<Atom, Type>>
@@ -82,10 +110,12 @@ export const makeOpaqueType = (
     kind: 'opaque',
     isAssignableFrom: source =>
       matchTypeFormat(source, {
-        function: _ => false,
-        // TODO: Use the stuck index's upper bound once the cycle with
-        // `type-utilities.ts` can be avoided. Conservative (sound) for now.
+        // TODO: Use the stuck type's upper bound once the cycle with
+        // `type-utilities.ts` can be avoided.
+        application: _ => false,
         indexedAccess: _ => false,
+
+        function: _ => false,
         object: _ => false,
         opaque: source =>
           source === self ||
@@ -111,6 +141,7 @@ export const makeOpaqueType = (
       }),
     isAssignableTo: target =>
       matchTypeFormat(target, {
+        application: _ => false,
         function: _ => false,
         indexedAccess: _ => false,
         object: _ => false,
@@ -145,7 +176,7 @@ export type TypeParameter = {
   readonly identity: symbol
   readonly constraint: {
     readonly assignableTo: Type
-    // readonly assignableFrom: Type // TODO: implement lower bound constraints
+    // readonly assignableFrom: Type // TODO: Implement lower bound constraints.
   }
 }
 
@@ -212,6 +243,7 @@ export const makeUnionType = <Member extends Atom | Exclude<Type, UnionType>>(
 })
 
 export type Type =
+  | ApplicationType
   | FunctionType
   | IndexedAccessType
   | ObjectType
@@ -222,6 +254,7 @@ export type Type =
 export const matchTypeFormat = <Result>(
   type: Type,
   cases: {
+    application: (type: ApplicationType) => Result
     function: (type: FunctionType) => Result
     indexedAccess: (type: IndexedAccessType) => Result
     object: (type: ObjectType) => Result
@@ -231,6 +264,8 @@ export const matchTypeFormat = <Result>(
   },
 ): Result => {
   switch (type.kind) {
+    case 'application':
+      return cases[type.kind](type)
     case 'function':
       return cases[type.kind](type)
     case 'indexedAccess':
