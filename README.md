@@ -34,7 +34,8 @@ more backends to allow building native executables.
 
 ### Syntax
 
-A Please program is composed of atoms, objects, lookups, and functions.
+A Please program is primarily composed of atoms, objects, lookups, and
+functions.
 
 #### Atoms
 
@@ -207,7 +208,7 @@ desugars to `{ 0: "@lookup", 1: { key: foo } }`. All such expressions have a
 property named `0` referring to a value that is an `@`-prefixed atom (the
 keyword). Most keyword expressions also require a property named `1` to pass an
 argument to the expression. Keywords include `@apply`, `@check`, `@function`,
-`@if`, `@index`, `@lookup`, `@panic`, `@runtime`, and `@union`.
+`@hole`, `@if`, `@index`, `@lookup`, `@panic`, `@runtime`, and `@union`.
 
 In addition to the specific syntax sugars shown above, any keyword expression
 can be written using a generalized sugar:
@@ -220,7 +221,7 @@ can be written using a generalized sugar:
 
 Please is a functional programming language. Currently all functions are pure,
 with a sole exception: logging to stderr can happen from anywhere. The specific
-approach to modeling other runtime side effects is still to be decided.
+approach to modeling other runtime side effects is still to be decided[^3].
 
 Once desugared, a Please program is either an atom or an object. Please code is
 data in the same sense as in Lisp.
@@ -502,3 +503,8 @@ it approaches them over time.
 
 [^2]:
     Dynamic keys are checked. `{ 2: "Hello, World!" }.(1 + 41)` is a type error.
+
+[^3]:
+    It'll probably be
+    [monads](<https://en.wikipedia.org/wiki/Monad_(functional_programming)>),
+    but maybe an [effect system](https://en.wikipedia.org/wiki/Effect_system)?
