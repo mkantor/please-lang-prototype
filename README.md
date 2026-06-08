@@ -286,6 +286,44 @@ Types are values in Please, and can be created and transformed via any mechanism
 you'd apply to other values (you can return them from functions, pass them as
 arguments, use `@if` to base them on a condition, etc).
 
+Function types can be denoted using `~>` instead of `=>` to avoid naming the
+parameter, but this is merely syntax sugar. `a ~> b` is exactly equivalent to
+`(_: a) => b`.
+
+#### Generic Programming
+
+Please functions are generally generic, even when the parameter is explicitly
+annotated. Each part of the annotation becomes an implicit type parameter
+constrained by it, so the specific argument's type flows through to the return
+value:
+
+```plz
+{
+  identity_for_integers: (n: :integer.type) => :n
+  answer: :identity_for_integers(42) ~ 42 // return type is `42`, not `:integer.type`
+}
+```
+
+Un-annotated functions are generic with the top type (`:something.type`) as the
+implied constraint.
+
+When you need to refer to a type parameter explicitly (for example to share its
+identity across multiple expressions) introduce a "hole" with `?`:
+
+```plz
+{
+  apply2: a =>
+    (f: :a ~> ?b) =>
+    //   ^ refers to the implicit type parameter from the outermost function
+    (g: :b ~> ?c) =>
+    //   ^ refers to the type parameter introduced by `?b`
+      :g(:f(:a))
+}
+```
+
+A lone `?` is an anonymous hole, and `(?a: type)` introduces a hole with a
+constraint.
+
 ### Layering
 
 Please is a layered language. It can be thought of as a stack of three smaller
