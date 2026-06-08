@@ -1,14 +1,28 @@
 import either, { type Either } from '@matt.kantor/either'
 import type { Bug } from '../../errors.js'
-import { isKeywordExpressionWithArgument } from '../expression.js'
 import {
   getHoleTypeParameter,
   readHoleExpression,
 } from '../expressions/hole-expression.js'
+import { readUnionExpression } from '../expressions/union-expression.js'
 import type { SemanticGraph } from '../semantic-graph.js'
 import { typesBySymbol } from './prelude-types.js'
 import { makeObjectType, makeUnionType, type Type } from './type-formats.js'
 
+/**
+ * Attempt to interpret `node` as a `Type` in a very basic way:
+ * - `Atom`s become singleton `UnionType`s.
+ * - `TypeSymbol`s are translated back to their corresponding `Type`s.
+ * - `FunctionNode`s become `FunctionType`s with a corresponding signature.
+ * - `@union`-shaped `ObjectNode`s become `UnionType`s.
+ * - `@hole`-shaped `ObjectNode`s become `TypeParameter`s.
+ * - Everything else becomes an `ObjectType`.
+ *
+ * Note that other than `@union` and `@hole`, there is no specific expression
+ * handling here (e.g. `@function`-shaped `ObjectNode`s don't become
+ * `FunctionType`s, `@index`-shaped `ObjectNode`s don't `IndexedAccessType`s,
+ * etc). Use `inferType` instead when more sophisticated translation is desired.
+ */
 export const literalTypeFromSemanticGraph = (
   node: SemanticGraph,
 ): Either<Bug, Type> => {
@@ -32,45 +46,40 @@ export const literalTypeFromSemanticGraph = (
       signature: node.signature,
     })
   } else {
-    // TODO: It would be nice to use `readUnionExpression` here, but directly
-    // importing values from the *-expression.ts modules causes a dependency
-    // cycle. This needs investigation.
-    if (isKeywordExpressionWithArgument('@union', node)) {
-      return either.map(
-        either.sequence(
-          Object.values(node[1]).map(literalTypeFromSemanticGraph),
-        ),
-        memberTypes =>
-          makeUnionType(
-            memberTypes.flatMap(memberType =>
-              memberType.kind === 'union' ?
-                [...memberType.members]
-              : [memberType],
+    // Is it a `@union`?
+    return either.match(readUnionExpression(node), {
+      right: unionExpression =>
+        either.map(
+          either.sequence(
+            Object.values(unionExpression[1]).map(literalTypeFromSemanticGraph),
+          ),
+          memberTypes =>
+            makeUnionType(
+              memberTypes.flatMap(memberType =>
+                memberType.kind === 'union' ?
+                  [...memberType.members]
+                : [memberType],
+              ),
             ),
-          ),
-      )
-    } else if (isKeywordExpressionWithArgument('@hole', node)) {
-      return either.mapLeft(
-        either.map(readHoleExpression(node), getHoleTypeParameter),
-        error => ({
-          kind: 'bug',
-          message: '`@hole` expression was invalid',
-          cause: error,
-        }),
-      )
-    } else {
-      // `node` is an object type.
-      return either.map(
-        either.sequence(
-          Object.entries(node).map(([key, value]) =>
-            either.map(literalTypeFromSemanticGraph(value), childType => [
-              key,
-              childType,
-            ]),
-          ),
         ),
-        entries => makeObjectType(Object.fromEntries(entries)),
-      )
-    }
+      left: _ =>
+        // Is it a `@hole`?
+        either.flatMapLeft(
+          either.map(readHoleExpression(node), getHoleTypeParameter),
+          _ =>
+            // Interpret `node` as an object type.
+            either.map(
+              either.sequence(
+                Object.entries(node).map(([key, value]) =>
+                  either.map(literalTypeFromSemanticGraph(value), childType => [
+                    key,
+                    childType,
+                  ]),
+                ),
+              ),
+              entries => makeObjectType(Object.fromEntries(entries)),
+            ),
+        ),
+    })
   }
 }
