@@ -7,13 +7,15 @@ import {
   type Type,
   type UnionType,
 } from './type-formats.js'
+import { updateTypeAtKeyPathIfValid } from './type-key-path.js'
 import {
   containedTypeParameters,
   findKeyPathsToTypeParameter,
+} from './type-parameter-analysis.js'
+import {
   replaceAllTypeParametersWithTheirConstraints,
   supplyTypeArgument,
-  updateTypeAtKeyPathIfValid,
-} from './type-utilities.js'
+} from './type-substitution.js'
 
 export const isAssignable = ({
   source: rawSource,

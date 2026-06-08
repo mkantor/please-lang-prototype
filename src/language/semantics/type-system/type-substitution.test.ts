@@ -1,6 +1,7 @@
 import { testCases } from '../../../test-utilities.test.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from '../key-path.js'
 import { stringifyTypeForEndUser } from '../semantic-graph.js'
+import { genericizeFunctionParameterAnnotation } from './genericize-function-parameter.js'
 import {
   atom,
   integer,
@@ -20,9 +21,8 @@ import {
 } from './type-formats.js'
 import {
   applyKeyPathToType,
-  genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
-} from './type-utilities.js'
+} from './type-substitution.js'
 
 const A = makeTypeParameter('a', { assignableTo: something })
 const B = makeTypeParameter('b', { assignableTo: something })

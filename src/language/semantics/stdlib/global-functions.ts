@@ -14,12 +14,12 @@ import {
   type SemanticGraph,
 } from '../semantic-graph.js'
 import { isAssignable, types } from '../type-system.js'
+import { literalTypeFromSemanticGraph } from '../type-system/literal-type.js'
 import {
   makeFunctionType,
   makeObjectType,
   makeTypeParameter,
 } from '../type-system/type-formats.js'
-import { literalTypeFromSemanticGraph } from '../type-system/type-utilities.js'
 import {
   emptyContextForStdlibApplications,
   preludeFunctionArity1,

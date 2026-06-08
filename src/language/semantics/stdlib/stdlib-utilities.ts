@@ -16,12 +16,12 @@ import {
   containsAnyUnelaboratedNodes,
   type SemanticGraph,
 } from '../semantic-graph.js'
+import { literalTypeFromSemanticGraph } from '../type-system/literal-type.js'
 import { type FunctionType, type Type } from '../type-system/type-formats.js'
 import {
   getTypesForTypeParameters,
-  literalTypeFromSemanticGraph,
   supplyTypeArguments,
-} from '../type-system/type-utilities.js'
+} from '../type-system/type-substitution.js'
 
 const handleUnavailableDependencies =
   (f: FunctionNodeCallSignature) =>

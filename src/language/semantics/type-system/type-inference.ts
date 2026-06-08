@@ -28,6 +28,8 @@ import {
   getParameterTypeAnnotation,
   type FunctionExpression,
 } from '../expressions/function-expression.js'
+import { genericizeFunctionParameterAnnotation } from './genericize-function-parameter.js'
+import { literalTypeFromSemanticGraph } from './literal-type.js'
 import * as types from './prelude-types.js'
 import {
   makeApplicationType,
@@ -39,18 +41,20 @@ import {
   type UnionType,
 } from './type-formats.js'
 import {
+  functionParameterKey,
+  stringifyTypeKeyPathForEndUser,
+  typeKeyPathFromObjectNode,
+} from './type-key-path.js'
+import {
+  containedTypeParameters,
+  typeParameterIdentitiesWithinType,
+} from './type-parameter-analysis.js'
+import {
   applicableFunctionSignatures,
   applyKeyPathToType,
-  containedTypeParameters,
-  functionParameterKey,
-  genericizeFunctionParameterAnnotation,
   getTypesForTypeParameters,
-  literalTypeFromSemanticGraph,
-  stringifyTypeKeyPathForEndUser,
   supplyTypeArguments,
-  typeKeyPathFromObjectNode,
-  typeParameterIdentitiesWithinType,
-} from './type-utilities.js'
+} from './type-substitution.js'
 
 /**
  * Returns a `Map` of parameter names to their types for the function parameters
