@@ -406,13 +406,6 @@ const inferTypeImplementation = (
           }
         },
         none: _ => either.makeRight(types.something),
-        // TODO: Error instead once inference is comprehensive enough to do so
-        // without failing tests:
-        // none: _ =>
-        //   either.makeLeft({
-        //     kind: 'invalidExpression',
-        //     message: `cannot infer return type: only functions can be applied, but got a \`${stringifyTypeForEndUser(inferredFunctionType.value)}\``,
-        //   }),
       })
     }
   }
