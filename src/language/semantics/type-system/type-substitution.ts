@@ -150,8 +150,8 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
               })
             case functionParameterKey:
             case functionReturnKey:
-              // Type parameters aren't function types.
-              // TODO: Though perhaps I should drill into the constraint here?
+              // Type parameters aren't function types, and drilling into the
+              // constraint would lose precision.
               return nothing
           }
         }
