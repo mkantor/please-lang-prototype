@@ -90,6 +90,12 @@ export const makeOpaqueType = (
   symbol: TypeSymbol,
   subtyping: {
     readonly isAssignableFromLiteralType: (literalType: string) => boolean
+    // `upperBoundOfStuckType` is injected to avoid a
+    // cycle with `type-substitution.ts`. `makeOpaqueType` is called in static
+    // module scope from `prelude-types.ts`.
+    readonly upperBoundOfStuckType: (
+      type: ApplicationType | IndexedAccessType,
+    ) => Type
   } & (
     | {
         readonly nearestOpaqueAssignableFrom: () => None
@@ -110,10 +116,12 @@ export const makeOpaqueType = (
     kind: 'opaque',
     isAssignableFrom: source =>
       matchTypeFormat(source, {
-        // TODO: Use the stuck type's upper bound once the cycle with
-        // `type-substitution.ts` can be avoided.
-        application: _ => false,
-        indexedAccess: _ => false,
+        // A stuck application/indexed access is assignable to an opaque type
+        // when its concrete upper bound is.
+        application: source =>
+          self.isAssignableFrom(subtyping.upperBoundOfStuckType(source)),
+        indexedAccess: source =>
+          self.isAssignableFrom(subtyping.upperBoundOfStuckType(source)),
 
         function: _ => false,
         object: _ => false,

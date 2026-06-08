@@ -191,6 +191,16 @@ typeAssignabilitySuite('application types (not assignable)', [
   [[boolean, applicationBoolean], false],
 ])
 
+typeAssignabilitySuite('opaque type from stuck type (assignable)', [
+  [[makeUnionType([applicationBoolean]), atom], true],
+  [[makeUnionType([indexedAccessBoolean]), atom], true],
+])
+
+typeAssignabilitySuite('opaque type from stuck type (not assignable)', [
+  [[makeUnionType([applicationBoolean]), integer], false],
+  [[makeUnionType([indexedAccessBoolean]), integer], false],
+])
+
 typeAssignabilitySuite('prelude types (not assignable)', [
   [[nullType, nothing], false],
   [[nullType, boolean], false],
