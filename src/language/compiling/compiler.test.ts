@@ -1355,4 +1355,140 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      test: (f: (:something.type ~> :integer.type) | (:something.type ~> :boolean.type)) =>
+        :f(_)
+      :test(@runtime { _ => _ => 42 }) ~ :integer.type
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      test: (f: (:something.type ~> :integer.type) | (:something.type ~> :boolean.type)) =>
+        :f(_)
+      :test(@runtime { _ => _ => 42 }) ~ :boolean.type
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      apply_natural: (f:
+        (:integer.type ~> :something.type) | (:natural_number.type ~> :something.type)
+      ) => :f(5)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_natural: (f:
+        (:integer.type ~> :something.type) | (:natural_number.type ~> :something.type)
+      ) => :f(-1)
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      test: (object: {
+        a: :integer.type
+        f: :integer.type ~> :something.type
+      } | {
+        a: :boolean.type
+        f: :boolean.type ~> :something.type
+      }) => :object.f(:object.a)
+      :test({
+        a: @runtime { _ => true }
+        f: (x: :boolean.type) => @if { :x, yes, no }
+      }) ~ yes
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      test: (object: {
+        a: :integer.type
+        f: :integer.type ~> :something.type
+      } | {
+        a: :boolean.type
+        f: :boolean.type ~> :something.type
+      }) => :object.f(:object.a)
+      :test({
+        a: @runtime { _ => true }
+        f: (x: :boolean.type) => @if { :x, yes, no }
+      }) ~ no
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      test: (object: (?o: {
+        a: :boolean.type
+        f: :boolean.type ~> :something.type
+      })) => :object.f(:object.a)
+      :test(@runtime { _ => {
+        a: true
+        f: (x: :boolean.type) => @if { :x, yes, no }
+      }}) ~ yes
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      test: (object: {
+        a: :integer.type
+        f: :boolean.type ~> :something.type
+      } | {
+        a: :boolean.type
+        f: :integer.type ~> :something.type
+      }) => :object.f(:object.a)
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      test: (object: {
+        a: :integer.type
+        f: :integer.type ~> ?x
+      } | {
+        a: :boolean.type
+        f: :boolean.type ~> ?y
+      }) => :object.f(:object.a)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])

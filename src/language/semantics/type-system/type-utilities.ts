@@ -619,18 +619,45 @@ export const typeParameterIdentitiesWithinType = (
   )
 
 /**
- * If `type` is something that can be applied, return its signature.
+ * If `type` can be applied as a function, returns its signatures. Multiple
+ * signatures may be returned if `type` is a union or a type parameter
+ * constrained to a union. Returns `none` for anything that isn't applicable as
+ * a function.
  */
-export const applicableFunctionSignature = (
+export const applicableFunctionSignatures = (
   type: Type,
-): Option<FunctionType['signature']> =>
-  type.kind === 'function' ? option.makeSome(type.signature)
-  : (
-    type.kind === 'parameter' &&
-    type.constraint.assignableTo.kind === 'function'
-  ) ?
-    option.makeSome(type.constraint.assignableTo.signature)
-  : option.none
+): Option<readonly FunctionType['signature'][]> =>
+  matchTypeFormat(type, {
+    function: type => option.makeSome([type.signature]),
+    parameter: type =>
+      applicableFunctionSignatures(type.constraint.assignableTo),
+    union: type =>
+      type.members.size === 0 ?
+        option.none
+      : [...type.members].reduce<Option<readonly FunctionType['signature'][]>>(
+          (accumulated, member) =>
+            option.flatMap(accumulated, signaturesSoFar =>
+              typeof member === 'string' ?
+                option.none
+              : option.map(
+                  applicableFunctionSignatures(member),
+                  memberSignatures => [...signaturesSoFar, ...memberSignatures],
+                ),
+            ),
+          option.makeSome([]),
+        ),
+    // A stuck application/indexed access is applicable when its upper bound is.
+    application: type =>
+      applicableFunctionSignatures(
+        replaceAllTypeParametersWithTheirConstraints(type),
+      ),
+    indexedAccess: type =>
+      applicableFunctionSignatures(
+        replaceAllTypeParametersWithTheirConstraints(type),
+      ),
+    object: _ => option.none,
+    opaque: _ => option.none,
+  })
 
 /**
  * Attempt to reduce a (possibly stuck) application of `functionType(argument)`.

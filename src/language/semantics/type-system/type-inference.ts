@@ -36,9 +36,10 @@ import {
   makeObjectType,
   makeUnionType,
   type Type,
+  type UnionType,
 } from './type-formats.js'
 import {
-  applicableFunctionSignature,
+  applicableFunctionSignatures,
   applyKeyPathToType,
   containedTypeParameters,
   functionParameterKey,
@@ -310,8 +311,23 @@ const inferTypeImplementation = (
     if (either.isRight(inferredFunctionType)) {
       const appliedFunctionType = inferredFunctionType.value
 
-      return option.match(applicableFunctionSignature(appliedFunctionType), {
-        some: ({ parameter: parameterType, return: returnType }) => {
+      return option.match(applicableFunctionSignatures(appliedFunctionType), {
+        some: signatures => {
+          const {
+            parameter: combinedParameterType,
+            return: combinedReturnType,
+          } =
+            signatures.length === 1 && signatures[0] !== undefined ?
+              signatures[0]
+            : {
+                parameter: flatUnionOf(
+                  signatures.map(signature => signature.parameter),
+                ),
+                return: flatUnionOf(
+                  signatures.map(signature => signature.return),
+                ),
+              }
+
           const argumentTypeResult = inferTypeImplementation(
             applyExpressionResult.value[1].argument,
             parameterTypes,
@@ -322,11 +338,11 @@ const inferTypeImplementation = (
             // Supply type arguments to the return type based on the inferred
             // argument type.
             const typeArguments = getTypesForTypeParameters({
-              parameterType,
+              parameterType: combinedParameterType,
               argumentType: argumentTypeResult.value,
             })
             const eagerReturnType = supplyTypeArguments(
-              returnType,
+              combinedReturnType,
               typeArguments,
             )
             const boundTypeParameters = new Set(
@@ -350,11 +366,14 @@ const inferTypeImplementation = (
               ),
             )
             const applicationIsStuck =
-              // When the applied function is itself a bare type parameter, an
-              // eager return type would lose track of which concrete function
-              // is supplied, so the application should stay stuck until that
-              // type parameter is instantiated.
+              // When the applied function is directly typed as a non-concrete
+              // function (it's a bare type parameter or a stuck indexed
+              // access/application), an eager return type would lose track of
+              // which concrete function is supplied, so the application should
+              // stay stuck until requisite type parameters are instantiated.
               appliedFunctionType.kind === 'parameter' ||
+              appliedFunctionType.kind === 'indexedAccess' ||
+              appliedFunctionType.kind === 'application' ||
               // Also keep the application stuck if a free type parameter (e.g.
               // from an enclosing function's signature) would escape into the
               // return value. The type parameter must be mentioned in the
@@ -379,7 +398,7 @@ const inferTypeImplementation = (
               ),
             )
           } else {
-            return cacheOnSuccess(either.makeRight(returnType))
+            return cacheOnSuccess(either.makeRight(combinedReturnType))
           }
         },
         none: _ => either.makeRight(types.something),
@@ -648,3 +667,8 @@ const enclosingExpressionFromPropertyOfExpressionArgument = ({
     )
   }
 }
+
+const flatUnionOf = (types: readonly Type[]): UnionType =>
+  makeUnionType(
+    types.flatMap(type => (type.kind === 'union' ? [...type.members] : [type])),
+  )

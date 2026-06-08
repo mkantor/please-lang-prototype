@@ -105,7 +105,7 @@ export {
   type SemanticGraph,
 } from './semantics/semantic-graph.js'
 export {
-  applicableFunctionSignature,
+  applicableFunctionSignatures,
   applyKeyPathToType,
   containedTypeParameters,
   getTypesForTypeParameters,
@@ -116,6 +116,15 @@ export {
   resolveParameterTypes,
   supplyTypeArgument,
   supplyTypeArguments,
+  typeParameterAssignableToConstraintKey,
+  typeParameterIdentitiesWithinType,
   types,
+  type ApplicationType,
+  type FunctionType,
+  type IndexedAccessType,
+  type ObjectType,
+  type OpaqueType,
   type Type,
+  type TypeParameter,
+  type UnionType,
 } from './semantics/type-system.js'
