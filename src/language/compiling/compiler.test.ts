@@ -1242,7 +1242,7 @@ testCases(
 
   [
     `{
-      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      apply_to_true: (f: :something.type ~> :something.type) => :f(true)
       :apply_to_true(@runtime { _ => a => :a }) ~ true
     }`,
     result => {
@@ -1252,7 +1252,7 @@ testCases(
 
   [
     `{
-      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      apply_to_true: (f: :something.type ~> :something.type) => :f(true)
       :apply_to_true(@runtime { _ => a => :a }) ~ false
     }`,
     result => {
@@ -1296,7 +1296,7 @@ testCases(
 
   [
     `{
-      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      apply_to_true: (f: :something.type ~> :something.type) => :f(true)
       first: x => _y => :x
       :apply_to_true(@runtime { _ => :first }) ~ (:something.type ~> true)
     }`,
@@ -1307,7 +1307,7 @@ testCases(
 
   [
     `{
-      apply_to_true: (f: ?a ~> ?b) => :f(true)
+      apply_to_true: (f: :something.type ~> :something.type) => :f(true)
       first: x => _y => :x
       :apply_to_true(@runtime { _ => :first }) ~ (:something.type ~> false)
     }`,
@@ -1320,7 +1320,7 @@ testCases(
 
   [
     `{
-      lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).foo
+      lookup_foo: (f: :something.type ~> (?b: { foo: :something.type })) => :f(true).foo
       :lookup_foo(@runtime { _ => _ => { foo: 42 } }) ~ 42
     }`,
     result => {
@@ -1330,7 +1330,7 @@ testCases(
 
   [
     `{
-      lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).foo
+      lookup_foo: (f: :something.type ~> (?b: { foo: :something.type })) => :f(true).foo
       :lookup_foo(@runtime { _ => _ => { foo: 42 } }) ~ 43
     }`,
     result => {
@@ -1341,7 +1341,7 @@ testCases(
   ],
 
   [
-    `{ lookup_foo: (f: ?a ~> (?b: { foo: :something.type })) => :f(true).bar }`,
+    `{ lookup_foo: (f: :something.type ~> (?b: { foo: :something.type })) => :f(true).bar }`,
     result => {
       assert(either.isLeft(result))
       assert('kind' in result.value)
@@ -1350,9 +1350,44 @@ testCases(
   ],
 
   [
-    `{ outer: (f: ?a ~> ?b) => ((g: :f(true)) => :g)(:f(true)) }`,
+    `{ outer: a => (f: :a ~> ?b) => ((g: :f(:a)) => :g)(:f(:a)) }`,
     result => {
       assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(a: :something.type) => (f: :a ~> :something.type) => :f("an arbitrary value")`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      example: (a: :something.type) => (f: :a ~> :something.type) => :f("an arbitrary value")
+      result: :example(@runtime { _ => 1 })((n: :integer.type) => :integer.add(1)(:n))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `(f: ?a ~> ?b) => :f(true)`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `(f: ? ~> ?) => :f(true)`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
 

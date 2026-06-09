@@ -73,7 +73,7 @@ export const readHoleExpression = (
                 '`@hole` constraint must contain an `assignableTo` property',
             })
           } else {
-            const typeParameter =
+            const existingTypeParameter =
               (
                 typeParameterKey in node &&
                 isTypeParameter(node[typeParameterKey])
@@ -83,7 +83,14 @@ export const readHoleExpression = (
             return either.map(
               literalTypeFromSemanticGraph(assignableToNode),
               assignableTo => {
-                const node = makeObjectNode({
+                const typeParameter =
+                  existingTypeParameter ??
+                  makeTypeParameter(name, { assignableTo })
+                // Side effect: stash the type parameter on the original `node`
+                // as well, so that reads from elsewhere (annotation inference,
+                // `@lookup`s, etc) get the same identity.
+                Object.assign(node, { [typeParameterKey]: typeParameter })
+                const reconstructedNode = makeObjectNode({
                   0: '@hole',
                   1: makeObjectNode({
                     name,
@@ -92,9 +99,8 @@ export const readHoleExpression = (
                     }),
                   }),
                 })
-                return Object.assign(node, {
-                  [typeParameterKey]:
-                    typeParameter ?? makeTypeParameter(name, { assignableTo }),
+                return Object.assign(reconstructedNode, {
+                  [typeParameterKey]: typeParameter,
                 })
               },
             )
@@ -160,6 +166,33 @@ export const collectHolesByName = (
     }
   }
   return collect(new Map(), annotation)
+}
+
+/**
+ * Walk an annotation, returning the identity of every hole's type parameter.
+ * Unlike `collectHolesByName` this does not deduplicate by name, so every
+ * anonymous hole is included.
+ */
+export const collectHoleTypeParameterIdentities = (
+  annotation: SemanticGraph,
+): ReadonlySet<symbol> => {
+  const collect = (node: SemanticGraph): readonly symbol[] =>
+    either.match(readHoleExpression(node), {
+      right: holeExpression => [getHoleTypeParameter(holeExpression).identity],
+      left: _ => {
+        if (isFunctionNode(node)) {
+          return either.match(node.serialize(), {
+            right: collect,
+            left: _ => [],
+          })
+        } else if (isObjectNode(node)) {
+          return Object.values(node).flatMap(collect)
+        } else {
+          return []
+        }
+      },
+    })
+  return new Set(collect(annotation))
 }
 
 /**

@@ -203,6 +203,8 @@ const apply = (
           program: updatedProgram,
           mutableInferenceCache:
             functionDefinitionContext.mutableInferenceCache,
+          mutableFunctionParameterCache:
+            functionDefinitionContext.mutableFunctionParameterCache,
         }),
     ),
   )

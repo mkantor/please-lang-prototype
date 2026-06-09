@@ -4,6 +4,7 @@ import type { ElaborationError } from '../../../errors.js'
 import {
   isObjectNode,
   lookup,
+  readHoleExpression,
   readLookupExpression,
   stringifyKeyForEndUser,
   type Expression,
@@ -25,7 +26,18 @@ export const lookupKeywordHandler: KeywordHandler = (
               kind: 'invalidExpression',
               message: `property \`${stringifyKeyForEndUser(key)}\` not found`,
             }),
-          some: ({ foundValue }) => either.makeRight(foundValue),
+          some: ({ foundValue }) =>
+            either.makeRight(
+              either.match(readHoleExpression(foundValue), {
+                // `@hole`s are kept as `@lookup`s rather than being inlined as
+                // values, otherwise a looked-up hole would be indistinguishable
+                // from its declaration. It's necessary to know where type
+                // parameters are introduced during instantiation (to handle
+                // rigidity/flexibility).
+                right: _hole => expression,
+                left: _ => foundValue,
+              }),
+            ),
         }),
       )
     } else {

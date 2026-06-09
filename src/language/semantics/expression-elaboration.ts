@@ -32,11 +32,28 @@ type Elaborated = { readonly [_elaborated]: true }
 export type ElaboratedSemanticGraph = WithPhantomData<SemanticGraph, Elaborated>
 
 type StringifiedKeyPath = string
+
+/**
+ * The (possibly genericized) type of a function's parameter, plus the
+ * identities of the type parameters introduced by that specific function's
+ * signature. Such type parameters are "rigid" within the function's body (they
+ * aren't instantiated by applications occurring there).
+ */
+export type FunctionParameterTypeInfo = {
+  readonly parameterType: Type
+  readonly typeParametersBoundByFunction: ReadonlySet<symbol>
+}
+
 export type ExpressionContext = {
   readonly keywordHandlers: KeywordHandlers
   readonly location: KeyPath
   readonly program: SemanticGraph
   readonly mutableInferenceCache: Map<StringifiedKeyPath, Type>
+  readonly mutableFunctionParameterCache: Map<
+    StringifiedKeyPath,
+    FunctionParameterTypeInfo
+  >
+  readonly locationDoesNotCorrespondWithTruePosition?: true | undefined
   readonly skipReelaboration?: true | undefined
   /**
    * When set, `@panic` returns its (un-elaborated) expression instead of
@@ -62,6 +79,7 @@ export const elaborate = (
     keywordHandlers,
     location: [],
     mutableInferenceCache: new Map(),
+    mutableFunctionParameterCache: new Map(),
     program:
       typeof program === 'string' ? program : objectNodeFromMolecule(program),
   })

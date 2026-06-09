@@ -20,6 +20,7 @@ import {
   readPanicExpression,
   readRuntimeExpression,
   type ExpressionContext,
+  type FunctionParameterTypeInfo,
   type KeyPath,
   type SemanticGraph,
 } from '../../semantics.js'
@@ -28,6 +29,7 @@ import {
   getParameterTypeAnnotation,
   type FunctionExpression,
 } from '../expressions/function-expression.js'
+import { collectHoleTypeParameterIdentities } from '../expressions/hole-expression.js'
 import { genericizeFunctionParameterAnnotation } from './genericize-function-parameter.js'
 import { literalTypeFromSemanticGraph } from './literal-type.js'
 import * as types from './prelude-types.js'
@@ -58,66 +60,38 @@ import {
 
 /**
  * Returns a `Map` of parameter names to their types for the function parameters
- * that are in scope for the given `context`'s `location`.
+ * that are in scope for the given `context`'s `location`. Inner parameters
+ * shadow outer ones with the same name.
  */
 export const resolveParameterTypes = (
   context: ExpressionContext,
-): ReadonlyMap<Atom, Type> => {
-  const parameterTypes = new Map<Atom, Type>()
-  let currentLocation = context.location
+): ReadonlyMap<Atom, Type> =>
+  resolveEnclosingFunctionParameters(context).reduce(
+    (parameterTypes, { parameterName, parameterTypeInfo }) =>
+      parameterTypes.has(parameterName) ? parameterTypes : (
+        new Map([
+          ...parameterTypes,
+          [parameterName, parameterTypeInfo.parameterType],
+        ])
+      ),
+    new Map<Atom, Type>(),
+  )
 
-  // Walk upwards towards the program root, keeping track of parameter names and
-  // their types.
-  while (currentLocation.length >= 2) {
-    const enclosingFunction = option.flatMap(
-      enclosingExpressionFromPropertyOfExpressionArgument({
-        program: context.program,
-        location: currentLocation,
-      }),
-      expression =>
-        either.match(readFunctionExpression(expression), {
-          left: _ => option.none,
-          right: option.makeSome,
-        }),
-    )
-
-    if (option.isSome(enclosingFunction)) {
-      const enclosingFunctionLocation = currentLocation.slice(0, -2)
-      // Skip the function whose parameter annotation we're inside. Computing
-      // its parameter type requires this very inference (and would infinitely
-      // recurse without this guard).
-      const isInsideOwnAnnotation =
-        context.location[enclosingFunctionLocation.length] === '1' &&
-        context.location[enclosingFunctionLocation.length + 1] === 'parameter'
-      const parameterName = getParameterName(enclosingFunction.value)
-      if (!isInsideOwnAnnotation && !parameterTypes.has(parameterName)) {
-        const parameterTypeResult = getFunctionParameterType(
-          enclosingFunction.value,
-          {
-            keywordHandlers: context.keywordHandlers,
-            program: context.program,
-            location: enclosingFunctionLocation,
-            mutableInferenceCache: context.mutableInferenceCache,
-          },
-        )
-
-        if (either.isLeft(parameterTypeResult)) {
-          throw new Error(
-            'Cannot determine parameter type of function. This is a bug!',
-            { cause: parameterTypeResult.value },
-          )
-        }
-
-        // Side-effect: add the parameter.
-        parameterTypes.set(parameterName, parameterTypeResult.value)
-      }
-    }
-
-    currentLocation = currentLocation.slice(0, -1)
-  }
-
-  return parameterTypes
-}
+/**
+ * The identities of all type parameters which are rigid at the given
+ * `context`'s `location` (e.g. those universally quantified by an enclosing
+ * function). Applications occurring at this location mustn't instantiate them.
+ */
+export const rigidTypeParameterIdentities = (
+  context: ExpressionContext,
+): ReadonlySet<symbol> =>
+  new Set(
+    resolveEnclosingFunctionParameters(context).flatMap(
+      ({ parameterTypeInfo }) => [
+        ...parameterTypeInfo.typeParametersBoundByFunction,
+      ],
+    ),
+  )
 
 export const inferType = (
   node: SemanticGraph,
@@ -178,7 +152,7 @@ const inferTypeImplementation = (
     return cacheOnSuccess(
       either.flatMap(
         getFunctionParameterType(functionExpressionResult.value, context),
-        parameterType =>
+        parameterTypeInfo =>
           either.map(
             inferTypeImplementation(
               functionExpressionResult.value[1].body,
@@ -186,7 +160,7 @@ const inferTypeImplementation = (
                 ...parameterTypes,
                 [
                   getParameterName(functionExpressionResult.value),
-                  parameterType,
+                  parameterTypeInfo.parameterType,
                 ],
               ]),
               lookingUpKeys,
@@ -194,7 +168,7 @@ const inferTypeImplementation = (
             ),
             returnType =>
               makeFunctionType({
-                parameter: parameterType,
+                parameter: parameterTypeInfo.parameterType,
                 return: returnType,
               }),
           ),
@@ -213,23 +187,30 @@ const inferTypeImplementation = (
     } else if (!lookingUpKeys.has(key)) {
       const lookupResult = lookup({ key, context })
       if (either.isRight(lookupResult) && option.isSome(lookupResult.value)) {
-        const { foundValue, foundLocation } = lookupResult.value.value
-        const innerResult = inferTypeImplementation(
-          foundValue,
-          parameterTypes,
-          new Set([...lookingUpKeys, key]),
-          foundLocation === 'prelude' ?
-            {
-              ...context,
-              // We don't have a way to key the cache for inferences from the
-              // prelude. Use a fresh cache so as not to pollute the shared one.
-              mutableInferenceCache: new Map(),
-            }
-          : {
-              ...context,
-              location: foundLocation,
-            },
-        )
+        const { foundValue, foundLocation, typeParameterOfFoundHole } =
+          lookupResult.value.value
+        const innerResult = option.match(typeParameterOfFoundHole, {
+          some: either.makeRight,
+          none: _ =>
+            inferTypeImplementation(
+              foundValue,
+              parameterTypes,
+              new Set([...lookingUpKeys, key]),
+              foundLocation === 'prelude' ?
+                {
+                  ...context,
+                  // We don't have a way to key the cache for inferences from
+                  // the prelude. Use a fresh cache so as not to pollute the
+                  // shared one.
+                  mutableInferenceCache: new Map(),
+                  locationDoesNotCorrespondWithTruePosition: true,
+                }
+              : {
+                  ...context,
+                  location: foundLocation,
+                },
+            ),
+        })
         return cacheOnSuccess(innerResult)
       } else {
         // Fall back to the top type.
@@ -522,7 +503,7 @@ const inferTypeImplementation = (
 const getFunctionParameterType = (
   expression: FunctionExpression,
   contextOfFunction: ExpressionContext,
-): Either<ElaborationError, Type> => {
+): Either<ElaborationError, FunctionParameterTypeInfo> => {
   // `genericizeFunctionParameterAnnotation` mints fresh type parameters, but
   // type parameters are identified by an internal `symbol`. To keep identities
   // consistent, cache parameter types here.
@@ -530,36 +511,52 @@ const getFunctionParameterType = (
     ...contextOfFunction.location,
     functionParameterKey,
   ])
-  const cachedParameterType =
-    contextOfFunction.mutableInferenceCache.get(parameterCacheKey)
-  if (cachedParameterType !== undefined) {
-    return either.makeRight(cachedParameterType)
+  const cachedParameterTypeInfo =
+    contextOfFunction.locationDoesNotCorrespondWithTruePosition === true ?
+      undefined
+    : contextOfFunction.mutableFunctionParameterCache.get(parameterCacheKey)
+  if (cachedParameterTypeInfo !== undefined) {
+    return either.makeRight(cachedParameterTypeInfo)
   } else {
     return either.map(
       option.match(getParameterTypeAnnotation(expression), {
         some: annotation =>
           either.map(
-            // Type annotation lookups happen from the function's scope rather than
-            // their own location (a property within the `@function`).
+            // Type annotation lookups happen from the function's scope rather
+            // than their own location (a property within the `@function`), so
+            // location-keyed caching is disabled for this inference.
             // TODO: Consider separating out the cache key prefix from the
-            // `context.location` somehow so that I can say "lookups start from X,
-            // cache key paths are rooted at Y".
+            // `context.location` somehow so that I can say "lookups start from
+            // X, cache key paths are rooted at Y".
             inferType(annotation, {
               ...contextOfFunction,
               mutableInferenceCache: new Map(),
+              locationDoesNotCorrespondWithTruePosition: true,
             }),
             annotationType => {
               const parameterName = getParameterName(expression)
-              // `_` (`ignoredKey`) is the name for an ignored parameter (and is what
-              // the parser emits for `~>` syntax sugar). Genericization is skipped
-              // in this case so `a ~> b` and `(_: a) => b` can be used to describe
-              // concrete function types rather than generic ones.
-              return parameterName === ignoredKey ? annotationType : (
-                  genericizeFunctionParameterAnnotation(
-                    parameterName,
-                    annotationType,
-                  )
+              // `_` (`ignoredKey`) is the name for an ignored parameter (and is
+              // what the parser emits for `~>` syntax sugar). Genericization is
+              // skipped in this case so `a ~> b` and `(_: a) => b` can be used
+              // to describe concrete function types rather than generic ones.
+              if (parameterName === ignoredKey) {
+                return {
+                  parameterType: annotationType,
+                  typeParametersBoundByFunction: new Set<symbol>(),
+                }
+              } else {
+                const genericized = genericizeFunctionParameterAnnotation(
+                  parameterName,
+                  annotationType,
                 )
+                return {
+                  parameterType: genericized.type,
+                  typeParametersBoundByFunction: new Set([
+                    ...genericized.typeParametersBoundByFunction,
+                    ...collectHoleTypeParameterIdentities(annotation),
+                  ]),
+                }
+              }
             },
           ),
         none: _ => {
@@ -590,6 +587,10 @@ const getFunctionParameterType = (
                   location: contextOfFunction.location.slice(0, -2),
                   mutableInferenceCache:
                     contextOfFunction.mutableInferenceCache,
+                  mutableFunctionParameterCache:
+                    contextOfFunction.mutableFunctionParameterCache,
+                  locationDoesNotCorrespondWithTruePosition:
+                    contextOfFunction.locationDoesNotCorrespondWithTruePosition,
                 }
                 const contextuallyAppliedFunctionType = inferType(
                   applyExpressionResult.value[1].function,
@@ -623,25 +624,41 @@ const getFunctionParameterType = (
           )
 
           return option.match(contextualType, {
-            some: either.makeRight,
-            none: _ =>
-              either.makeRight(
-                genericizeFunctionParameterAnnotation(
-                  getParameterName(expression),
-                  types.something,
-                ),
-              ),
+            some: (
+              contextualParameterType,
+            ): Either<ElaborationError, FunctionParameterTypeInfo> =>
+              either.makeRight({
+                parameterType: contextualParameterType,
+                // A contextual parameter type's type parameters belong to the
+                // function that establishes the context, not this one.
+                typeParametersBoundByFunction: new Set<symbol>(),
+              }),
+            none: _ => {
+              const genericized = genericizeFunctionParameterAnnotation(
+                getParameterName(expression),
+                types.something,
+              )
+              return either.makeRight({
+                parameterType: genericized.type,
+                typeParametersBoundByFunction:
+                  genericized.typeParametersBoundByFunction,
+              })
+            },
           })
         },
       }),
-      parameterType => {
-        // Side effect: cache the parameter type so its type-parameter
-        // identities remain stable.
-        contextOfFunction.mutableInferenceCache.set(
-          parameterCacheKey,
-          parameterType,
-        )
-        return parameterType
+      parameterTypeInfo => {
+        if (
+          contextOfFunction.locationDoesNotCorrespondWithTruePosition !== true
+        ) {
+          // Side effect: cache the parameter type so its type-parameter
+          // identities remain stable.
+          contextOfFunction.mutableFunctionParameterCache.set(
+            parameterCacheKey,
+            parameterTypeInfo,
+          )
+        }
+        return parameterTypeInfo
       },
     )
   }
@@ -669,3 +686,86 @@ const flatUnionOf = (types: readonly Type[]): UnionType =>
   makeUnionType(
     types.flatMap(type => (type.kind === 'union' ? [...type.members] : [type])),
   )
+
+type EnclosingFunctionParameter = {
+  readonly parameterName: Atom
+  readonly parameterTypeInfo: FunctionParameterTypeInfo
+}
+
+/**
+ * Walks upwards from the given `context`'s `location` towards the program root,
+ * collecting parameters of enclosing functions (innermost first), including
+ * functions whose parameter names are shadowed.
+ */
+const resolveEnclosingFunctionParameters = (
+  context: ExpressionContext,
+): readonly EnclosingFunctionParameter[] => {
+  const collectFromLocation = (
+    currentLocation: KeyPath,
+  ): readonly EnclosingFunctionParameter[] => {
+    if (currentLocation.length < 2) {
+      return []
+    } else {
+      const enclosingFunction = option.flatMap(
+        enclosingExpressionFromPropertyOfExpressionArgument({
+          program: context.program,
+          location: currentLocation,
+        }),
+        expression =>
+          either.match(readFunctionExpression(expression), {
+            left: _ => option.none,
+            right: option.makeSome,
+          }),
+      )
+
+      const enclosingFunctionLocation = currentLocation.slice(0, -2)
+      // Skip the function whose parameter annotation we're inside. Computing
+      // its parameter type requires this very inference (and would infinitely
+      // recurse without this guard).
+      const isInsideOwnAnnotation =
+        context.location[enclosingFunctionLocation.length] === '1' &&
+        context.location[enclosingFunctionLocation.length + 1] === 'parameter'
+
+      const parametersFromThisLevel = option.match(enclosingFunction, {
+        none: _ => [],
+        some: functionExpression => {
+          if (isInsideOwnAnnotation) {
+            return []
+          } else {
+            const parameterTypeInfoResult = getFunctionParameterType(
+              functionExpression,
+              {
+                keywordHandlers: context.keywordHandlers,
+                program: context.program,
+                location: enclosingFunctionLocation,
+                mutableInferenceCache: context.mutableInferenceCache,
+                mutableFunctionParameterCache:
+                  context.mutableFunctionParameterCache,
+              },
+            )
+
+            if (either.isLeft(parameterTypeInfoResult)) {
+              throw new Error(
+                'Cannot determine parameter type of function. This is a bug!',
+                { cause: parameterTypeInfoResult.value },
+              )
+            } else {
+              return [
+                {
+                  parameterName: getParameterName(functionExpression),
+                  parameterTypeInfo: parameterTypeInfoResult.value,
+                },
+              ]
+            }
+          }
+        },
+      })
+
+      return [
+        ...parametersFromThisLevel,
+        ...collectFromLocation(currentLocation.slice(0, -1)),
+      ]
+    }
+  }
+  return collectFromLocation(context.location)
+}

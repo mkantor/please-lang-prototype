@@ -20,6 +20,7 @@ import {
   stringifySemanticGraphForEndUser,
   type SemanticGraph,
 } from '../semantic-graph.js'
+import type { TypeParameter } from '../type-system.js'
 import {
   ignoredKey,
   readArgumentsFromExpression,
@@ -30,7 +31,11 @@ import {
   getParameterTypeAnnotation,
   readFunctionExpression,
 } from './function-expression.js'
-import { collectHolesByName } from './hole-expression.js'
+import {
+  collectHolesByName,
+  getHoleTypeParameter,
+  type HoleExpression,
+} from './hole-expression.js'
 import { makeIndexExpression } from './index-expression.js'
 
 export type LookupExpression = ObjectNode & {
@@ -94,6 +99,7 @@ export const lookup = ({
   Option<{
     readonly foundLocation: 'prelude' | KeyPath
     readonly foundValue: SemanticGraph
+    readonly typeParameterOfFoundHole: Option<TypeParameter>
   }>
 > => {
   if (key === ignoredKey) {
@@ -113,6 +119,7 @@ export const lookup = ({
           option.makeSome({
             foundLocation: 'prelude',
             foundValue: valueFromPrelude,
+            typeParameterOfFoundHole: option.none,
           }),
         )
   } else {
@@ -149,6 +156,7 @@ export const lookup = ({
           readonly kind: 'found'
           readonly foundValue: SemanticGraph
           readonly foundLocation: KeyPath
+          readonly typeParameterOfFoundHole: Option<TypeParameter>
         }
       | {
           readonly kind: 'notFound'
@@ -162,16 +170,25 @@ export const lookup = ({
           const parentFunctionResult = readFunctionExpression(parentExpression)
           // If enclosed in a `@function` expression, allow looking up the
           // parameter plus `@hole`s introduced by parameter annotations.
-          const isParameterMatch =
-            either.isRight(parentFunctionResult) &&
-            (getParameterName(parentFunctionResult.value) === key ||
-              option.match(
+          const matchedHole: Option<HoleExpression> =
+            (
+              either.isRight(parentFunctionResult) &&
+              getParameterName(parentFunctionResult.value) !== key
+            ) ?
+              option.flatMap(
                 getParameterTypeAnnotation(parentFunctionResult.value),
-                {
-                  none: () => false,
-                  some: annotation => collectHolesByName(annotation).has(key),
+                annotation => {
+                  const hole = collectHolesByName(annotation).get(key)
+                  return hole === undefined ?
+                      option.none
+                    : option.makeSome(hole)
                 },
-              ))
+              )
+            : option.none
+          const isParameterMatch =
+            (either.isRight(parentFunctionResult) &&
+              getParameterName(parentFunctionResult.value) === key) ||
+            option.isSome(matchedHole)
           if (isParameterMatch) {
             // Keep an unelaborated `@lookup` around for resolution when the
             // `@function` is called.
@@ -179,6 +196,10 @@ export const lookup = ({
               kind: 'found',
               foundValue: makeLookupExpression(key),
               foundLocation: [...pathToCurrentScope, key],
+              typeParameterOfFoundHole: option.map(
+                matchedHole,
+                getHoleTypeParameter,
+              ),
             }
           } else {
             return {
@@ -200,6 +221,7 @@ export const lookup = ({
                 kind: 'found',
                 foundValue,
                 foundLocation: [...pathToCurrentScope, key],
+                typeParameterOfFoundHole: option.none,
               }),
               none: _ => ({
                 kind: 'notFound',
@@ -215,6 +237,7 @@ export const lookup = ({
         option.makeSome({
           foundValue: result.foundValue,
           foundLocation: result.foundLocation,
+          typeParameterOfFoundHole: result.typeParameterOfFoundHole,
         }),
       )
     } else {
@@ -226,6 +249,7 @@ export const lookup = ({
           location: result.nextLocationToCheckFrom,
           program: context.program,
           mutableInferenceCache: context.mutableInferenceCache,
+          mutableFunctionParameterCache: context.mutableFunctionParameterCache,
         },
       })
     }
