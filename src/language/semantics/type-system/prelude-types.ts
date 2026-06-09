@@ -9,6 +9,7 @@ import {
   type Type,
   type UnionType,
 } from './type-formats.js'
+import { replaceAllTypeParametersWithTheirConstraints } from './type-substitution.js'
 
 export const nothing = makeUnionType([]) // the bottom type
 
@@ -25,6 +26,7 @@ export const boolean = makeUnionType(['false', 'true'])
 export const atomTypeSymbol = Symbol('atom')
 export const atom = makeOpaqueType(atomTypeSymbol, {
   isAssignableFromLiteralType: (_literalType: string) => true,
+  upperBoundOfStuckType: replaceAllTypeParametersWithTheirConstraints,
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(integer),
   nearestOpaqueAssignableTo: () => optionAdt.none,
 })
@@ -33,6 +35,7 @@ export const integerTypeSymbol = Symbol('integer')
 export const integer = makeOpaqueType(integerTypeSymbol, {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
+  upperBoundOfStuckType: replaceAllTypeParametersWithTheirConstraints,
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(naturalNumber),
   nearestOpaqueAssignableTo: () => optionAdt.makeSome(atom),
 })
@@ -41,6 +44,7 @@ export const naturalNumberTypeSymbol = Symbol('natural_number')
 export const naturalNumber = makeOpaqueType(naturalNumberTypeSymbol, {
   isAssignableFromLiteralType: literalType =>
     /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
+  upperBoundOfStuckType: replaceAllTypeParametersWithTheirConstraints,
   nearestOpaqueAssignableFrom: () => optionAdt.none,
   nearestOpaqueAssignableTo: () => optionAdt.makeSome(integer),
 })
