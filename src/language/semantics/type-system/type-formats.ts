@@ -111,7 +111,7 @@ export const makeOpaqueType = (
     isAssignableFrom: source =>
       matchTypeFormat(source, {
         // TODO: Use the stuck type's upper bound once the cycle with
-        // `type-utilities.ts` can be avoided.
+        // `type-substitution.ts` can be avoided.
         application: _ => false,
         indexedAccess: _ => false,
 
