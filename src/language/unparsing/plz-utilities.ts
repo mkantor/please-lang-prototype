@@ -419,23 +419,15 @@ const unparseSugaredIndex = (
     serializeIfNeeded(expression[1].object),
     unparseAtomOrMolecule(semanticContext),
   )
-  return either.flatMap(objectUnparseResult, unparsedObject => {
-    if (typeof expression[1].query !== 'object') {
-      // TODO: It would be nice if this were provably impossible.
-      return either.makeLeft<UnserializableValueError>({
-        kind: 'unserializableValue',
-        message: 'invalid index expression',
-      })
-    } else {
-      return either.map(
-        unparseKeyPathOfSugaredIndex(expression[1].query, {
-          unparseAtomOrMolecule,
-          semanticContext,
-        }),
-        unparsedKeyPath => unparsedObject.concat(unparsedKeyPath),
-      )
-    }
-  })
+  return either.flatMap(objectUnparseResult, unparsedObject =>
+    either.map(
+      unparseKeyPathOfSugaredIndex(expression[1].query, {
+        unparseAtomOrMolecule,
+        semanticContext,
+      }),
+      unparsedKeyPath => unparsedObject.concat(unparsedKeyPath),
+    ),
+  )
 }
 
 const unparseKeyPathOfSugaredIndex = (

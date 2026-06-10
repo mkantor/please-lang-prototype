@@ -23,7 +23,6 @@ import {
   type FunctionType,
   type ObjectType,
   type OpaqueType,
-  type TypeParameter,
   type UnionType,
 } from '../semantics/type-system/type-formats.js'
 import { prettyJson } from '../unparsing.js'
@@ -197,8 +196,6 @@ type TypeToNode<T extends Type> =
   : T extends UnionType & { members: Set<infer Member> } ? Member
   : T extends OpaqueType ?
     string // All opaque types are atoms.
-  : T extends TypeParameter ?
-    never // TODO
-  : never
+  : never // TODO: Consider supporting other type formats.
 
 type RuntimeContext = TypeToNode<typeof types.runtimeContext>
