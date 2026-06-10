@@ -1667,4 +1667,18 @@ testCases(
       assert.deepEqual(result.value.kind, 'typeMismatch')
     },
   ],
+
+  [
+    `{ a: 1, b: 2 } ~ ({ a: 1, b: 2 } | { a: 1, b: 2 })`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(_ => x) ~ ((:something.type ~> :atom.type) | (:something.type ~> :atom.type))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
 ])
