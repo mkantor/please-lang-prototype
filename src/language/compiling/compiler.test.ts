@@ -919,6 +919,41 @@ testCases(
   ],
 
   [
+    `((x: :atom.type) => @if {
+       @runtime { context => :context.program.start_time atom.equals foo }
+       { deeper: :x }
+       foo
+     }) ~ ((y: :atom.type) => { deeper: :y })`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      consume: (g: ((y: :atom.type) => { deeper: :y })) =>
+        @runtime { _ => :g(hello).deeper }
+      :consume((x: :atom.type) => @if {
+        @runtime { context => :context.program.start_time atom.equals foo }
+        { deeper: :x }
+        foo
+      })
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `((x: :atom.type) => ({ deeper: :x } | foo)) ~ ((y: :atom.type) => ({ deeper: :y } | foo))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
     `{
       apply_to_1: (identity: (a => :a)) => :identity(1)
       :apply_to_1(:identity) ~ 1
