@@ -1455,6 +1455,41 @@ testCases(
   ],
 
   [
+    `(x: { a: :atom.type }) =>
+      ((h: :x.a ~> :atom.type) => :h(forged))((v: :x.a) => :v)`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      caller: (g: { a: :atom.type } ~> :atom.type) =>
+        @runtime { _ => :g({ a: actual }) }
+      result: :caller(x =>
+        ((h: :x.a ~> :atom.type) => :h(forged))((v: :x.a) => :v))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      caller: (g: { a: :atom.type } ~> { got: :atom.type }) =>
+        @runtime { _ => :g({ a: actual }) }
+      result: :caller(x =>
+        ((h: :x.a ~> { got: :x.a }) => :h(forged))((v: :x.a) => { got: :v }))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
     // There was an inference cache pollution issue causing the second
     // application below to unsoundly succeed because the prior call locked in
     // `:a`'s type as `1`.
