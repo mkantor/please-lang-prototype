@@ -335,19 +335,19 @@ const inferTypeImplementation = (
                 typeParameter => typeParameter.identity,
               ),
             )
-            const flexibleTypeParameters = new Set(
+            const typeParametersWithinEnclosingParameterTypes = new Set(
               [...parameterTypes.values()].flatMap(enclosingParameterType => [
                 ...typeParameterIdentitiesWithinType(enclosingParameterType),
               ]),
             )
             const typeParametersMentionedInThisSignature =
               typeParameterIdentitiesWithinType(appliedFunctionType)
-            // Flexible parameters this application requires to become unstuck,
-            // i.e. those of the applied function that an enclosing function
-            // will instantiate.
-            const flexibleParametersOfApplication = new Set(
+            // Parameters this application is stuck on: those mentioned in the
+            // applied function's type whose concrete types only arrive when an
+            // enclosing function is applied.
+            const parametersStuckOn = new Set(
               [...typeParametersMentionedInThisSignature].filter(identity =>
-                flexibleTypeParameters.has(identity),
+                typeParametersWithinEnclosingParameterTypes.has(identity),
               ),
             )
             const applicationIsStuck =
@@ -368,7 +368,7 @@ const inferTypeImplementation = (
               [...typeParameterIdentitiesWithinType(eagerReturnType)].some(
                 identity =>
                   typeParametersMentionedInThisSignature.has(identity) &&
-                  flexibleTypeParameters.has(identity) &&
+                  typeParametersWithinEnclosingParameterTypes.has(identity) &&
                   !boundTypeParameters.has(identity),
               )
             return cacheOnSuccess(
@@ -377,7 +377,7 @@ const inferTypeImplementation = (
                   makeApplicationType(
                     appliedFunctionType,
                     argumentTypeResult.value,
-                    flexibleParametersOfApplication,
+                    parametersStuckOn,
                   )
                 : eagerReturnType,
               ),
