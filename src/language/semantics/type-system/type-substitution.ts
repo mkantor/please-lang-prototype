@@ -33,8 +33,8 @@ import {
 
 /**
  * Drill into `type` using the given `keyPath`, returning the bottom type
- * (`nothing`) whenever no match is found. When drilling into union types, union
- * members for which the given `keyPath` isn't applicable are filtered out.
+ * (`nothing`) whenever no match is found. A union can be drilled into only when
+ * every member contains the key path; otherwise `nothing` is returned.
  */
 export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
   const [firstKey, ...remainingKeyPath] = keyPath
@@ -44,22 +44,38 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
   } else if (typeof firstKey === 'object') {
     switch (firstKey.kind) {
       case 'parameter':
-        return nestedIndexedAccess(type, [firstKey, ...remainingKeyPath])
-      case 'union':
-        return makeUnionType(
-          // Flatten to avoid nested unions.
-          [...firstKey.members].flatMap(firstKeyMember => {
-            const typeForThisPossibility = applyKeyPathToType(type, [
-              firstKeyMember,
-              ...remainingKeyPath,
-            ])
-            if (typeForThisPossibility.kind === 'union') {
-              return [...typeForThisPossibility.members]
-            } else {
-              return typeForThisPossibility
-            }
-          }),
+        // A type parameter key keeps the access stuck (it reduces once the key
+        // is instantiated), but only when the path resolves for the parameter's
+        // constraint. Without this guard an instantiation could access a
+        // missing property.
+        return (
+            isNothing(
+              applyKeyPathToType(type, [
+                firstKey.constraint.assignableTo,
+                ...remainingKeyPath,
+              ]),
+            )
+          ) ?
+            nothing
+          : nestedIndexedAccess(type, [firstKey, ...remainingKeyPath])
+      case 'union': {
+        const resultsPerKeyPossibility = [...firstKey.members].map(
+          firstKeyMember =>
+            applyKeyPathToType(type, [firstKeyMember, ...remainingKeyPath]),
         )
+        // The runtime key could be any member, so the every possible path must
+        // be valid.
+        return resultsPerKeyPossibility.some(isNothing) ? nothing : (
+            makeUnionType(
+              // Flatten to avoid nested unions.
+              resultsPerKeyPossibility.flatMap(typeForThisPossibility =>
+                typeForThisPossibility.kind === 'union' ?
+                  [...typeForThisPossibility.members]
+                : [typeForThisPossibility],
+              ),
+            )
+          )
+      }
     }
   } else {
     return matchTypeFormat<Type>(type, {
@@ -71,15 +87,12 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
           replaceAllTypeParametersWithTheirConstraints(applicationType),
           keyPath,
         )
-        return (
-            typeAtKeyPathInUpperBound.kind === 'union' &&
-              typeAtKeyPathInUpperBound.members.size === 0
-          ) ?
-            nothing
-          : nestedIndexedAccess(applicationType, [
+        return isNothing(typeAtKeyPathInUpperBound) ? nothing : (
+            nestedIndexedAccess(applicationType, [
               firstKey,
               ...remainingKeyPath,
             ])
+          )
       },
       intrinsicApplication: intrinsicApplicationType => {
         // As with `ApplicationType`s, indexing stays stuck while the key path
@@ -90,15 +103,12 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
           ),
           keyPath,
         )
-        return (
-            typeAtKeyPathInUpperBound.kind === 'union' &&
-              typeAtKeyPathInUpperBound.members.size === 0
-          ) ?
-            nothing
-          : nestedIndexedAccess(intrinsicApplicationType, [
+        return isNothing(typeAtKeyPathInUpperBound) ? nothing : (
+            nestedIndexedAccess(intrinsicApplicationType, [
               firstKey,
               ...remainingKeyPath,
             ])
+          )
       },
       function: type => {
         if (typeof firstKey === 'string') {
@@ -155,12 +165,9 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
             type.constraint.assignableTo,
             keyPath,
           )
-          return (
-              typeAtKeyPathInConstraint.kind === 'union' &&
-                typeAtKeyPathInConstraint.members.size === 0
-            ) ?
-              nothing
-            : nestedIndexedAccess(type, [firstKey, ...remainingKeyPath])
+          return isNothing(typeAtKeyPathInConstraint) ? nothing : (
+              nestedIndexedAccess(type, [firstKey, ...remainingKeyPath])
+            )
         } else {
           switch (firstKey) {
             case typeParameterAssignableToConstraintKey:
@@ -179,20 +186,22 @@ export const applyKeyPathToType = (type: Type, keyPath: TypeKeyPath): Type => {
         }
       },
       union: type => {
-        return makeUnionType(
-          [...type.members].flatMap(member => {
-            if (typeof member === 'string') {
-              return []
-            } else {
-              const manipulatedMember = applyKeyPathToType(member, keyPath)
-              if (manipulatedMember.kind === 'union') {
-                return [...manipulatedMember.members]
-              } else {
-                return [manipulatedMember]
-              }
-            }
-          }),
+        const memberResults = [...type.members].map(member =>
+          // Atoms have no properties.
+          typeof member === 'string' ? nothing : (
+            applyKeyPathToType(member, keyPath)
+          ),
         )
+        return memberResults.some(isNothing) ? nothing : (
+            makeUnionType(
+              // Flatten to avoid nested unions.
+              memberResults.flatMap(memberResult =>
+                memberResult.kind === 'union' ?
+                  [...memberResult.members]
+                : [memberResult],
+              ),
+            )
+          )
       },
     })
   }
@@ -578,3 +587,6 @@ export const supplyTypeArguments = (
       supplyTypeArgument(partiallyAppliedType, typeParameter, typeArgument),
     type,
   )
+
+const isNothing = (type: Type) =>
+  type.kind === 'union' && type.members.size === 0

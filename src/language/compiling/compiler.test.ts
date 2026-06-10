@@ -1115,6 +1115,69 @@ testCases(
 
   [
     `{
+      f: (u: { x: 1 } | done) => :u.x
+      r: :f(@runtime { _ => done }) ~ 1
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      f: (u: { x: 1 } | { y: 2 }) => :u.x
+      r: :f(@runtime { _ => { y: 2 } }) ~ 1
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      a: @if {
+        @runtime { context => :context.program.start_time atom.equals x }
+        { x: 1 }
+        done
+      }
+      r: :a.x ~ 1
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ obj: { a: 1 }, get: (key: a | b) => :obj.:key }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ f: (u: { x: { deep: 1 } } | { x: 2 }) => :u.x.deep }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      f: (u: { x: 1 } | { x: 2, y: 3 }) => :u.x
+      r: :f(@runtime { _ => { x: 2, y: 3 } }) ~ (1 | 2)
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
       not: (a: :boolean.type) => @if { :a, false, true }
       :not(@runtime { context =>
         :context.program.start_time atom.equals "arbitrary atom"

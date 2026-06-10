@@ -105,7 +105,7 @@ applyKeyPathSuite('applyKeyPathToType with union types', [
       makeUnionType([makeObjectType({ a: makeUnionType(['x']) }), 'some_atom']),
       ['a'],
     ],
-    stringifyTypeForEndUser(makeUnionType(['x'])),
+    stringifyTypeForEndUser(nothing),
   ],
   [
     [
@@ -122,7 +122,7 @@ applyKeyPathSuite('applyKeyPathToType with union types', [
       ]),
       ['a'],
     ],
-    stringifyTypeForEndUser(integer),
+    stringifyTypeForEndUser(nothing),
   ],
 ])
 
