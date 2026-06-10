@@ -998,6 +998,21 @@ testCases(
   ],
 
   [
+    `a => (x: (:a | :a)) => (:x ~ :a)`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `a => b => (x: (:a | :a)) => (:x ~ :b)`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
     `{
       apply_to_1: (identity: (a => :a)) => :identity(1)
       :apply_to_1(:identity) ~ 1

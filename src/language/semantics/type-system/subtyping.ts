@@ -264,14 +264,14 @@ export const isAssignable = ({
           // identical. If the target is a union and the type parameter is a
           // member of that union (by identity), it's also assignable. Otherwise
           // the constraint must be assignable to the target.
-          target.kind === 'parameter' ?
-            source.identity === target.identity
-          : (target.kind === 'union' &&
-              isNonUnionAssignableToUnion({ source, target })) ||
-            isAssignable({
-              source: source.constraint.assignableTo,
-              target,
-            }),
+          (target.kind === 'parameter' &&
+            source.identity === target.identity) ||
+          (target.kind === 'union' &&
+            isNonUnionAssignableToUnion({ source, target })) ||
+          isAssignable({
+            source: source.constraint.assignableTo,
+            target,
+          }),
         union: source =>
           matchTypeFormat(target, {
             function: target => isUnionAssignableToNonUnion({ source, target }),
