@@ -984,6 +984,20 @@ testCases(
   ],
 
   [
+    `(x: :atom.type) => (:x ~ (:x | foo))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(x: :natural_number.type) => (:x ~ (:integer.type | foo))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
     `{
       apply_to_1: (identity: (a => :a)) => :identity(1)
       :apply_to_1(:identity) ~ 1

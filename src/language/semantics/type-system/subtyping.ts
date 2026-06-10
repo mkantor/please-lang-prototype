@@ -261,11 +261,14 @@ export const isAssignable = ({
         opaque: source => source.isAssignableTo(target),
         parameter: source =>
           // A type parameter is only assignable to a type parameter if they are
-          // the same parameter. For any other `target`, a type parameter is
-          // assignable to it if its constraint is.
+          // identical. If the target is a union and the type parameter is a
+          // member of that union (by identity), it's also assignable. Otherwise
+          // the constraint must be assignable to the target.
           target.kind === 'parameter' ?
             source.identity === target.identity
-          : isAssignable({
+          : (target.kind === 'union' &&
+              isNonUnionAssignableToUnion({ source, target })) ||
+            isAssignable({
               source: source.constraint.assignableTo,
               target,
             }),
