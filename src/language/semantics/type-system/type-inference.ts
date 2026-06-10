@@ -30,7 +30,11 @@ import {
   getParameterTypeAnnotation,
   type FunctionExpression,
 } from '../expressions/function-expression.js'
-import { collectHoleTypeParameterIdentities } from '../expressions/hole-expression.js'
+import {
+  collectHoleTypeParameterIdentities,
+  getHoleTypeParameter,
+  readHoleExpression,
+} from '../expressions/hole-expression.js'
 import { genericizeFunctionParameterAnnotation } from './genericize-function-parameter.js'
 import { literalTypeFromSemanticGraph } from './literal-type.js'
 import * as types from './prelude-types.js'
@@ -489,6 +493,14 @@ const inferTypeImplementation = (
             ),
           ),
       ),
+    )
+  }
+
+  // @hole: a hole denotes its type parameter.
+  const holeExpressionResult = readHoleExpression(node)
+  if (either.isRight(holeExpressionResult)) {
+    return cacheOnSuccess(
+      either.makeRight(getHoleTypeParameter(holeExpressionResult.value)),
     )
   }
 
