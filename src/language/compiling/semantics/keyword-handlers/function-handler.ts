@@ -201,10 +201,12 @@ const apply = (
           keywordHandlers: functionDefinitionContext.keywordHandlers,
           location: [...functionDefinitionContext.location, returnKey],
           program: updatedProgram,
-          mutableInferenceCache:
-            functionDefinitionContext.mutableInferenceCache,
-          mutableFunctionParameterCache:
-            functionDefinitionContext.mutableFunctionParameterCache,
+          // Every application of this function re-elaborates the body at the
+          // same location but against a different spliced program, so cached
+          // inferences from other applications would be wrong here. Use fresh
+          // caches to keep each application's type information isolated.
+          mutableInferenceCache: new Map(),
+          mutableFunctionParameterCache: new Map(),
         }),
     ),
   )

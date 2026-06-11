@@ -1392,6 +1392,24 @@ testCases(
   ],
 
   [
+    // There was an inference cache pollution issue causing the second
+    // application below to unsoundly succeed because the prior call locked in
+    // `:a`'s type as `1`.
+    `{
+      call_with: x => (f: :something.type ~> :something.type) => :f(:x)
+      first: :call_with(1)((n: :integer.type) => :n)
+      second: :call_with(a)((n: :integer.type) => :n)
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      // Body re-checks happen during function application, so the type
+      // mismatch surfaces as a panic.
+      assert.deepEqual(result.value.kind, 'panic')
+      assert(result.value.message.includes('is not assignable to'))
+    },
+  ],
+
+  [
     `{
       test: (f: (:something.type ~> :integer.type) | (:something.type ~> :boolean.type)) =>
         :f(_)
