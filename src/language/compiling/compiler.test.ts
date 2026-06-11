@@ -919,6 +919,41 @@ testCases(
   ],
 
   [
+    `((x: :atom.type) => @if {
+       @runtime { context => :context.program.start_time atom.equals foo }
+       { deeper: :x }
+       foo
+     }) ~ ((y: :atom.type) => { deeper: :y })`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      consume: (g: ((y: :atom.type) => { deeper: :y })) =>
+        @runtime { _ => :g(hello).deeper }
+      :consume((x: :atom.type) => @if {
+        @runtime { context => :context.program.start_time atom.equals foo }
+        { deeper: :x }
+        foo
+      })
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `((x: :atom.type) => ({ deeper: :x } | foo)) ~ ((y: :atom.type) => ({ deeper: :y } | foo))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
     `{
       apply_to_1: (identity: (a => :a)) => :identity(1)
       :apply_to_1(:identity) ~ 1
@@ -1110,6 +1145,69 @@ testCases(
     result => {
       assert(either.isLeft(result))
       assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      f: (u: { x: 1 } | done) => :u.x
+      r: :f(@runtime { _ => done }) ~ 1
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      f: (u: { x: 1 } | { y: 2 }) => :u.x
+      r: :f(@runtime { _ => { y: 2 } }) ~ 1
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      a: @if {
+        @runtime { context => :context.program.start_time atom.equals x }
+        { x: 1 }
+        done
+      }
+      r: :a.x ~ 1
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ obj: { a: 1 }, get: (key: a | b) => :obj.:key }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ f: (u: { x: { deep: 1 } } | { x: 2 }) => :u.x.deep }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      f: (u: { x: 1 } | { x: 2, y: 3 }) => :u.x
+      r: :f(@runtime { _ => { x: 2, y: 3 } }) ~ (1 | 2)
+    }`,
+    result => {
+      assert(either.isRight(result))
     },
   ],
 
@@ -1392,6 +1490,59 @@ testCases(
   ],
 
   [
+    `(x: { a: :atom.type }) =>
+      ((h: :x.a ~> :atom.type) => :h(forged))((v: :x.a) => :v)`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      caller: (g: { a: :atom.type } ~> :atom.type) =>
+        @runtime { _ => :g({ a: actual }) }
+      result: :caller(x =>
+        ((h: :x.a ~> :atom.type) => :h(forged))((v: :x.a) => :v))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      caller: (g: { a: :atom.type } ~> { got: :atom.type }) =>
+        @runtime { _ => :g({ a: actual }) }
+      result: :caller(x =>
+        ((h: :x.a ~> { got: :x.a }) => :h(forged))((v: :x.a) => { got: :v }))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    // There was an inference cache pollution issue causing the second
+    // application below to unsoundly succeed because the prior call locked in
+    // `:a`'s type as `1`.
+    `{
+      call_with: x => (f: :something.type ~> :something.type) => :f(:x)
+      first: :call_with(1)((n: :integer.type) => :n)
+      second: :call_with(a)((n: :integer.type) => :n)
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      // Body re-checks happen during function application, so the type
+      // mismatch surfaces as a panic.
+      assert.deepEqual(result.value.kind, 'panic')
+      assert(result.value.message.includes('is not assignable to'))
+    },
+  ],
+
+  [
     `{
       test: (f: (:something.type ~> :integer.type) | (:something.type ~> :boolean.type)) =>
         :f(_)
@@ -1623,6 +1774,44 @@ testCases(
       assert(either.isLeft(result))
       assert('kind' in result.value)
       assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `"-1-1" ~ :integer.type`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `"00" ~ :natural_number.type`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `1 + "-1-1"`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{ a: 1, b: 2 } ~ ({ a: 1, b: 2 } | { a: 1, b: 2 })`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(_ => x) ~ ((:something.type ~> :atom.type) | (:something.type ~> :atom.type))`,
+    result => {
+      assert(either.isRight(result))
     },
   ],
 ])

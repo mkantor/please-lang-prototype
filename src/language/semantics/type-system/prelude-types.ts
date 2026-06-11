@@ -34,7 +34,7 @@ export const atom = makeOpaqueType(atomTypeSymbol, {
 export const integerTypeSymbol = Symbol('integer')
 export const integer = makeOpaqueType(integerTypeSymbol, {
   isAssignableFromLiteralType: literalType =>
-    /^(?:0|-?[1-9](?:[0-9])*)+$/.test(literalType),
+    /^(?:0|-?[1-9][0-9]*)$/.test(literalType),
   upperBoundOfStuckType: replaceAllTypeParametersWithTheirConstraints,
   nearestOpaqueAssignableFrom: () => optionAdt.makeSome(naturalNumber),
   nearestOpaqueAssignableTo: () => optionAdt.makeSome(atom),
@@ -43,7 +43,7 @@ export const integer = makeOpaqueType(integerTypeSymbol, {
 export const naturalNumberTypeSymbol = Symbol('natural_number')
 export const naturalNumber = makeOpaqueType(naturalNumberTypeSymbol, {
   isAssignableFromLiteralType: literalType =>
-    /^(?:0|[1-9](?:[0-9])*)+$/.test(literalType),
+    /^(?:0|[1-9][0-9]*)$/.test(literalType),
   upperBoundOfStuckType: replaceAllTypeParametersWithTheirConstraints,
   nearestOpaqueAssignableFrom: () => optionAdt.none,
   nearestOpaqueAssignableTo: () => optionAdt.makeSome(integer),

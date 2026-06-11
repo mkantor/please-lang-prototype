@@ -497,7 +497,13 @@ const excludeRedundantUnionTypeMembers = (type: UnionType) => {
             isAssignable({
               source: possiblyRedundantMember,
               target: otherMember,
-            }),
+            }) &&
+            // If the members are mutually-assignable, only omit the latter one.
+            (!isAssignable({
+              source: otherMember,
+              target: possiblyRedundantMember,
+            }) ||
+              index > otherIndex),
         ),
     ),
   )

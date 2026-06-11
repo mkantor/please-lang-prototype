@@ -162,7 +162,8 @@ export const updateTypeAtKeyPathIfValid = (
         makeUnionType(
           [...type.members].flatMap(member => {
             if (typeof member === 'string') {
-              return []
+              // An atom can't satisfy a (non-empty) key path.
+              return member
             } else {
               const manipulatedMember = updateTypeAtKeyPathIfValid(
                 member,

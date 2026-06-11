@@ -560,15 +560,18 @@ const getFunctionParameterType = (
             },
           ),
         none: _ => {
-          const contextualType = option.flatMap(
+          const contextualParameterTypeInfo = option.flatMap(
             enclosingExpressionFromPropertyOfExpressionArgument(
               contextOfFunction,
             ),
-            (enclosingExpression): Option<Type> => {
+            (enclosingExpression): Option<FunctionParameterTypeInfo> => {
               if (
                 isKeywordExpressionWithArgument('@runtime', enclosingExpression)
               ) {
-                return option.makeSome(types.runtimeContext)
+                return option.makeSome({
+                  parameterType: types.runtimeContext,
+                  typeParametersBoundByFunction: new Set(),
+                })
               }
 
               const positionInEnclosingExpression =
@@ -612,10 +615,14 @@ const getFunctionParameterType = (
                   contextuallyAppliedFunctionType.value.signature.parameter
                     .kind === 'function'
                 ) {
-                  return option.makeSome(
+                  const borrowedParameterType =
                     contextuallyAppliedFunctionType.value.signature.parameter
-                      .signature.parameter,
-                  )
+                      .signature.parameter
+                  return option.makeSome({
+                    parameterType: borrowedParameterType,
+                    typeParametersBoundByFunction:
+                      typeParameterIdentitiesWithinType(borrowedParameterType),
+                  })
                 }
               }
 
@@ -623,16 +630,8 @@ const getFunctionParameterType = (
             },
           )
 
-          return option.match(contextualType, {
-            some: (
-              contextualParameterType,
-            ): Either<ElaborationError, FunctionParameterTypeInfo> =>
-              either.makeRight({
-                parameterType: contextualParameterType,
-                // A contextual parameter type's type parameters belong to the
-                // function that establishes the context, not this one.
-                typeParametersBoundByFunction: new Set<symbol>(),
-              }),
+          return option.match(contextualParameterTypeInfo, {
+            some: either.makeRight,
             none: _ => {
               const genericized = genericizeFunctionParameterAnnotation(
                 getParameterName(expression),
