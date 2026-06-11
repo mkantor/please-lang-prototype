@@ -1491,4 +1491,103 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `:boolean.not(@runtime { _ => true }) ~ false`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `:atom.append(@runtime { _ => b })(a) ~ ab`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(1 + @runtime { _ => 1 }) ~ 2`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(1 + @runtime { context =>
+      @if {
+        @runtime { context =>
+          :context.program.start_time atom.equals "arbitrary atom"
+        }
+        1
+        2
+      }
+    }) ~ (2 | 3)`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      add_natural_numbers: (b: :natural_number.type) => (a: :natural_number.type) => :a + :b
+      requires_a_natural_number: (a: :natural_number.type) => :a
+      :requires_a_natural_number(:add_natural_numbers(@runtime { _ => 1 })(@runtime { _ => 1 }))
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      add_natural_numbers: (b: :natural_number.type) => (a: :natural_number.type) => :a + :b
+      requires_a_natural_number: (a: :natural_number.type) => :a
+      :requires_a_natural_number(:add_natural_numbers(@runtime { _ => 1 })(@runtime { _ => -1 }))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      add_natural_numbers: (b: :natural_number.type) => (a: :natural_number.type) => :a + :b
+      requires_a_natural_number: (a: :natural_number.type) => :a
+      :requires_a_natural_number(:add_natural_numbers(@runtime { _ => -1 })(@runtime { _ => 1 }))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      subtract_natural_numbers: (b: :natural_number.type) => (a: :natural_number.type) => :a - :b
+      requires_a_natural_number: (a: :natural_number.type) => :a
+      :requires_a_natural_number(:subtract_natural_numbers(@runtime { _ => 2 })(@runtime { _ => 1 }))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
+    `{
+      subtract_natural_numbers: (b: :natural_number.type) => (a: :natural_number.type) => :a + :b
+      requires_a_natural_number: (a: :natural_number.type) => :a
+      illegal: (a: :integer.type) => :requires_a_natural_number(:subtract_natural_numbers(@runtime { _ => 1 })(:a))
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert('kind' in result.value)
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])

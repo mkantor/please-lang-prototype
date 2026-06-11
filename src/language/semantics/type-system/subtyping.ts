@@ -1,3 +1,5 @@
+import type { Option } from '@matt.kantor/option'
+import option from '@matt.kantor/option'
 import type { Atom } from '../../parsing.js'
 import {
   makeObjectType,
@@ -31,227 +33,268 @@ export const isAssignable = ({
 
   return (
     source === target || // in this case there's no reason to spend time checking structural assignability
-    matchTypeFormat(source, {
-      application: source =>
-        target.kind === 'application' ?
-          // Two stuck applications are assignable when their functions and
-          // arguments are mutually assignable.
-          isAssignable({ source: source.function, target: target.function }) &&
-          isAssignable({ source: target.function, target: source.function }) &&
-          isAssignable({ source: source.argument, target: target.argument }) &&
-          isAssignable({ source: target.argument, target: source.argument })
-        : isAssignable({
+    (target.kind === 'intrinsicApplication' ?
+      // An intrinsic application behaves as its (concrete) upper bound when
+      // appearing as the target, mirroring the source case below. This ensures
+      // structurally-equivalent-but-not-identical intrinsic applications are
+      // mutually assignable.
+      isAssignable({
+        source,
+        target: replaceAllTypeParametersWithTheirConstraints(target),
+      })
+    : matchTypeFormat(source, {
+        application: source =>
+          target.kind === 'application' ?
+            // Two stuck applications are assignable when their functions and
+            // arguments are mutually assignable.
+            isAssignable({
+              source: source.function,
+              target: target.function,
+            }) &&
+            isAssignable({
+              source: target.function,
+              target: source.function,
+            }) &&
+            isAssignable({
+              source: source.argument,
+              target: target.argument,
+            }) &&
+            isAssignable({
+              source: target.argument,
+              target: source.argument,
+            })
+          : isAssignable({
+              source: replaceAllTypeParametersWithTheirConstraints(source),
+              target,
+            }),
+        function: source =>
+          matchTypeFormat(target, {
+            function: target => {
+              // Functions are contravariant in parameters, covariant in return
+              // types.
+              if (
+                source.signature.parameter.kind === 'parameter' &&
+                source.signature.return.kind === 'parameter' &&
+                source.signature.parameter.identity ===
+                  source.signature.return.identity
+              ) {
+                // The source is an identity function (`a => a`), which means this
+                // much simpler check can be performed. This also allows correctly
+                // handling the fact that `a => a` is assignable to a type like
+                // `atom => atom`.
+                return (
+                  isAssignable({
+                    source: target.signature.parameter,
+                    target: target.signature.return,
+                  }) &&
+                  isAssignable({
+                    source: target.signature.parameter,
+                    target: source.signature.parameter.constraint.assignableTo,
+                  })
+                )
+              } else {
+                const sourceParameterTypeParameters = containedTypeParameters(
+                  source.signature.parameter,
+                )
+                const targetParameterTypeParameters = containedTypeParameters(
+                  target.signature.parameter,
+                )
+
+                // An example showing how this will be used: When checking whether
+                // `{ a: (a <: atom) } => a` is assignable to `{ a: (b <: "a") }
+                // => b`, the parameter types are compatible if `{ a: (b <: "a")
+                // }` is assignable to `{ a: atom }` (it is).
+                let sourceParameterWithTypeParametersReplacedByConstraints =
+                  source.signature.parameter
+
+                // An example showing how this will be used: When checking whether
+                // `a => { a: a, b: atom }` is assignable to `(b <: atom) => { a:
+                // b }`, the return types are compatible if `{ a: b, b: atom }` is
+                // assignable to `{ a: b }` (it is).
+                let sourceReturnWithTypeParametersReplacedByTargetTypeParameters =
+                  source.signature.return
+
+                for (const [
+                  stringifiedKeyPath,
+                  sourceTypeParametersAtThisKeyPath,
+                ] of sourceParameterTypeParameters) {
+                  for (const sourceTypeParameter of sourceTypeParametersAtThisKeyPath
+                    .typeParameters.members) {
+                    sourceParameterWithTypeParametersReplacedByConstraints =
+                      supplyTypeArgument(
+                        sourceParameterWithTypeParametersReplacedByConstraints,
+                        sourceTypeParameter,
+                        sourceTypeParameter.constraint.assignableTo,
+                      )
+
+                    const correspondingTargetTypeParameter =
+                      targetParameterTypeParameters.get(stringifiedKeyPath)
+
+                    if (correspondingTargetTypeParameter !== undefined) {
+                      const locationsOfSourceTypeParameterInSourceReturn =
+                        findKeyPathsToTypeParameter(
+                          source.signature.return,
+                          sourceTypeParameter,
+                        )
+
+                      for (const locationOfSourceTypeParameterInSourceReturn of locationsOfSourceTypeParameterInSourceReturn) {
+                        sourceReturnWithTypeParametersReplacedByTargetTypeParameters =
+                          updateTypeAtKeyPathIfValid(
+                            sourceReturnWithTypeParametersReplacedByTargetTypeParameters,
+                            locationOfSourceTypeParameterInSourceReturn,
+                            typeAtKeyPath => {
+                              if (
+                                typeAtKeyPath.kind === 'parameter' &&
+                                typeAtKeyPath.identity ===
+                                  sourceTypeParameter.identity
+                              ) {
+                                return correspondingTargetTypeParameter.typeParameters
+                              } else {
+                                return typeAtKeyPath
+                              }
+                            },
+                          )
+                      }
+                    }
+                  }
+                }
+
+                return (
+                  // Contravariant parameter check:
+                  isAssignable({
+                    source: target.signature.parameter,
+                    target:
+                      sourceParameterWithTypeParametersReplacedByConstraints,
+                  }) &&
+                  // Covariant return type check:
+                  isAssignable({
+                    source:
+                      sourceReturnWithTypeParametersReplacedByTargetTypeParameters,
+                    target: target.signature.return,
+                  })
+                )
+              }
+            },
+            application: _target => false,
+            indexedAccess: _target => false,
+            intrinsicApplication: _target => {
+              // This case is handled above.
+              throw new Error(
+                'Intrinsic application target should have already been handled. This is a bug!',
+              )
+            },
+            object: _target => false, // functions are never assignable to objects
+            opaque: target => target.isAssignableFrom(source),
+            parameter: _target => false, // a function type is never directly assignable to a type parameter
+            union: target => isNonUnionAssignableToUnion({ source, target }),
+          }),
+        indexedAccess: source =>
+          isAssignable({
             source: replaceAllTypeParametersWithTheirConstraints(source),
             target,
           }),
-      function: source =>
-        matchTypeFormat(target, {
-          function: target => {
-            // Functions are contravariant in parameters, covariant in return
-            // types.
-            if (
-              source.signature.parameter.kind === 'parameter' &&
-              source.signature.return.kind === 'parameter' &&
-              source.signature.parameter.identity ===
-                source.signature.return.identity
-            ) {
-              // The source is an identity function (`a => a`), which means this
-              // much simpler check can be performed. This also allows correctly
-              // handling the fact that `a => a` is assignable to a type like
-              // `atom => atom`.
-              return (
-                isAssignable({
-                  source: target.signature.parameter,
-                  target: target.signature.return,
-                }) &&
-                isAssignable({
-                  source: target.signature.parameter,
-                  target: source.signature.parameter.constraint.assignableTo,
-                })
+        intrinsicApplication: source =>
+          isAssignable({
+            source: replaceAllTypeParametersWithTheirConstraints(source),
+            target,
+          }),
+        object: source =>
+          matchTypeFormat(target, {
+            function: _target => false, // objects are never assignable to functions
+            application: _target => false,
+            indexedAccess: _target => false,
+            intrinsicApplication: _target => {
+              // This case is handled above.
+              throw new Error(
+                'Intrinsic application target should have already been handled. This is a bug!',
               )
-            } else {
-              const sourceParameterTypeParameters = containedTypeParameters(
-                source.signature.parameter,
-              )
-              const targetParameterTypeParameters = containedTypeParameters(
-                target.signature.parameter,
-              )
-
-              // An example showing how this will be used: When checking whether
-              // `{ a: (a <: atom) } => a` is assignable to `{ a: (b <: "a") }
-              // => b`, the parameter types are compatible if `{ a: (b <: "a")
-              // }` is assignable to `{ a: atom }` (it is).
-              let sourceParameterWithTypeParametersReplacedByConstraints =
-                source.signature.parameter
-
-              // An example showing how this will be used: When checking whether
-              // `a => { a: a, b: atom }` is assignable to `(b <: atom) => { a:
-              // b }`, the return types are compatible if `{ a: b, b: atom }` is
-              // assignable to `{ a: b }` (it is).
-              let sourceReturnWithTypeParametersReplacedByTargetTypeParameters =
-                source.signature.return
-
-              for (const [
-                stringifiedKeyPath,
-                sourceTypeParametersAtThisKeyPath,
-              ] of sourceParameterTypeParameters) {
-                for (const sourceTypeParameter of sourceTypeParametersAtThisKeyPath
-                  .typeParameters.members) {
-                  sourceParameterWithTypeParametersReplacedByConstraints =
-                    supplyTypeArgument(
-                      sourceParameterWithTypeParametersReplacedByConstraints,
-                      sourceTypeParameter,
-                      sourceTypeParameter.constraint.assignableTo,
-                    )
-
-                  const correspondingTargetTypeParameter =
-                    targetParameterTypeParameters.get(stringifiedKeyPath)
-
-                  if (correspondingTargetTypeParameter !== undefined) {
-                    const locationsOfSourceTypeParameterInSourceReturn =
-                      findKeyPathsToTypeParameter(
-                        source.signature.return,
-                        sourceTypeParameter,
-                      )
-
-                    for (const locationOfSourceTypeParameterInSourceReturn of locationsOfSourceTypeParameterInSourceReturn) {
-                      sourceReturnWithTypeParametersReplacedByTargetTypeParameters =
-                        updateTypeAtKeyPathIfValid(
-                          sourceReturnWithTypeParametersReplacedByTargetTypeParameters,
-                          locationOfSourceTypeParameterInSourceReturn,
-                          typeAtKeyPath => {
-                            if (
-                              typeAtKeyPath.kind === 'parameter' &&
-                              typeAtKeyPath.identity ===
-                                sourceTypeParameter.identity
-                            ) {
-                              return correspondingTargetTypeParameter.typeParameters
-                            } else {
-                              return typeAtKeyPath
-                            }
-                          },
-                        )
-                    }
+            },
+            object: target => {
+              // Make sure all properties in the target are present and valid in
+              // the source (recursively). Values may have additional properties
+              // beyond what is required by the target and still be assignable to
+              // it.
+              for (const [key, typePropertyValue] of Object.entries(
+                target.children,
+              )) {
+                if (source.children[key] === undefined) {
+                  return false
+                } else {
+                  // Recursively check the property:
+                  if (
+                    !isAssignable({
+                      source: source.children[key],
+                      target: typePropertyValue,
+                    })
+                  ) {
+                    return false
                   }
                 }
               }
+              return true
+            },
+            opaque: target => target.isAssignableFrom(source),
+            parameter: _target => false, // an object type is never directly assignable to a type parameter
+            union: target => isNonUnionAssignableToUnion({ source, target }),
+          }),
+        opaque: source => source.isAssignableTo(target),
+        parameter: source =>
+          // A type parameter is only assignable to a type parameter if they are
+          // the same parameter. For any other `target`, a type parameter is
+          // assignable to it if its constraint is.
+          target.kind === 'parameter' ?
+            source.identity === target.identity
+          : isAssignable({
+              source: source.constraint.assignableTo,
+              target,
+            }),
+        union: source =>
+          matchTypeFormat(target, {
+            function: target => isUnionAssignableToNonUnion({ source, target }),
+            application: target =>
+              isUnionAssignableToNonUnion({ source, target }),
+            indexedAccess: target =>
+              isUnionAssignableToNonUnion({ source, target }),
+            intrinsicApplication: target =>
+              isUnionAssignableToNonUnion({ source, target }),
+            object: target => isUnionAssignableToNonUnion({ source, target }),
+            opaque: target => isUnionAssignableToNonUnion({ source, target }),
+            parameter: target =>
+              isUnionAssignableToNonUnion({ source, target }),
+            union: target => {
+              // Return true if every member of the source is assignable to some
+              // member of the target.
+              for (const sourceMember of source.members) {
+                const sourceMemberIsAssignableToSomeMemberOfSupertype = (() => {
+                  const preparedTarget = simplifyUnionType(target)
+                  for (const targetMember of preparedTarget.members) {
+                    if (sourceMember === targetMember) {
+                      return true
+                    } else if (typeof targetMember !== 'string') {
+                      if (
+                        isAssignable({
+                          target: targetMember,
+                          source:
+                            typeof sourceMember !== 'string' ? sourceMember : (
+                              makeUnionType([sourceMember])
+                            ),
+                        })
+                      ) {
+                        return true
+                      }
+                    }
+                  }
+                  return false
+                })()
 
-              return (
-                // Contravariant parameter check:
-                isAssignable({
-                  source: target.signature.parameter,
-                  target:
-                    sourceParameterWithTypeParametersReplacedByConstraints,
-                }) &&
-                // Covariant return type check:
-                isAssignable({
-                  source:
-                    sourceReturnWithTypeParametersReplacedByTargetTypeParameters,
-                  target: target.signature.return,
-                })
-              )
-            }
-          },
-          application: _target => false,
-          indexedAccess: _target => false,
-          object: _target => false, // functions are never assignable to objects
-          opaque: target => target.isAssignableFrom(source),
-          parameter: _target => false, // a function type is never directly assignable to a type parameter
-          union: target => isNonUnionAssignableToUnion({ source, target }),
-        }),
-      indexedAccess: source =>
-        isAssignable({
-          source: replaceAllTypeParametersWithTheirConstraints(source),
-          target,
-        }),
-      object: source =>
-        matchTypeFormat(target, {
-          function: _ => false, // objects are never assignable to functions
-          application: _ => false,
-          indexedAccess: _ => false,
-          object: target => {
-            // Make sure all properties in the target are present and valid in
-            // the source (recursively). Values may have additional properties
-            // beyond what is required by the target and still be assignable to
-            // it.
-            for (const [key, typePropertyValue] of Object.entries(
-              target.children,
-            )) {
-              if (source.children[key] === undefined) {
-                return false
-              } else {
-                // Recursively check the property:
-                if (
-                  !isAssignable({
-                    source: source.children[key],
-                    target: typePropertyValue,
-                  })
-                ) {
+                if (!sourceMemberIsAssignableToSomeMemberOfSupertype) {
                   return false
                 }
               }
-            }
-            return true
-          },
-          opaque: target => target.isAssignableFrom(source),
-          parameter: _target => false, // an object type is never directly assignable to a type parameter
-          union: target => isNonUnionAssignableToUnion({ source, target }),
-        }),
-      opaque: source => source.isAssignableTo(target),
-      parameter: source =>
-        // A type parameter is only assignable to a type parameter if they are
-        // the same parameter. For any other `target`, a type parameter is
-        // assignable to it if its constraint is.
-        target.kind === 'parameter' ?
-          source.identity === target.identity
-        : isAssignable({
-            source: source.constraint.assignableTo,
-            target,
+              return true
+            },
           }),
-      union: source =>
-        matchTypeFormat(target, {
-          function: target => isUnionAssignableToNonUnion({ source, target }),
-          application: target =>
-            isUnionAssignableToNonUnion({ source, target }),
-          indexedAccess: target =>
-            isUnionAssignableToNonUnion({ source, target }),
-          object: target => isUnionAssignableToNonUnion({ source, target }),
-          opaque: target => isUnionAssignableToNonUnion({ source, target }),
-          parameter: target => isUnionAssignableToNonUnion({ source, target }),
-          union: target => {
-            // Return true if every member of the source is assignable to some
-            // member of the target.
-            for (const sourceMember of source.members) {
-              const sourceMemberIsAssignableToSomeMemberOfSupertype = (() => {
-                const preparedTarget = simplifyUnionType(target)
-                for (const targetMember of preparedTarget.members) {
-                  if (sourceMember === targetMember) {
-                    return true
-                  } else if (typeof targetMember !== 'string') {
-                    if (
-                      isAssignable({
-                        target: targetMember,
-                        source:
-                          typeof sourceMember !== 'string' ? sourceMember : (
-                            makeUnionType([sourceMember])
-                          ),
-                      })
-                    ) {
-                      return true
-                    }
-                  }
-                }
-                return false
-              })()
-
-              if (!sourceMemberIsAssignableToSomeMemberOfSupertype) {
-                return false
-              }
-            }
-            return true
-          },
-        }),
-    })
+      }))
   )
 }
 
@@ -311,6 +354,28 @@ const isUnionAssignableToNonUnion = ({
     }
     return true
   }
+}
+
+/**
+ * Returns a narrowed version of the `UnionType` if all of its members are
+ * literal atom types.
+ */
+export const asUnionWithLiteralAtomMembers = (
+  type: UnionType,
+): Option<
+  Omit<UnionType, 'members'> & { readonly members: ReadonlySet<Atom> }
+> => {
+  const simplifiedType = simplifyUnionType(type)
+
+  const atomMembers = [...simplifiedType.members].filter(
+    member => typeof member === 'string',
+  )
+
+  const isAtomUnion = atomMembers.length === simplifiedType.members.size
+
+  return !isAtomUnion ?
+      option.none
+    : option.makeSome(makeUnionType(atomMembers))
 }
 
 /**

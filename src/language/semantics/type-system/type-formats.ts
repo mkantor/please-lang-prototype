@@ -1,6 +1,7 @@
-import type { None, Some } from '@matt.kantor/option'
-import option from '@matt.kantor/option'
+import type { Either } from '@matt.kantor/either'
+import option, { type None, type Some } from '@matt.kantor/option'
 import type { Atom } from '../../parsing.js'
+import type { FunctionNodeCallError } from '../function-node.js'
 import type { TypeSymbol } from '../semantic-graph.js'
 
 export type FunctionType = {
@@ -67,6 +68,41 @@ export const makeApplicationType = (
   flexibleParameters,
 })
 
+/**
+ * A stuck application of a host-implemented standard library function. Standard
+ * library functions whose return type is concrete (e.g. `:atom.type ~>
+ * :atom.type ~> :atom.type` for `atom.append`) are lifted so their return
+ * becomes one of these, letting the type system compute the result type from
+ * argument types even when argument values are unelaborated.
+ *
+ * It reduces once every argument is a concrete atom type (or union thereof).
+ * Until then it stays stuck, behaving like `upperBound` for assignability
+ * purposes.
+ */
+export type IntrinsicApplicationType = {
+  readonly kind: 'intrinsicApplication'
+  readonly parameterTypes: readonly Type[]
+  readonly reduce: (
+    // `argumentValues` is expected to be aligned with `parameterTypes`.
+    // TODO: Support non-`Atom` arguments?
+    argumentValues: readonly Atom[],
+  ) => Either<FunctionNodeCallError, Type>
+  readonly upperBound: Type
+}
+
+export const makeIntrinsicApplicationType = (
+  parameterTypes: readonly Type[],
+  reduce: (
+    argumentValues: readonly Atom[],
+  ) => Either<FunctionNodeCallError, Type>,
+  upperBound: Type,
+): IntrinsicApplicationType => ({
+  kind: 'intrinsicApplication',
+  parameterTypes,
+  reduce,
+  upperBound,
+})
+
 export type ObjectType = {
   readonly kind: 'object'
   readonly children: Readonly<Record<Atom, Type>>
@@ -94,7 +130,7 @@ export const makeOpaqueType = (
     // cycle with `type-substitution.ts`. `makeOpaqueType` is called in static
     // module scope from `prelude-types.ts`.
     readonly upperBoundOfStuckType: (
-      type: ApplicationType | IndexedAccessType,
+      type: ApplicationType | IndexedAccessType | IntrinsicApplicationType,
     ) => Type
   } & (
     | {
@@ -121,6 +157,8 @@ export const makeOpaqueType = (
         application: source =>
           self.isAssignableFrom(subtyping.upperBoundOfStuckType(source)),
         indexedAccess: source =>
+          self.isAssignableFrom(subtyping.upperBoundOfStuckType(source)),
+        intrinsicApplication: source =>
           self.isAssignableFrom(subtyping.upperBoundOfStuckType(source)),
 
         function: _ => false,
@@ -152,6 +190,7 @@ export const makeOpaqueType = (
         application: _ => false,
         function: _ => false,
         indexedAccess: _ => false,
+        intrinsicApplication: _ => false,
         object: _ => false,
         opaque: target =>
           target === self ||
@@ -254,6 +293,7 @@ export type Type =
   | ApplicationType
   | FunctionType
   | IndexedAccessType
+  | IntrinsicApplicationType
   | ObjectType
   | OpaqueType
   | TypeParameter
@@ -265,6 +305,7 @@ export const matchTypeFormat = <Result>(
     application: (type: ApplicationType) => Result
     function: (type: FunctionType) => Result
     indexedAccess: (type: IndexedAccessType) => Result
+    intrinsicApplication: (type: IntrinsicApplicationType) => Result
     object: (type: ObjectType) => Result
     opaque: (type: OpaqueType) => Result
     parameter: (type: TypeParameter) => Result
@@ -277,6 +318,8 @@ export const matchTypeFormat = <Result>(
     case 'function':
       return cases[type.kind](type)
     case 'indexedAccess':
+      return cases[type.kind](type)
+    case 'intrinsicApplication':
       return cases[type.kind](type)
     case 'object':
       return cases[type.kind](type)

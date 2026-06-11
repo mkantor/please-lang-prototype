@@ -1,5 +1,6 @@
 import either, { type Either } from '@matt.kantor/either'
 import option from '@matt.kantor/option'
+import type { Atom } from '../../parsing.js'
 import {
   keyPathToLookupExpression,
   makeApplyExpression,
@@ -17,7 +18,14 @@ import {
   type SemanticGraph,
 } from '../semantic-graph.js'
 import { literalTypeFromSemanticGraph } from '../type-system/literal-type.js'
-import { type FunctionType, type Type } from '../type-system/type-formats.js'
+import {
+  makeFunctionType,
+  makeIntrinsicApplicationType,
+  makeTypeParameter,
+  type FunctionType,
+  type Type,
+} from '../type-system/type-formats.js'
+import { containedTypeParameters } from '../type-system/type-parameter-analysis.js'
 import {
   getTypesForTypeParameters,
   supplyTypeArguments,
@@ -78,7 +86,10 @@ export const serializeTwiceAppliedFunction =
   () =>
     either.makeRight(
       makeApplyExpression({
-        function: serializeOnceAppliedFunction(keyPath, argument1)().value,
+        function: makeApplyExpression({
+          function: keyPathToLookupExpression(keyPath),
+          argument: argument1,
+        }),
         argument: argument2,
       }),
     )
@@ -89,7 +100,7 @@ export const preludeFunctionArity1 = (
   f: FunctionNodeCallSignature,
 ) =>
   makeFunctionNode(
-    signature,
+    liftIntrinsicSignature(signature, intrinsicApplicationTypeReducerArity1(f)),
     () => either.makeRight(keyPathToLookupExpression(keyPath)),
     option.none,
     handleUnavailableDependencies(f),
@@ -105,22 +116,27 @@ export const preludeFunctionArity2 = (
     argument1: SemanticGraph,
   ) => Either<FunctionNodeCallError, FunctionNodeCallSignature>,
 ) =>
-  preludeFunctionArity1(keyPath, signature, argument1 =>
-    either.flatMap(
-      refineReturnedFunctionType(
-        signature.parameter,
-        signature.return,
-        argument1,
-      ),
-      refinedReturn =>
-        either.map(f(argument1), f1 =>
-          makeFunctionNode(
-            refinedReturn.signature,
-            serializeOnceAppliedFunction(keyPath, argument1),
-            option.none,
-            handleUnavailableDependencies(f1),
-          ),
+  makeFunctionNode(
+    liftIntrinsicSignature(signature, intrinsicApplicationTypeReducerArity2(f)),
+    () => either.makeRight(keyPathToLookupExpression(keyPath)),
+    option.none,
+    handleUnavailableDependencies(argument1 =>
+      either.flatMap(
+        refineReturnedFunctionType(
+          signature.parameter,
+          signature.return,
+          argument1,
         ),
+        refinedReturn =>
+          either.map(f(argument1), f1 =>
+            makeFunctionNode(
+              refinedReturn.signature,
+              serializeOnceAppliedFunction(keyPath, argument1),
+              option.none,
+              handleUnavailableDependencies(f1),
+            ),
+          ),
+      ),
     ),
   )
 
@@ -143,51 +159,209 @@ export const preludeFunctionArity3 = (
       argument2: SemanticGraph,
     ) => Either<FunctionNodeCallError, FunctionNodeCallSignature>
   >,
-) =>
-  preludeFunctionArity1(keyPath, signature, argument1 =>
-    either.flatMap(
-      refineReturnedFunctionType(
-        signature.parameter,
-        signature.return,
-        argument1,
-      ),
-      refinedReturn1 =>
-        either.map(f(argument1), f1 =>
-          makeFunctionNode(
-            refinedReturn1.signature,
-            serializeOnceAppliedFunction(keyPath, argument1),
-            option.none,
-            handleUnavailableDependencies(argument2 =>
-              either.flatMap(
-                refinedReturn1.signature.return.kind === 'function' ?
-                  refineReturnedFunctionType(
-                    refinedReturn1.signature.parameter,
-                    refinedReturn1.signature.return,
-                    argument2,
-                  )
-                : either.makeLeft({
-                    kind: 'bug',
-                    message: `supplying type arguments in an arity-3 standard library function somehow transformed its first return type into a ${refinedReturn1.signature.return.kind} type (it should be a function type)`,
-                  }),
-                refinedReturn2 =>
-                  either.map(f1(argument2), f2 =>
-                    makeFunctionNode(
-                      refinedReturn2.signature,
-                      serializeTwiceAppliedFunction(
-                        keyPath,
-                        argument1,
-                        argument2,
+) => {
+  const liftedSignature = liftIntrinsicSignature(
+    signature,
+    intrinsicApplicationTypeReducerArity3(f),
+  )
+  return makeFunctionNode(
+    liftedSignature,
+    () => either.makeRight(keyPathToLookupExpression(keyPath)),
+    option.none,
+    handleUnavailableDependencies(argument1 =>
+      either.flatMap(
+        refineReturnedFunctionType(
+          signature.parameter,
+          signature.return,
+          argument1,
+        ),
+        refinedReturn1 =>
+          either.map(f(argument1), f1 =>
+            makeFunctionNode(
+              refinedReturn1.signature,
+              serializeOnceAppliedFunction(keyPath, argument1),
+              option.none,
+              handleUnavailableDependencies(argument2 =>
+                either.flatMap(
+                  refinedReturn1.signature.return.kind === 'function' ?
+                    refineReturnedFunctionType(
+                      refinedReturn1.signature.parameter,
+                      refinedReturn1.signature.return,
+                      argument2,
+                    )
+                  : either.makeLeft({
+                      kind: 'bug',
+                      message: `supplying type arguments in an arity-3 standard library function somehow transformed its first return type into a ${refinedReturn1.signature.return.kind} type (it should be a function type)`,
+                    }),
+                  refinedReturn2 =>
+                    either.map(f1(argument2), f2 =>
+                      makeFunctionNode(
+                        refinedReturn2.signature,
+                        serializeTwiceAppliedFunction(
+                          keyPath,
+                          argument1,
+                          argument2,
+                        ),
+                        option.none,
+                        handleUnavailableDependencies(f2),
                       ),
-                      option.none,
-                      handleUnavailableDependencies(f2),
                     ),
-                  ),
+                ),
               ),
             ),
           ),
-        ),
+      ),
     ),
   )
+}
+
+const synthesizeTypeParameterName = (index: number) => {
+  if (index < 0 || !Number.isInteger(index)) {
+    throw new Error('Index was negative or non-integral. This is a bug!')
+  } else {
+    const wraparoundCount = Math.floor(index / 26)
+    const suffix = wraparoundCount === 0 ? '' : String(wraparoundCount)
+    return String.fromCharCode((index % 26) + 97).concat(suffix)
+  }
+}
+
+// The reducers below apply an intrinsic function (`f`) to concrete argument
+// atoms (unit types), lifting the result back to a type. This lets
+// `IntrinsicApplicationType`s reduce via the same code that evaluates values.
+
+const intrinsicApplicationTypeReducerArity1 =
+  (f: FunctionNodeCallSignature) =>
+  (argumentAtoms: readonly Atom[]): Either<FunctionNodeCallError, Type> => {
+    const [argument] = argumentAtoms
+    return argument === undefined ?
+        either.makeLeft({
+          kind: 'bug',
+          message: "argument list didn't contain enough arguments",
+        })
+      : either.flatMap(
+          f(argument, emptyContextForStdlibApplications),
+          literalTypeFromSemanticGraph,
+        )
+  }
+
+const intrinsicApplicationTypeReducerArity2 =
+  (
+    f: (
+      argument1: SemanticGraph,
+    ) => Either<FunctionNodeCallError, FunctionNodeCallSignature>,
+  ) =>
+  (argumentAtoms: readonly Atom[]): Either<FunctionNodeCallError, Type> => {
+    const [argument1, argument2] = argumentAtoms
+    return argument1 === undefined || argument2 === undefined ?
+        either.makeLeft({
+          kind: 'bug',
+          message: "argument list didn't contain enough arguments",
+        })
+      : either.flatMap(
+          either.flatMap(f(argument1), f1 =>
+            f1(argument2, emptyContextForStdlibApplications),
+          ),
+          literalTypeFromSemanticGraph,
+        )
+  }
+
+const intrinsicApplicationTypeReducerArity3 =
+  (
+    f: (
+      argument1: SemanticGraph,
+    ) => Either<
+      FunctionNodeCallError,
+      (
+        argument2: SemanticGraph,
+      ) => Either<FunctionNodeCallError, FunctionNodeCallSignature>
+    >,
+  ) =>
+  (argumentAtoms: readonly Atom[]): Either<FunctionNodeCallError, Type> => {
+    const [argument1, argument2, argument3] = argumentAtoms
+    return (
+        argument1 === undefined ||
+          argument2 === undefined ||
+          argument3 === undefined
+      ) ?
+        either.makeLeft({
+          kind: 'bug',
+          message: "argument list didn't contain enough arguments",
+        })
+      : either.flatMap(
+          either.flatMap(f(argument1), f1 =>
+            either.flatMap(f1(argument2), f2 =>
+              f2(argument3, emptyContextForStdlibApplications),
+            ),
+          ),
+          literalTypeFromSemanticGraph,
+        )
+  }
+
+type SignatureParts = {
+  // The constraint at each curried parameter position, in application order.
+  readonly parameterConstraints: readonly Type[]
+  // The innermost (non-function) return type.
+  readonly finalReturn: Type
+}
+
+const signatureParts = (
+  signature: FunctionType['signature'],
+): SignatureParts => {
+  const prependParameter = (
+    parameter: Type,
+    { parameterConstraints, finalReturn }: SignatureParts,
+  ): SignatureParts => ({
+    parameterConstraints: [parameter, ...parameterConstraints],
+    finalReturn,
+  })
+  const partsFromReturn = (returnType: Type): SignatureParts =>
+    returnType.kind === 'function' ?
+      prependParameter(
+        returnType.signature.parameter,
+        partsFromReturn(returnType.signature.return),
+      )
+    : { parameterConstraints: [], finalReturn: returnType }
+  return prependParameter(
+    signature.parameter,
+    partsFromReturn(signature.return),
+  )
+}
+
+/**
+ * Lift a standard library function's signature to be generic over its
+ * parameters and return an `IntrinsicApplicationType`. This lets the type
+ * system compute precise return types from unit argument types via `reduce`
+ * (which should apply the function itself).
+ *
+ * Functions whose return already contains a type parameter (e.g. `identity`)
+ * don't need extra precision, so their signature is left unchanged.
+ */
+const liftIntrinsicSignature = (
+  signature: FunctionType['signature'],
+  reduce: (
+    argumentAtoms: readonly Atom[],
+  ) => Either<FunctionNodeCallError, Type>,
+): FunctionType['signature'] => {
+  if (containedTypeParameters(makeFunctionType(signature)).size > 0) {
+    return signature
+  } else {
+    const { parameterConstraints, finalReturn } = signatureParts(signature)
+    // Make signatures implicitly generic, just like userland functions.
+    const parameterTypes = parameterConstraints.map((constraint, index) =>
+      makeTypeParameter(synthesizeTypeParameterName(index), {
+        assignableTo: constraint,
+      }),
+    )
+    const liftedFunctionType = parameterTypes.reduceRight<Type>(
+      (returnSoFar, parameter) =>
+        makeFunctionType({ parameter, return: returnSoFar }),
+      makeIntrinsicApplicationType(parameterTypes, reduce, finalReturn),
+    )
+    return liftedFunctionType.kind === 'function' ?
+        liftedFunctionType.signature
+      : signature
+  }
+}
 
 /**
  * Substitute type parameters using an argument's type into the returned
