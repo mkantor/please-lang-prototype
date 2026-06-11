@@ -10,10 +10,7 @@ import {
   type KeywordHandler,
   type SemanticGraph,
 } from '../../../semantics.js'
-import {
-  inferType,
-  literalTypeFromSemanticGraph,
-} from '../../../semantics/type-system.js'
+import { inferType } from '../../../semantics/type-system.js'
 
 const check = ({
   value,
@@ -30,23 +27,29 @@ const check = ({
       location: [...context.location, '1', 'value'],
     }),
     valueAsType =>
-      either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
-        if (
-          isAssignable({
-            source: valueAsType,
-            target: typeAsType,
-          })
-        ) {
-          return either.makeRight(value)
-        } else {
-          return either.makeLeft({
-            kind: 'typeMismatch',
-            message: `the value \`${stringifySemanticGraphForEndUser(
-              value,
-            )}\` (inferred to have type \`${stringifyTypeForEndUser(valueAsType)}\`) is not assignable to the type \`${stringifyTypeForEndUser(typeAsType)}\``,
-          })
-        }
-      }),
+      either.flatMap(
+        inferType(type, {
+          ...context,
+          location: [...context.location, '1', 'type'],
+        }),
+        typeAsType => {
+          if (
+            isAssignable({
+              source: valueAsType,
+              target: typeAsType,
+            })
+          ) {
+            return either.makeRight(value)
+          } else {
+            return either.makeLeft({
+              kind: 'typeMismatch',
+              message: `the value \`${stringifySemanticGraphForEndUser(
+                value,
+              )}\` (inferred to have type \`${stringifyTypeForEndUser(valueAsType)}\`) is not assignable to the type \`${stringifyTypeForEndUser(typeAsType)}\``,
+            })
+          }
+        },
+      ),
   )
 
 export const checkKeywordHandler: KeywordHandler = (

@@ -965,6 +965,25 @@ testCases(
   ],
 
   [
+    `(x: :atom.type) => (:x ~ :x)`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(x: :atom.type) =>
+      (@if {
+         @runtime { context => :context.program.start_time atom.equals foo }
+         :x
+         foo
+       } ~ (:x | foo))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
     `{
       apply_to_1: (identity: (a => :a)) => :identity(1)
       :apply_to_1(:identity) ~ 1
