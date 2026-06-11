@@ -19,6 +19,7 @@ import {
   readLookupExpression,
   readPanicExpression,
   readRuntimeExpression,
+  readUnionExpression,
   type ExpressionContext,
   type FunctionParameterTypeInfo,
   type KeyPath,
@@ -462,6 +463,33 @@ const inferTypeImplementation = (
   const panicExpressionResult = readPanicExpression(node)
   if (either.isRight(panicExpressionResult)) {
     return cacheOnSuccess(either.makeRight(types.nothing))
+  }
+
+  // @union: infer each member as a type and combine them into a (flat) union.
+  const unionExpressionResult = readUnionExpression(node)
+  if (either.isRight(unionExpressionResult)) {
+    return cacheOnSuccess(
+      either.map(
+        either.sequence(
+          Object.entries(unionExpressionResult.value[1]).map(([key, member]) =>
+            inferTypeImplementation(
+              member,
+              parameterTypes,
+              lookingUpKeys,
+              descendantContext(['1', key]),
+            ),
+          ),
+        ),
+        memberTypes =>
+          makeUnionType(
+            memberTypes.flatMap(memberType =>
+              memberType.kind === 'union' ?
+                [...memberType.members]
+              : [memberType],
+            ),
+          ),
+      ),
+    )
   }
 
   if (isObjectNode(node) && containsAnyUnelaboratedNodes(node)) {
