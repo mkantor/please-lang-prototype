@@ -10,6 +10,7 @@ import {
   isAssignable,
   isFunctionNode,
   readApplyExpression,
+  rigidTypeParameterIdentities,
   stringifyTypeForEndUser,
   supplyTypeArgument,
   supplyTypeArguments,
@@ -27,12 +28,24 @@ import {
 const checkArgumentType = (
   argumentType: Type,
   parameterType: Type,
+  rigidTypeParameters: ReadonlySet<symbol>,
 ): Either<ElaborationError, undefined> => {
-  // Instantiate type parameters contained in `parameterType` before the
-  // assignability check.
+  // Instantiate the applied function's own ("flexible") type parameters from
+  // the argument before the assignability check. Type parameters bound by
+  // enclosing not-yet-applied functions are "rigid" (their types are decided
+  // when those functions are eventually applied, not by this argument).
+  const typeArguments = getTypesForTypeParameters({
+    parameterType,
+    argumentType,
+  })
+  const flexibleTypeArguments = new Map(
+    [...typeArguments].filter(
+      ([typeParameter]) => !rigidTypeParameters.has(typeParameter.identity),
+    ),
+  )
   const instantiatedParameterType = supplyTypeArguments(
     parameterType,
-    getTypesForTypeParameters({ parameterType, argumentType }),
+    flexibleTypeArguments,
   )
   return (
       isAssignable({ source: argumentType, target: instantiatedParameterType })
@@ -110,6 +123,7 @@ const checkApplication = (
   argument: SemanticGraph,
   functionType: Type,
   argumentType: Type,
+  rigidTypeParameters: ReadonlySet<symbol>,
 ): Either<ElaborationError, undefined> =>
   option.match(applicableFunctionSignatures(functionType), {
     none: _ =>
@@ -125,7 +139,11 @@ const checkApplication = (
         {
           none: _ =>
             signatures.map(signature =>
-              checkArgumentType(argumentType, signature.parameter),
+              checkArgumentType(
+                argumentType,
+                signature.parameter,
+                rigidTypeParameters,
+              ),
             ),
           some: ({ parameter, constraint }) =>
             [...constraint.members].flatMap(member =>
@@ -136,6 +154,7 @@ const checkApplication = (
                     argument,
                     supplyTypeArgument(functionType, parameter, member),
                     supplyTypeArgument(argumentType, parameter, member),
+                    rigidTypeParameters,
                   ),
                 ],
             ),
@@ -167,7 +186,12 @@ export const applyKeywordHandler: KeywordHandler = (
               location: [...context.location, '1', 'argument'],
             }),
             argumentType =>
-              checkApplication(argument, functionType, argumentType),
+              checkApplication(
+                argument,
+                functionType,
+                argumentType,
+                rigidTypeParameterIdentities(context),
+              ),
           ),
       )
 

@@ -391,7 +391,7 @@ export const applicableFunctionSignatures = (
 
 /**
  * Attempt to reduce a (possibly stuck) application of `functionType(argument)`.
- * While the function still contains any of the `flexibleParameters` (type
+ * While the function still contains any of the `parametersStuckOn` (type
  * parameters an enclosing function will instantiate), the application stays
  * stuck. Once they're all gone the function is applied: any of its own type
  * parameters are bound from the argument, and type parameters appearing only in
@@ -400,12 +400,12 @@ export const applicableFunctionSignatures = (
 const reduceApplication = (
   functionType: Type,
   argumentType: Type,
-  flexibleParameters: ReadonlySet<symbol>,
+  parametersStuckOn: ReadonlySet<symbol>,
 ): Type => {
-  const stillAwaitingFlexibleParameter = [
+  const stillStuckOnParameter = [
     ...typeParameterIdentitiesWithinType(functionType),
-  ].some(identity => flexibleParameters.has(identity))
-  return !stillAwaitingFlexibleParameter && functionType.kind === 'function' ?
+  ].some(identity => parametersStuckOn.has(identity))
+  return !stillStuckOnParameter && functionType.kind === 'function' ?
       supplyTypeArguments(
         functionType.signature.return,
         getTypesForTypeParameters({
@@ -413,7 +413,7 @@ const reduceApplication = (
           argumentType: argumentType,
         }),
       )
-    : makeApplicationType(functionType, argumentType, flexibleParameters)
+    : makeApplicationType(functionType, argumentType, parametersStuckOn)
 }
 
 const cartesianProduct = <Element>(lists: readonly (readonly Element[])[]) =>
@@ -508,7 +508,7 @@ export const supplyTypeArgument = (
         reduceApplication(
           supplyTypeArgument(type.function, typeParameter, typeArgument),
           supplyTypeArgument(type.argument, typeParameter, typeArgument),
-          type.flexibleParameters,
+          type.parametersStuckOn,
         ),
       intrinsicApplication: type =>
         reduceIntrinsicApplication(

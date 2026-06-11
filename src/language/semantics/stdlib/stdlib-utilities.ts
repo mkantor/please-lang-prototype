@@ -66,6 +66,8 @@ export const emptyContextForStdlibApplications: ExpressionContext = {
   location: [],
   program: objectNodeFromOrderedEntries([]),
   mutableInferenceCache: new Map(),
+  mutableFunctionParameterCache: new Map(),
+  locationDoesNotCorrespondWithTruePosition: true,
 }
 
 export const serializeOnceAppliedFunction =

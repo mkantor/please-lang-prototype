@@ -15,8 +15,10 @@ import {
   findKeyPathsToTypeParameter,
 } from './type-parameter-analysis.js'
 import {
+  getTypesForTypeParameters,
   replaceAllTypeParametersWithTheirConstraints,
   supplyTypeArgument,
+  supplyTypeArguments,
 } from './type-substitution.js'
 
 export const isAssignable = ({
@@ -63,6 +65,25 @@ export const isAssignable = ({
               source: target.argument,
               target: source.argument,
             })
+          : (
+            // When the stuck application's signature is concrete, its return
+            // type (with any contained type parameters bound from the argument
+            // type) serves as an upper bound on what the application will
+            // produce. This condition allows stuck applications be assigned to
+            // (rigid) type parameters.
+            source.function.kind === 'function' &&
+            isAssignable({
+              source: supplyTypeArguments(
+                source.function.signature.return,
+                getTypesForTypeParameters({
+                  parameterType: source.function.signature.parameter,
+                  argumentType: source.argument,
+                }),
+              ),
+              target,
+            })
+          ) ?
+            true
           : isAssignable({
               source: replaceAllTypeParametersWithTheirConstraints(source),
               target,

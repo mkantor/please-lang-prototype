@@ -230,7 +230,7 @@ const genericizeParameterAnnotationSuite = testCases(
     // symbols they can't be structurally compared to `Type`s instantiated here.
     // TODO: Consider traversing the returned type to substitute symbols.
     stringifyTypeForEndUser(
-      genericizeFunctionParameterAnnotation(parameterName, annotation),
+      genericizeFunctionParameterAnnotation(parameterName, annotation).type,
     ),
   ([parameterName, annotation]) =>
     `genericizing \`${parameterName}: ${stringifyTypeForEndUser(annotation)}\``,

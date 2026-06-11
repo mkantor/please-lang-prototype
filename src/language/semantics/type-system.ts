@@ -15,6 +15,7 @@ export {
 export {
   inferType,
   resolveParameterTypes,
+  rigidTypeParameterIdentities,
 } from './type-system/type-inference.js'
 export {
   functionParameterKey,

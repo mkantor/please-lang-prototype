@@ -13,6 +13,11 @@ import {
   type TypeKeyPath,
 } from './type-key-path.js'
 
+export type GenericizedFunctionParameterAnnotation = {
+  readonly type: Type
+  readonly typeParametersBoundByFunction: ReadonlySet<symbol>
+}
+
 /**
  * Traverse a function parameter type annotation, replacing each opaque or union
  * leaf with a fresh `TypeParameter` constrained to the leaf. This is used to
@@ -25,61 +30,103 @@ import {
 export const genericizeFunctionParameterAnnotation = (
   parameterName: Atom,
   annotationType: Type,
-): Type =>
+): GenericizedFunctionParameterAnnotation =>
   genericizeFunctionParameterAnnotationAtKeyPath(
     parameterName,
     annotationType,
     [],
+    false,
   )
 
 const genericizeFunctionParameterAnnotationAtKeyPath = (
   parameterName: Atom,
   type: Type,
   keyPath: TypeKeyPath,
-): Type =>
+  // If the annotation contains function types, their type parameters are rigid.
+  isWithinNestedFunctionType: boolean,
+): GenericizedFunctionParameterAnnotation =>
   matchTypeFormat(type, {
-    function: (type): Type =>
-      makeFunctionType({
-        parameter: genericizeFunctionParameterAnnotationAtKeyPath(
-          parameterName,
-          type.signature.parameter,
-          [...keyPath, functionParameterKey],
+    function: type => {
+      const parameter = genericizeFunctionParameterAnnotationAtKeyPath(
+        parameterName,
+        type.signature.parameter,
+        [...keyPath, functionParameterKey],
+        true,
+      )
+      const returnValue = genericizeFunctionParameterAnnotationAtKeyPath(
+        parameterName,
+        type.signature.return,
+        [...keyPath, functionReturnKey],
+        true,
+      )
+      return {
+        type: makeFunctionType({
+          parameter: parameter.type,
+          return: returnValue.type,
+        }),
+        typeParametersBoundByFunction: new Set([
+          ...parameter.typeParametersBoundByFunction,
+          ...returnValue.typeParametersBoundByFunction,
+        ]),
+      }
+    },
+    object: type => {
+      const children = Object.entries(type.children).map(
+        ([key, child]) =>
+          [
+            key,
+            genericizeFunctionParameterAnnotationAtKeyPath(
+              parameterName,
+              child,
+              [...keyPath, key],
+              isWithinNestedFunctionType,
+            ),
+          ] as const,
+      )
+      return {
+        type: makeObjectType(
+          Object.fromEntries(children.map(([key, child]) => [key, child.type])),
         ),
-        return: genericizeFunctionParameterAnnotationAtKeyPath(
-          parameterName,
-          type.signature.return,
-          [...keyPath, functionReturnKey],
+        typeParametersBoundByFunction: new Set(
+          children.flatMap(([_key, child]) => [
+            ...child.typeParametersBoundByFunction,
+          ]),
         ),
-      }),
-    object: type =>
-      makeObjectType(
-        Object.fromEntries(
-          Object.entries(type.children).map(
-            ([key, child]) =>
-              [
-                key,
-                genericizeFunctionParameterAnnotationAtKeyPath(
-                  parameterName,
-                  child,
-                  [...keyPath, key],
-                ),
-              ] as const,
-          ),
-        ),
-      ),
-    opaque: leafType =>
-      makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
-        assignableTo: leafType,
-      }),
-    parameter: leafType => leafType,
-    application: leafType => leafType,
-    indexedAccess: leafType => leafType,
-    intrinsicApplication: leafType => leafType,
-    union: leafType =>
-      makeTypeParameter(synthesizeTypeParameterName(parameterName, keyPath), {
-        assignableTo: leafType,
-      }),
+      }
+    },
+    opaque: genericizeLeaf(parameterName, keyPath, isWithinNestedFunctionType),
+    parameter: doNotGenericizeLeaf,
+    application: doNotGenericizeLeaf,
+    indexedAccess: doNotGenericizeLeaf,
+    intrinsicApplication: doNotGenericizeLeaf,
+    union: genericizeLeaf(parameterName, keyPath, isWithinNestedFunctionType),
   })
+
+const genericizeLeaf =
+  (
+    parameterName: Atom,
+    keyPath: TypeKeyPath,
+    isWithinNestedFunctionType: boolean,
+  ) =>
+  (leafType: Type): GenericizedFunctionParameterAnnotation => {
+    const typeParameter = makeTypeParameter(
+      synthesizeTypeParameterName(parameterName, keyPath),
+      { assignableTo: leafType },
+    )
+    return {
+      type: typeParameter,
+      typeParametersBoundByFunction: new Set(
+        isWithinNestedFunctionType ? [] : [typeParameter.identity],
+      ),
+    }
+  }
+
+const doNotGenericizeLeaf = (
+  leafType: Type,
+): GenericizedFunctionParameterAnnotation => ({
+  type: leafType,
+  typeParametersBoundByFunction: new Set(),
+})
 
 const synthesizeTypeParameterName = (
   parameterName: Atom,
