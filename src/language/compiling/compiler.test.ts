@@ -1883,4 +1883,25 @@ testCases(
       assert(either.isRight(result))
     },
   ],
+
+  [
+    `{
+      apply_to_multiple_types: (f: a => :a) => { :f(42), :f(hello) }
+      :apply_to_multiple_types(@runtime { _ => a => :a }) ~ { 42, hello }
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `{
+      apply_to_multiple_types: (f: a => :a) => { :f(42), :f(hello) }
+      :apply_to_multiple_types(@runtime { _ => a => :a }) ~ { hello, 42 }
+    }`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
 ])
