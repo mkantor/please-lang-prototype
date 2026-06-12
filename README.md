@@ -5,8 +5,8 @@ A functional programming language oriented around edge-labeled trees[^1].
 ## Quick Start
 
 ```sh
-git clone git@github.com:mkantor/please-lang-prototype.git
-cd please-lang-prototype
+git clone git@github.com:mkantor/please-lang.git
+cd please-lang
 npm install
 npm run build
 echo '@runtime { context => :context.program.start_time }' | ./please
