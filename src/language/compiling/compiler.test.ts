@@ -1478,6 +1478,16 @@ testCases(
   ],
 
   [
+    `{
+      lookup_foo: a => (f: :a ~> (?b: { foo: :a })) => :f(:a).foo
+      :lookup_foo(hello)(@runtime { _ => _ => { foo: hello } }) ~ hello
+    }`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
     `{ outer: a => (f: :a ~> ?b) => ((g: :f(:a)) => :g)(:f(:a)) }`,
     result => {
       assert(either.isRight(result))
