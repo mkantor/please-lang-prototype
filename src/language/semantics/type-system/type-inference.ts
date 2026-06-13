@@ -4,13 +4,11 @@ import type { ElaborationError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
-  containsAnyUnelaboratedNodes,
   getParameterName,
   ignoredKey,
   isAssignable,
   isExpression,
   isFunctionNode,
-  isObjectNode,
   lookup,
   readApplyExpression,
   readFunctionExpression,
@@ -504,29 +502,26 @@ const inferTypeImplementation = (
     )
   }
 
-  if (isObjectNode(node) && containsAnyUnelaboratedNodes(node)) {
-    // Infer unelaborated descendants' types.
-    return cacheOnSuccess(
-      either.map(
-        either.sequence(
-          Object.entries(node).map(([key, value]) =>
-            either.map(
-              inferTypeImplementation(
-                value,
-                parameterTypes,
-                lookingUpKeys,
-                descendantContext([key]),
-              ),
-              childType => [key, childType] as const,
+  // Non-specific default case for object nodes: recurse into properties and
+  // infer their types, then create an `ObjectType`.
+  return cacheOnSuccess(
+    either.map(
+      either.sequence(
+        Object.entries(node).map(([key, value]) =>
+          either.map(
+            inferTypeImplementation(
+              value,
+              parameterTypes,
+              lookingUpKeys,
+              descendantContext([key]),
             ),
+            childType => [key, childType],
           ),
         ),
-        entries => makeObjectType(Object.fromEntries(entries)),
       ),
-    )
-  } else {
-    return cacheOnSuccess(literalTypeFromSemanticGraph(node))
-  }
+      entries => makeObjectType(Object.fromEntries(entries)),
+    ),
+  )
 }
 
 /**
