@@ -4,13 +4,11 @@ import type { ElaborationError } from '../../errors.js'
 import type { Atom } from '../../parsing.js'
 import {
   applyKeyPathToSemanticGraph,
-  containsAnyUnelaboratedNodes,
   getParameterName,
   ignoredKey,
   isAssignable,
   isExpression,
   isFunctionNode,
-  isObjectNode,
   lookup,
   readApplyExpression,
   readFunctionExpression,
@@ -60,6 +58,7 @@ import {
   applicableFunctionSignatures,
   applyKeyPathToType,
   getTypesForTypeParameters,
+  recursivelyInexact,
   supplyTypeArguments,
 } from './type-substitution.js'
 
@@ -147,7 +146,9 @@ const inferTypeImplementation = (
     typeof node === 'symbol' ||
     typeof node === 'function'
   ) {
-    return cacheOnSuccess(literalTypeFromSemanticGraph(node))
+    return cacheOnSuccess(
+      literalTypeFromSemanticGraph(node, { objectsAreExact: false }),
+    )
   }
 
   // @function: infer parameter type from context (or an explicit annotation)
@@ -504,29 +505,31 @@ const inferTypeImplementation = (
     )
   }
 
-  if (isObjectNode(node) && containsAnyUnelaboratedNodes(node)) {
-    // Infer unelaborated descendants' types.
-    return cacheOnSuccess(
-      either.map(
-        either.sequence(
-          Object.entries(node).map(([key, value]) =>
-            either.map(
-              inferTypeImplementation(
-                value,
-                parameterTypes,
-                lookingUpKeys,
-                descendantContext([key]),
-              ),
-              childType => [key, childType] as const,
+  // Non-specific default case for object nodes: recurse into properties and
+  // infer their types, then create an `ObjectType`.
+  return cacheOnSuccess(
+    either.map(
+      either.sequence(
+        Object.entries(node).map(([key, value]) =>
+          either.map(
+            inferTypeImplementation(
+              value,
+              parameterTypes,
+              lookingUpKeys,
+              descendantContext([key]),
             ),
+            childType => [key, childType],
           ),
         ),
-        entries => makeObjectType(Object.fromEntries(entries)),
       ),
-    )
-  } else {
-    return cacheOnSuccess(literalTypeFromSemanticGraph(node))
-  }
+      entries =>
+        makeObjectType(Object.fromEntries(entries), {
+          // Expressions will have different keys after elaboration, otherwise
+          // this is a literal object where all properties are known.
+          exact: !isExpression(node),
+        }),
+    ),
+  )
 }
 
 /**
@@ -581,7 +584,8 @@ const getFunctionParameterType = (
               // to describe concrete function types rather than generic ones.
               if (parameterName === ignoredKey) {
                 return {
-                  parameterType: annotationType,
+                  // Function parameter types are always inexact.
+                  parameterType: recursivelyInexact(annotationType),
                   typeParametersBoundByFunction: new Set<symbol>(),
                 }
               } else {
@@ -659,7 +663,8 @@ const getFunctionParameterType = (
                     contextuallyAppliedFunctionType.value.signature.parameter
                       .signature.parameter
                   return option.makeSome({
-                    parameterType: borrowedParameterType,
+                    // Function parameter types are always inexact.
+                    parameterType: recursivelyInexact(borrowedParameterType),
                     typeParametersBoundByFunction:
                       typeParameterIdentitiesWithinType(borrowedParameterType),
                   })

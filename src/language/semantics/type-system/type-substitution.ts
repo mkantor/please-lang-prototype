@@ -8,6 +8,7 @@ import { asUnionWithLiteralAtomMembers, isAssignable } from './subtyping.js'
 import {
   makeApplicationType,
   makeFunctionType,
+  makeIndexedAccessType,
   makeIntrinsicApplicationType,
   makeObjectType,
   makeTypeParameter,
@@ -511,7 +512,7 @@ export const supplyTypeArgument = (
             typeArgument,
           )
         }
-        return makeObjectType(substitutedChildren)
+        return makeObjectType(substitutedChildren, { exact: type.exact })
       },
       application: type =>
         reduceApplication(
@@ -586,6 +587,69 @@ export const supplyTypeArguments = (
     (partiallyAppliedType, [typeParameter, typeArgument]) =>
       supplyTypeArgument(partiallyAppliedType, typeParameter, typeArgument),
     type,
+  )
+
+/**
+ * Recursively clear `exact` from every object type within `type`. Used when a
+ * type is adopted from a user-written type position (e.g. parameter type
+ * annotations), where subtyping means wider values may inhabit it.
+ *
+ * Type parameters are kept by reference (their identities matter), so their
+ * constraints are not adjusted here; make sure constraints are inexact while
+ * creating type parameters instead.
+ */
+export const recursivelyInexact = (type: Type): Type =>
+  // Avoid infinite recursion when we hit the top type.
+  type === something ? type : (
+    matchTypeFormat<Type>(type, {
+      application: type =>
+        makeApplicationType(
+          recursivelyInexact(type.function),
+          recursivelyInexact(type.argument),
+          type.parametersStuckOn,
+        ),
+      function: type =>
+        makeFunctionType({
+          parameter: recursivelyInexact(type.signature.parameter),
+          return: recursivelyInexact(type.signature.return),
+        }),
+      indexedAccess: type =>
+        makeIndexedAccessType(
+          recursivelyInexact(type.object),
+          recursivelyInexact(type.key),
+        ),
+      intrinsicApplication: type =>
+        makeIntrinsicApplicationType(
+          type.parameterTypes.map(recursivelyInexact),
+          type.reduce,
+          recursivelyInexact(type.upperBound),
+        ),
+      object: type =>
+        makeObjectType(
+          Object.fromEntries(
+            Object.entries(type.children).map(([key, child]) => [
+              key,
+              recursivelyInexact(child),
+            ]),
+          ),
+          { exact: false },
+        ),
+      opaque: type => type,
+      parameter: type => type,
+      union: type =>
+        makeUnionType(
+          [...type.members].flatMap(member => {
+            if (typeof member === 'string') {
+              return [member]
+            } else {
+              const strippedMember = recursivelyInexact(member)
+              return strippedMember.kind === 'union' ?
+                  [...strippedMember.members]
+                : [strippedMember]
+            }
+          }),
+        ),
+    })
   )
 
 const isNothing = (type: Type) =>

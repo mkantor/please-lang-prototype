@@ -12,6 +12,7 @@ import {
   stringifyTypeKeyPathForEndUser,
   type TypeKeyPath,
 } from './type-key-path.js'
+import { recursivelyInexact } from './type-substitution.js'
 
 export type GenericizedFunctionParameterAnnotation = {
   readonly type: Type
@@ -111,7 +112,10 @@ const genericizeLeaf =
   (leafType: Type): GenericizedFunctionParameterAnnotation => {
     const typeParameter = makeTypeParameter(
       synthesizeTypeParameterName(parameterName, keyPath),
-      { assignableTo: leafType },
+      {
+        // The constraint is an upper bound, so it can't be exact.
+        assignableTo: recursivelyInexact(leafType),
+      },
     )
     return {
       type: typeParameter,

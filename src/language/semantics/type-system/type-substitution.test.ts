@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import { testCases } from '../../../test-utilities.test.js'
 import { stringifyKeyPathForEndUser, type KeyPath } from '../key-path.js'
 import { stringifyTypeForEndUser } from '../semantic-graph.js'
@@ -219,6 +220,34 @@ getTypesForTypeParametersSuite('getTypesForTypeParameters', [
     ]),
   ],
 ])
+
+const genericizationConstraintSuite = testCases(
+  (annotation: Type) =>
+    genericizeFunctionParameterAnnotation('x', annotation).type,
+  annotation =>
+    `genericizing \`x: ${stringifyTypeForEndUser(annotation)}\` strips exactness`,
+)
+
+genericizationConstraintSuite(
+  'genericization produces inexact object constraints',
+  [
+    [
+      // The constraint is an upper bound for its instantiations (which should
+      // admit subtypes), so it must not be exact.
+      makeUnionType([
+        makeObjectType({ a: makeUnionType(['1']) }, { exact: true }),
+      ]),
+      parameterType => {
+        assert(parameterType.kind === 'parameter')
+        const constraint = parameterType.constraint.assignableTo
+        assert(constraint.kind === 'union')
+        const [member] = [...constraint.members]
+        assert(typeof member === 'object' && member.kind === 'object')
+        assert.deepEqual(member.exact, false)
+      },
+    ],
+  ],
+)
 
 const genericizeParameterAnnotationSuite = testCases(
   ([parameterName, annotation]: readonly [

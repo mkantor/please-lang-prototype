@@ -25,6 +25,7 @@ import { makeObjectType, makeUnionType, type Type } from './type-formats.js'
  */
 export const literalTypeFromSemanticGraph = (
   node: SemanticGraph,
+  options: { readonly objectsAreExact: boolean },
 ): Either<Bug, Type> => {
   if (typeof node === 'string') {
     return either.makeRight({
@@ -51,7 +52,9 @@ export const literalTypeFromSemanticGraph = (
       right: unionExpression =>
         either.map(
           either.sequence(
-            Object.values(unionExpression[1]).map(literalTypeFromSemanticGraph),
+            Object.values(unionExpression[1]).map(member =>
+              literalTypeFromSemanticGraph(member, options),
+            ),
           ),
           memberTypes =>
             makeUnionType(
@@ -71,13 +74,16 @@ export const literalTypeFromSemanticGraph = (
             either.map(
               either.sequence(
                 Object.entries(node).map(([key, value]) =>
-                  either.map(literalTypeFromSemanticGraph(value), childType => [
-                    key,
-                    childType,
-                  ]),
+                  either.map(
+                    literalTypeFromSemanticGraph(value, options),
+                    childType => [key, childType],
+                  ),
                 ),
               ),
-              entries => makeObjectType(Object.fromEntries(entries)),
+              entries =>
+                makeObjectType(Object.fromEntries(entries), {
+                  exact: options.objectsAreExact,
+                }),
             ),
         ),
     })

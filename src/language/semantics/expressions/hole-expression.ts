@@ -81,7 +81,10 @@ export const readHoleExpression = (
                 node[typeParameterKey]
               : undefined
             return either.map(
-              literalTypeFromSemanticGraph(assignableToNode),
+              literalTypeFromSemanticGraph(assignableToNode, {
+                // Constraints are merely upper bounds.
+                objectsAreExact: false,
+              }),
               assignableTo => {
                 const typeParameter =
                   existingTypeParameter ??
