@@ -146,7 +146,9 @@ const inferTypeImplementation = (
     typeof node === 'symbol' ||
     typeof node === 'function'
   ) {
-    return cacheOnSuccess(literalTypeFromSemanticGraph(node))
+    return cacheOnSuccess(
+      literalTypeFromSemanticGraph(node, { objectsAreExact: false }),
+    )
   }
 
   // @function: infer parameter type from context (or an explicit annotation)

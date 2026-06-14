@@ -85,24 +85,29 @@ export const globalFunctions = {
     },
     type =>
       either.makeRight(value =>
-        either.flatMap(literalTypeFromSemanticGraph(value), valueAsType =>
-          either.flatMap(literalTypeFromSemanticGraph(type), typeAsType => {
-            if (
-              isAssignable({
-                source: valueAsType,
-                target: typeAsType,
-              })
-            ) {
-              return either.makeRight(value)
-            } else {
-              return either.makeLeft({
-                kind: 'typeMismatch',
-                message: `the value \`${stringifySemanticGraphForEndUser(
-                  value,
-                )}\` is not assignable to the type \`${stringifyTypeForEndUser(typeAsType)}\``,
-              })
-            }
-          }),
+        either.flatMap(
+          literalTypeFromSemanticGraph(value, { objectsAreExact: true }),
+          valueAsType =>
+            either.flatMap(
+              literalTypeFromSemanticGraph(type, { objectsAreExact: false }),
+              typeAsType => {
+                if (
+                  isAssignable({
+                    source: valueAsType,
+                    target: typeAsType,
+                  })
+                ) {
+                  return either.makeRight(value)
+                } else {
+                  return either.makeLeft({
+                    kind: 'typeMismatch',
+                    message: `the value \`${stringifySemanticGraphForEndUser(
+                      value,
+                    )}\` is not assignable to the type \`${stringifyTypeForEndUser(typeAsType)}\``,
+                  })
+                }
+              },
+            ),
         ),
       ),
   ),

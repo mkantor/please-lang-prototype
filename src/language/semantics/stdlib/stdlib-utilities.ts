@@ -230,6 +230,8 @@ const synthesizeTypeParameterName = (index: number) => {
 // The reducers below apply an intrinsic function (`f`) to concrete argument
 // atoms (unit types), lifting the result back to a type. This lets
 // `IntrinsicApplicationType`s reduce via the same code that evaluates values.
+// Returned object types are exact because they describe actual values produced
+// by `f`.
 
 const intrinsicApplicationTypeReducerArity1 =
   (f: FunctionNodeCallSignature) =>
@@ -242,7 +244,10 @@ const intrinsicApplicationTypeReducerArity1 =
         })
       : either.flatMap(
           f(argument, emptyContextForStdlibApplications),
-          literalTypeFromSemanticGraph,
+          resultValue =>
+            literalTypeFromSemanticGraph(resultValue, {
+              objectsAreExact: true,
+            }),
         )
   }
 
@@ -263,7 +268,10 @@ const intrinsicApplicationTypeReducerArity2 =
           either.flatMap(f(argument1), f1 =>
             f1(argument2, emptyContextForStdlibApplications),
           ),
-          literalTypeFromSemanticGraph,
+          resultValue =>
+            literalTypeFromSemanticGraph(resultValue, {
+              objectsAreExact: true,
+            }),
         )
   }
 
@@ -295,7 +303,10 @@ const intrinsicApplicationTypeReducerArity3 =
               f2(argument3, emptyContextForStdlibApplications),
             ),
           ),
-          literalTypeFromSemanticGraph,
+          resultValue =>
+            literalTypeFromSemanticGraph(resultValue, {
+              objectsAreExact: true,
+            }),
         )
   }
 
@@ -376,18 +387,21 @@ const refineReturnedFunctionType = (
   returnedType: FunctionType,
   argument: SemanticGraph,
 ): Either<FunctionNodeCallError, FunctionType> =>
-  either.flatMap(literalTypeFromSemanticGraph(argument), argumentType => {
-    const refinedReturnType = supplyTypeArguments(
-      returnedType,
-      getTypesForTypeParameters({
-        parameterType,
-        argumentType,
-      }),
-    )
-    return refinedReturnType.kind === 'function' ?
-        either.makeRight(refinedReturnType)
-      : either.makeLeft({
-          kind: 'bug',
-          message: `supplying type arguments to a standard library function somehow transformed it into a ${refinedReturnType.kind} type`,
-        })
-  })
+  either.flatMap(
+    literalTypeFromSemanticGraph(argument, { objectsAreExact: true }),
+    argumentType => {
+      const refinedReturnType = supplyTypeArguments(
+        returnedType,
+        getTypesForTypeParameters({
+          parameterType,
+          argumentType,
+        }),
+      )
+      return refinedReturnType.kind === 'function' ?
+          either.makeRight(refinedReturnType)
+        : either.makeLeft({
+            kind: 'bug',
+            message: `supplying type arguments to a standard library function somehow transformed it into a ${refinedReturnType.kind} type`,
+          })
+    },
+  )
