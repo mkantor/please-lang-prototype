@@ -984,6 +984,35 @@ testCases(
   ],
 
   [
+    `(x: :atom.type) => (:x ~ (:x | foo))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `(x: :natural_number.type) => (:x ~ (:integer.type | foo))`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `a => (x: (:a | :a)) => (:x ~ :a)`,
+    result => {
+      assert(either.isRight(result))
+    },
+  ],
+
+  [
+    `a => b => (x: (:a | :a)) => (:x ~ :b)`,
+    result => {
+      assert(either.isLeft(result))
+      assert.deepEqual(result.value.kind, 'typeMismatch')
+    },
+  ],
+
+  [
     `{
       apply_to_1: (identity: (a => :a)) => :identity(1)
       :apply_to_1(:identity) ~ 1
