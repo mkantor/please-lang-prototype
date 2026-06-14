@@ -619,6 +619,18 @@ typeAssignabilitySuite('custom types (assignable)', [
     ],
     true,
   ],
+  [
+    [makeObjectType({}, { exact: true }), makeObjectType({}, { exact: true })],
+    true,
+  ],
+  [
+    [
+      // exact object types are assignable to inexact ones
+      makeObjectType({ a: makeUnionType(['a']) }, { exact: true }),
+      makeObjectType({}),
+    ],
+    true,
+  ],
   // TODO: Improve assignability checks for unions of objects to make this test
   // case pass:
   // [
@@ -778,6 +790,11 @@ typeAssignabilitySuite('custom types (not assignable)', [
         return: makeUnionType(['a', 'b']),
       }),
     ],
+    false,
+  ],
+  [
+    // inexact object types are not assignable to exact ones
+    [makeObjectType({}, { exact: false }), makeObjectType({}, { exact: true })],
     false,
   ],
 ])

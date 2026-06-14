@@ -130,14 +130,17 @@ export const updateTypeAtKeyPathIfValid = (
           if (next === undefined) {
             return type
           } else {
-            return makeObjectType({
-              ...type.children,
-              [firstKey]: updateTypeAtKeyPathIfValid(
-                next,
-                remainingKeyPath,
-                operation,
-              ),
-            })
+            return makeObjectType(
+              {
+                ...type.children,
+                [firstKey]: updateTypeAtKeyPathIfValid(
+                  next,
+                  remainingKeyPath,
+                  operation,
+                ),
+              },
+              { exact: type.exact },
+            )
           }
         } else {
           return type

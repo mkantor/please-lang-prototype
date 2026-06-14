@@ -231,28 +231,33 @@ export const isAssignable = ({
               )
             },
             object: target => {
-              // Make sure all properties in the target are present and valid in
-              // the source (recursively). Values may have additional properties
-              // beyond what is required by the target and still be assignable to
-              // it.
-              for (const [key, typePropertyValue] of Object.entries(
-                target.children,
-              )) {
-                if (source.children[key] === undefined) {
-                  return false
-                } else {
-                  // Recursively check the property:
-                  if (
-                    !isAssignable({
-                      source: source.children[key],
-                      target: typePropertyValue,
-                    })
-                  ) {
+              if (target.exact && !source.exact) {
+                // Inexact object types aren't assignable to exact ones.
+                return false
+              } else {
+                // Make sure all properties in the target are present and valid
+                // in the source (recursively). Values may have additional
+                // properties beyond what is required by the target and still be
+                // assignable to it.
+                for (const [key, typePropertyValue] of Object.entries(
+                  target.children,
+                )) {
+                  if (source.children[key] === undefined) {
                     return false
+                  } else {
+                    // Recursively check the property:
+                    if (
+                      !isAssignable({
+                        source: source.children[key],
+                        target: typePropertyValue,
+                      })
+                    ) {
+                      return false
+                    }
                   }
                 }
+                return true
               }
-              return true
             },
             opaque: target => target.isAssignableFrom(source),
             parameter: _target => false, // an object type is never directly assignable to a type parameter

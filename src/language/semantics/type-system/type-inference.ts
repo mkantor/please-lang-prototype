@@ -58,6 +58,7 @@ import {
   applicableFunctionSignatures,
   applyKeyPathToType,
   getTypesForTypeParameters,
+  recursivelyInexact,
   supplyTypeArguments,
 } from './type-substitution.js'
 
@@ -519,7 +520,12 @@ const inferTypeImplementation = (
           ),
         ),
       ),
-      entries => makeObjectType(Object.fromEntries(entries)),
+      entries =>
+        makeObjectType(Object.fromEntries(entries), {
+          // Expressions will have different keys after elaboration, otherwise
+          // this is a literal object where all properties are known.
+          exact: !isExpression(node),
+        }),
     ),
   )
 }
@@ -576,7 +582,8 @@ const getFunctionParameterType = (
               // to describe concrete function types rather than generic ones.
               if (parameterName === ignoredKey) {
                 return {
-                  parameterType: annotationType,
+                  // Function parameter types are always inexact.
+                  parameterType: recursivelyInexact(annotationType),
                   typeParametersBoundByFunction: new Set<symbol>(),
                 }
               } else {
@@ -654,7 +661,8 @@ const getFunctionParameterType = (
                     contextuallyAppliedFunctionType.value.signature.parameter
                       .signature.parameter
                   return option.makeSome({
-                    parameterType: borrowedParameterType,
+                    // Function parameter types are always inexact.
+                    parameterType: recursivelyInexact(borrowedParameterType),
                     typeParametersBoundByFunction:
                       typeParameterIdentitiesWithinType(borrowedParameterType),
                   })

@@ -108,13 +108,20 @@ export const makeIntrinsicApplicationType = (
 export type ObjectType = {
   readonly kind: 'object'
   readonly children: Readonly<Record<Atom, Type>>
+  /**
+   * When `true`, every inhabitant of this type has exactly the specified keys
+   * and can't be subtyped by objects with additional properties.
+   */
+  readonly exact: boolean
 }
 
 export const makeObjectType = <Children extends Readonly<Record<Atom, Type>>>(
   children: Children,
+  options: { readonly exact: boolean } = { exact: false },
 ): ObjectType & { readonly children: Children } => ({
   kind: 'object',
   children,
+  exact: options.exact,
 })
 
 export type OpaqueType = {
